@@ -1,0 +1,70 @@
+import React from 'react';
+import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
+import { NewAdmissionIcon } from './icons/NewAdmissionIcon';
+import { StudentsListIcon } from './icons/StudentsListIcon';
+import { BirthdayIcon } from './icons/BirthdayIcon';
+import { IdCardIcon } from './icons/IdCardIcon';
+import { RegistrationFormIcon } from './icons/RegistrationFormIcon';
+
+interface StudentOptionsPageProps {
+  onBack: () => void;
+  onNavigate: (page: string) => void;
+}
+
+const studentOptions = [
+  { name: 'New Admission', Icon: NewAdmissionIcon, key: 'new-admission' },
+  { name: 'Active Students List', Icon: StudentsListIcon, key: 'active-list' },
+  { name: 'Student\'s Birthday', Icon: BirthdayIcon, key: 'birthday' },
+  { name: 'Student\'s ID Card', Icon: IdCardIcon, key: 'id-card' },
+  { name: 'Registration Forms', Icon: RegistrationFormIcon, key: 'reg-forms' },
+];
+
+export function StudentOptionsPage({ onBack, onNavigate }: StudentOptionsPageProps): React.ReactNode {
+  const handleClick = (key: string) => {
+    switch (key) {
+      case 'new-admission':
+        onNavigate('new-student');
+        break;
+      case 'active-list':
+        onNavigate('active-students');
+        break;
+      case 'birthday':
+        onNavigate('birthday-list');
+        break;
+      case 'reg-forms':
+        onNavigate('registration-form-list');
+        break;
+      default:
+        alert('This feature is under development.');
+        break;
+    }
+  };
+
+  return (
+    <div className="animate-fade-in flex flex-col h-full">
+      <header className="bg-purple-600 text-white p-3 flex items-center shadow-md w-full -mx-3 sm:-mx-4 mt-[-1rem]">
+        <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-purple-700 transition-colors" aria-label="Go back to dashboard">
+          <ArrowLeftIcon className="w-6 h-6" />
+        </button>
+        <h1 className="text-xl font-bold ml-2">Student Options</h1>
+      </header>
+
+      <main className="flex-grow pt-6">
+        <div className="space-y-4">
+          {studentOptions.map(({ name, Icon, key }) => (
+            <button
+              key={key}
+              onClick={() => handleClick(key)}
+              className="w-full bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 flex items-center space-x-4 text-left"
+            >
+              <div className="w-10 h-10 text-orange-500">
+                <Icon />
+              </div>
+              <span className="text-lg font-medium text-purple-800">{name}</span>
+            </button>
+          ))}
+        </div>
+      </main>
+    </div>
+  );
+}
