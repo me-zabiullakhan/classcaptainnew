@@ -32,7 +32,7 @@ export function Header({ academyName, academyId, onLogout, onToggleNav }: Header
                         <MenuIcon className="w-6 h-6" />
                     </button>
                     <div>
-                        <h1 className="text-xl md:text-2xl font-bold">{greeting}, {academyName}!</h1>
+                        <h1 className="text-lg sm:text-xl md:text-2xl font-bold">{greeting}, {academyName}!</h1>
                         <p className="text-sm text-indigo-200 mt-1">Academy ID: {academyId}</p>
                     </div>
                 </div>
