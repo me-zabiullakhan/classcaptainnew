@@ -11,6 +11,7 @@ import { SelectBatchForAttendancePage } from './components/SelectBatchForAttenda
 import { TakeAttendancePage } from './components/TakeAttendancePage';
 import type { Batch, Student, CurrentUser, Academy } from './types';
 import { ActiveStudentsPage } from './components/ActiveStudentsPage';
+import { InactiveStudentsPage } from './components/InactiveStudentsPage';
 import { BirthdayListPage } from './components/BirthdayListPage';
 import { RegistrationFormListPage } from './components/RegistrationFormListPage';
 import { RegistrationFormViewPage } from './components/RegistrationFormViewPage';
@@ -445,6 +446,13 @@ function App(): React.ReactNode {
                   onEditStudent={handleEditStudent}
                   onViewStudent={handleViewRegistrationForm}
                   initialFilter={batchFilter || 'all'}
+                />;
+      case 'inactive-students':
+        return <InactiveStudentsPage
+                  onBack={() => setPage('student-options')}
+                  students={students}
+                  batches={batches}
+                  onToggleStudentStatus={toggleStudentStatus}
                 />;
       case 'birthday-list':
         return <BirthdayListPage onBack={() => setPage('student-options')} students={students} />;

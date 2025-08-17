@@ -6,6 +6,7 @@ import { StudentsListIcon } from './icons/StudentsListIcon';
 import { BirthdayIcon } from './icons/BirthdayIcon';
 import { IdCardIcon } from './icons/IdCardIcon';
 import { RegistrationFormIcon } from './icons/RegistrationFormIcon';
+import { InactiveStudentsIcon } from './icons/InactiveStudentsIcon';
 
 interface StudentOptionsPageProps {
   onBack: () => void;
@@ -15,6 +16,7 @@ interface StudentOptionsPageProps {
 const studentOptions = [
   { name: 'New Admission', Icon: NewAdmissionIcon, key: 'new-admission' },
   { name: 'Active Students List', Icon: StudentsListIcon, key: 'active-list' },
+  { name: 'Inactive Students List', Icon: InactiveStudentsIcon, key: 'inactive-list' },
   { name: 'Student\'s Birthday', Icon: BirthdayIcon, key: 'birthday' },
   { name: 'Student\'s ID Card', Icon: IdCardIcon, key: 'id-card' },
   { name: 'Registration Forms', Icon: RegistrationFormIcon, key: 'reg-forms' },
@@ -28,6 +30,9 @@ export function StudentOptionsPage({ onBack, onNavigate }: StudentOptionsPagePro
         break;
       case 'active-list':
         onNavigate('active-students');
+        break;
+      case 'inactive-list':
+        onNavigate('inactive-students');
         break;
       case 'birthday':
         onNavigate('birthday-list');
