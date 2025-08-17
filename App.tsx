@@ -38,6 +38,8 @@ import { FeeCollectionReportPage } from './components/FeeCollectionReportPage';
 import { ContactUsPage } from './components/ContactUsPage';
 import { StudentDashboardPage } from './components/student/StudentDashboardPage';
 import { StudentFeeStatusPage } from './components/student/StudentFeeStatusPage';
+import { StudentSideNav } from './components/student/StudentSideNav';
+import { MyAcademyPage } from './components/student/MyAcademyPage';
 
 function App(): React.ReactNode {
   const [dataConsentGiven, setDataConsentGiven] = React.useState(() => {
@@ -61,6 +63,7 @@ function App(): React.ReactNode {
   const [page, setPage] = React.useState('dashboard');
   const [studentPage, setStudentPage] = React.useState('dashboard');
   const [isNavOpen, setIsNavOpen] = React.useState(false);
+  const [isStudentNavOpen, setIsStudentNavOpen] = React.useState(false);
   const [batches, setBatches] = React.useState<Batch[]>([]);
   const [students, setStudents] = React.useState<Student[]>([]);
   const [feeCollections, setFeeCollections] = React.useState<FeeCollection[]>([]);
@@ -263,6 +266,7 @@ function App(): React.ReactNode {
     setAuthPage('login');
     setLoginError(null);
     setIsNavOpen(false);
+    setIsStudentNavOpen(false);
   };
 
   const addBatch = async (newBatchData: Omit<Batch, 'id' | 'currentStudents'>) => {
@@ -495,22 +499,47 @@ function App(): React.ReactNode {
       if (!currentAcademy) {
           return <div className="bg-slate-50 min-h-screen"><SplashScreen /></div>;
       }
-      if (studentPage === 'fee-status') {
-          return (
-              <StudentFeeStatusPage
-                  student={currentUser.data}
-                  feeCollections={studentFeeCollections}
-                  onBack={() => setStudentPage('dashboard')}
-              />
-          );
-      }
+
+      const renderStudentPage = () => {
+          switch (studentPage) {
+              case 'fee-status':
+                  return (
+                      <StudentFeeStatusPage
+                          student={currentUser.data}
+                          feeCollections={studentFeeCollections}
+                          onBack={() => setStudentPage('dashboard')}
+                      />
+                  );
+              case 'my-academy':
+                  return (
+                      <MyAcademyPage
+                          academy={currentAcademy}
+                          onBack={() => setStudentPage('dashboard')}
+                      />
+                  );
+              case 'dashboard':
+              default:
+                  return (
+                      <StudentDashboardPage
+                          student={currentUser.data}
+                          academy={currentAcademy}
+                          onNavigate={setStudentPage}
+                          onToggleNav={() => setIsStudentNavOpen(true)}
+                      />
+                  );
+          }
+      };
+
       return (
-          <StudentDashboardPage
-              student={currentUser.data}
-              academy={currentAcademy}
-              onLogout={handleLogout}
-              onNavigate={setStudentPage}
-          />
+          <div>
+              <StudentSideNav 
+                  isOpen={isStudentNavOpen} 
+                  onClose={() => setIsStudentNavOpen(false)}
+                  onNavigate={setStudentPage}
+                  onLogout={handleLogout}
+              />
+              {renderStudentPage()}
+          </div>
       );
   }
 

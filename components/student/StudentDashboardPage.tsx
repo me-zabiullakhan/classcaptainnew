@@ -15,8 +15,8 @@ import { StudyMaterialStudentIcon } from '../icons/StudyMaterialStudentIcon';
 interface StudentDashboardPageProps {
     student: Student;
     academy: Academy;
-    onLogout: () => void;
     onNavigate: (page: string) => void;
+    onToggleNav: () => void;
 }
 
 const studentFeatures = [
@@ -29,13 +29,24 @@ const studentFeatures = [
     { name: 'Study Material', Icon: StudyMaterialStudentIcon, color: 'bg-black' },
 ];
 
-export function StudentDashboardPage({ student, academy, onLogout, onNavigate }: StudentDashboardPageProps): React.ReactNode {
+export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav }: StudentDashboardPageProps): React.ReactNode {
     
     const placeholderPhoto = `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(student.name)}`;
 
+    const getClickHandler = (name: string) => {
+        switch (name) {
+            case 'Tuition Fees':
+                return () => onNavigate('fee-status');
+            case 'My Academy':
+                return () => onNavigate('my-academy');
+            default:
+                return () => alert(`${name} feature is under development.`);
+        }
+    };
+
     return (
         <div className="bg-gray-100 min-h-screen font-sans md:max-w-lg md:mx-auto md:shadow-2xl">
-            <StudentHeader academyName={academy.name} onLogout={onLogout} />
+            <StudentHeader academyName={academy.name} onToggleNav={onToggleNav} />
             <main className="p-4 space-y-4">
                 {/* Banner */}
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -77,11 +88,7 @@ export function StudentDashboardPage({ student, academy, onLogout, onNavigate }:
                             <StudentFeatureIcon
                                 key={feature.name}
                                 {...feature}
-                                onClick={
-                                    feature.name === 'Tuition Fees'
-                                        ? () => onNavigate('fee-status')
-                                        : () => alert(`${feature.name} feature is under development.`)
-                                }
+                                onClick={getClickHandler(feature.name)}
                             />
                         ))}
                     </div>
