@@ -14,11 +14,9 @@ import { ReportsIcon } from './icons/ReportsIcon';
 import { StudyMaterialIcon } from './icons/StudyMaterialIcon';
 import { HomeworkIcon } from './icons/HomeworkIcon';
 import { QuizIcon } from './icons/QuizIcon';
-import { BehaviorIcon } from './icons/BehaviorIcon';
 import { LeaveIcon } from './icons/LeaveIcon';
 import { TodoIcon } from './icons/TodoIcon';
 import { NoticeIcon } from './icons/NoticeIcon';
-import { WebsiteIcon } from './icons/WebsiteIcon';
 import { TransportIcon } from './icons/TransportIcon';
 import { SettingsIcon } from './icons/SettingsIcon';
 import { ContactIcon } from './icons/ContactIcon';
@@ -38,11 +36,9 @@ const features: Omit<FeatureItem, 'color'>[] = [
   { name: 'Study Material', Icon: StudyMaterialIcon },
   { name: 'Homework', Icon: HomeworkIcon },
   { name: 'Online Quiz', Icon: QuizIcon },
-  { name: 'Manage Behavior', Icon: BehaviorIcon },
   { name: 'Leave Manager', Icon: LeaveIcon },
   { name: 'To Do Task', Icon: TodoIcon },
   { name: 'Notice Board', Icon: NoticeIcon },
-  { name: 'Website Settings', Icon: WebsiteIcon },
   { name: 'Transport', Icon: TransportIcon },
   { name: 'Settings', Icon: SettingsIcon },
   { name: 'Contact Us', Icon: ContactIcon },

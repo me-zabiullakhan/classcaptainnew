@@ -15,11 +15,9 @@ import { ReportsIcon } from './icons/ReportsIcon';
 import { StudyMaterialIcon } from './icons/StudyMaterialIcon';
 import { HomeworkIcon } from './icons/HomeworkIcon';
 import { QuizIcon } from './icons/QuizIcon';
-import { BehaviorIcon } from './icons/BehaviorIcon';
 import { LeaveIcon } from './icons/LeaveIcon';
 import { TodoIcon } from './icons/TodoIcon';
 import { NoticeIcon } from './icons/NoticeIcon';
-import { WebsiteIcon } from './icons/WebsiteIcon';
 import { TransportIcon } from './icons/TransportIcon';
 import { SettingsIcon } from './icons/SettingsIcon';
 import { ContactIcon } from './icons/ContactIcon';
@@ -41,11 +39,9 @@ const features: FeatureItem[] = [
   { name: 'Study Material', Icon: StudyMaterialIcon, color: 'bg-gray-700' },
   { name: 'Homework', Icon: HomeworkIcon, color: 'bg-green-500' },
   { name: 'Online Quiz', Icon: QuizIcon, color: 'bg-teal-600' },
-  { name: 'Manage Behavior', Icon: BehaviorIcon, color: 'bg-emerald-600' },
   { name: 'Leave Manager', Icon: LeaveIcon, color: 'bg-blue-500' },
   { name: 'To Do Task', Icon: TodoIcon, color: 'bg-slate-500' },
   { name: 'Notice Board', Icon: NoticeIcon, color: 'bg-cyan-600' },
-  { name: 'Website Settings', Icon: WebsiteIcon, color: 'bg-purple-500' },
   { name: 'Transport', Icon: TransportIcon, color: 'bg-amber-500' },
   { name: 'Settings', Icon: SettingsIcon, color: 'bg-red-600' },
   { name: 'Contact Us', Icon: ContactIcon, color: 'bg-lime-600' },
