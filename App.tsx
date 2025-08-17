@@ -19,7 +19,7 @@ import { LoginPage } from './components/auth/LoginPage';
 import { RegisterPage } from './components/auth/RegisterPage';
 import { MyAccountPage } from './components/MyAccountPage';
 import { auth, db, firebaseConfig } from './firebaseConfig';
-import { collection, addDoc, onSnapshot, query, where, doc, runTransaction, increment, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, where, doc, runTransaction, increment, Timestamp, updateDoc } from 'firebase/firestore';
 import { SplashScreen } from './components/SplashScreen';
 import { ConnectionErrorBanner } from './components/ConnectionErrorBanner';
 import { OfflineIndicator } from './components/OfflineIndicator';
@@ -33,6 +33,7 @@ import { SelectStudentForFeesPage } from './components/SelectStudentForFeesPage'
 import { StudentFeeDetailsPage } from './components/StudentFeeDetailsPage';
 import { FeeDuesListPage } from './components/FeeDuesListPage';
 import { FeeCollectionReportPage } from './components/FeeCollectionReportPage';
+import { ContactUsPage } from './components/ContactUsPage';
 
 function App(): React.ReactNode {
   const [dataConsentGiven, setDataConsentGiven] = React.useState(() => {
@@ -361,6 +362,22 @@ function App(): React.ReactNode {
         throw e; // Re-throw to be caught by the calling component for UI reversal
     }
   };
+  
+  const updateAcademyContactDetails = async (details: Partial<Academy>) => {
+    if (isDemoMode) {
+      alert("Editing data is disabled in demo mode.");
+      return;
+    }
+    if (!academyId) return;
+    try {
+      const academyRef = doc(db, 'academies', academyId);
+      await updateDoc(academyRef, details);
+    } catch (e) {
+      handleFirestoreError(e as any, 'updating academy contact details');
+      alert("Failed to update contact details. Please try again.");
+      throw e;
+    }
+  };
 
 
   const handleSelectBatchForAttendance = (batchId: string) => {
@@ -456,6 +473,8 @@ function App(): React.ReactNode {
         return <RegistrationFormListPage onBack={() => setPage('student-options')} students={students} onSelectStudent={handleViewRegistrationForm} />;
       case 'my-account':
         return <MyAccountPage onBack={() => setPage('dashboard')} onLogout={handleLogout} />;
+      case 'contact-us':
+        return <ContactUsPage onBack={() => setPage('dashboard')} onSave={updateAcademyContactDetails} academy={currentUser.data as Academy} />;
       case 'batches':
         return <BatchesPage onBack={() => setPage('dashboard')} onCreate={() => setPage('new-batch')} batches={batches} onViewStudents={handleViewBatchStudents} />;
       case 'dashboard':

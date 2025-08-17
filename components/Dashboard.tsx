@@ -24,6 +24,9 @@ import { TransportIcon } from './icons/TransportIcon';
 import { SettingsIcon } from './icons/SettingsIcon';
 import { ContactIcon } from './icons/ContactIcon';
 import { GraduationCapIcon } from './icons/GraduationCapIcon';
+import { EmailIcon } from './icons/EmailIcon';
+import { PhoneIcon } from './icons/PhoneIcon';
+import { BuildingIcon } from './icons/BuildingIcon';
 
 const features: FeatureItem[] = [
   { name: 'Batches', Icon: BatchesIcon, color: 'bg-teal-500' },
@@ -64,10 +67,14 @@ export function Dashboard({ onNavigate, academy }: DashboardProps): React.ReactN
         return () => onNavigate('fees-options');
       case 'Attendance':
         return () => onNavigate('select-batch-attendance');
+      case 'Contact Us':
+        return () => onNavigate('contact-us');
       default:
         return () => alert('This feature is under development.');
     }
   }
+
+  const hasContactInfo = academy.contactEmail || academy.contactPhone || academy.address;
 
   return (
     <>
@@ -81,6 +88,32 @@ export function Dashboard({ onNavigate, academy }: DashboardProps): React.ReactN
               <p className="text-sm opacity-90">Academy ID: {academy.academyId || 'N/A'}</p>
           </div>
       </div>
+
+      {hasContactInfo && (
+        <div className="bg-white p-4 rounded-xl shadow-md mb-6 border border-gray-200">
+          <h3 className="text-base font-bold text-gray-800 mb-3">Academy Details</h3>
+          <div className="space-y-2 text-sm text-gray-600">
+            {academy.contactEmail && (
+              <div className="flex items-center space-x-2">
+                <EmailIcon className="w-4 h-4 text-gray-400" />
+                <span>{academy.contactEmail}</span>
+              </div>
+            )}
+            {academy.contactPhone && (
+              <div className="flex items-center space-x-2">
+                <PhoneIcon className="w-4 h-4 text-gray-400" />
+                <span>{academy.contactPhone}</span>
+              </div>
+            )}
+            {academy.address && (
+              <div className="flex items-start space-x-2">
+                <BuildingIcon className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                <span>{academy.address}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 sm:grid-cols-4 gap-y-6 gap-x-3 sm:gap-x-4 text-center">
         {features.map((feature) => (

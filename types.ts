@@ -15,6 +15,11 @@ export interface Academy {
   adminUid: string;
   adminEmail: string;
   status?: 'active' | 'paused';
+  contactEmail?: string;
+  contactPhone?: string;
+  contactPhoneAlt?: string;
+  website?: string;
+  address?: string;
 }
 
 export interface Batch {
