@@ -10,6 +10,7 @@ import { BookIcon } from '../icons/BookIcon';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebaseConfig';
 import type { CurrentUser, Student, Teacher, Academy } from '../../types';
+import { demoStudents } from '../../demoData';
 
 type Role = 'academy' | 'student' | 'teacher';
 
@@ -189,12 +190,23 @@ const StudentLoginForm = ({ onLogin, onAcademyNotFound }: { onLogin: (u: Current
         setIsLoading(true);
 
         const form = e.target as HTMLFormElement;
-        const academyId = (form.elements.namedItem('academyId') as HTMLInputElement).value.trim();
-        const studentId = (form.elements.namedItem('studentId') as HTMLInputElement).value.trim();
+        const academyId = (form.elements.namedItem('academyId') as HTMLInputElement).value.trim().toUpperCase();
+        const password = (form.elements.namedItem('password') as HTMLInputElement).value;
         const dob = (form.elements.namedItem('dob') as HTMLInputElement).value;
 
-        if (!academyId || !studentId || !dob) {
+        if (!academyId || !password || !dob) {
             setError("All fields are required.");
+            setIsLoading(false);
+            return;
+        }
+
+        if (academyId === 'ACDEMO') {
+            const demoStudent = demoStudents.find(s => s.password === password && s.dob === dob);
+            if (demoStudent) {
+                onLogin({ role: 'student', data: demoStudent, academyId: 'ACDEMO', academyName: 'SM TUTORIALS' });
+            } else {
+                setError("Invalid demo credentials. Please check your Password and Date of Birth.");
+            }
             setIsLoading(false);
             return;
         }
@@ -207,17 +219,18 @@ const StudentLoginForm = ({ onLogin, onAcademyNotFound }: { onLogin: (u: Current
                 setIsLoading(false);
                 return;
             }
+            const academyData = academyDoc.data() as Academy;
 
             const studentsRef = collection(db, `academies/${academyId}/students`);
-            const q = query(studentsRef, where("rollNumber", "==", studentId), where("dob", "==", dob));
+            const q = query(studentsRef, where("password", "==", password), where("dob", "==", dob));
             const querySnapshot = await getDocs(q);
 
             if (querySnapshot.empty) {
-                setError("Invalid credentials. Please check your Student ID and Date of Birth.");
+                setError("Invalid credentials. Please check your Password and Date of Birth.");
             } else {
                 const studentDoc = querySnapshot.docs[0];
                 const studentData = { id: studentDoc.id, ...studentDoc.data() } as Student;
-                onLogin({ role: 'student', data: studentData, academyId });
+                onLogin({ role: 'student', data: studentData, academyId, academyName: academyData.name });
             }
         } catch (err: any) {
             setError(err.message || 'An error occurred.');
@@ -229,7 +242,7 @@ const StudentLoginForm = ({ onLogin, onAcademyNotFound }: { onLogin: (u: Current
     return (
         <form onSubmit={handleStudentLogin}>
             <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Academy ID" type="text" name="academyId" placeholder="Enter your academy ID" required />
-            <FormInput icon={<UserIcon className="w-5 h-5" />} label="Student ID" type="text" name="studentId" placeholder="Enter your student ID" required />
+            <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" name="password" placeholder="Enter your password" required />
             <FormInput icon={<CalendarIcon className="w-5 h-5" />} label="Date of Birth" type="date" name="dob" placeholder="mm/dd/yyyy" required />
             {error && <p className="text-red-500 text-sm text-center mb-4">{error}</p>}
             <button type="submit" disabled={isLoading} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4 disabled:bg-indigo-300">

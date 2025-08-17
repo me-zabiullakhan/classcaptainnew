@@ -74,6 +74,7 @@ export type CurrentUser = {
   role: 'student';
   data: Student;
   academyId: string;
+  academyName: string;
 } | {
   role: 'teacher';
   data: Teacher;

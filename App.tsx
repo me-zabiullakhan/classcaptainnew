@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
@@ -19,7 +20,7 @@ import { LoginPage } from './components/auth/LoginPage';
 import { RegisterPage } from './components/auth/RegisterPage';
 import { MyAccountPage } from './components/MyAccountPage';
 import { auth, db, firebaseConfig } from './firebaseConfig';
-import { collection, addDoc, onSnapshot, query, where, doc, runTransaction, increment, Timestamp, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, where, doc, runTransaction, increment, Timestamp, updateDoc, getDoc } from 'firebase/firestore';
 import { SplashScreen } from './components/SplashScreen';
 import { ConnectionErrorBanner } from './components/ConnectionErrorBanner';
 import { OfflineIndicator } from './components/OfflineIndicator';
@@ -34,6 +35,7 @@ import { StudentFeeDetailsPage } from './components/StudentFeeDetailsPage';
 import { FeeDuesListPage } from './components/FeeDuesListPage';
 import { FeeCollectionReportPage } from './components/FeeCollectionReportPage';
 import { ContactUsPage } from './components/ContactUsPage';
+import { StudentDashboardPage } from './components/student/StudentDashboardPage';
 
 function App(): React.ReactNode {
   const [dataConsentGiven, setDataConsentGiven] = React.useState(() => {
@@ -46,6 +48,7 @@ function App(): React.ReactNode {
   });
 
   const [currentUser, setCurrentUser] = React.useState<CurrentUser | null>(null);
+  const [currentAcademy, setCurrentAcademy] = React.useState<Academy | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
   const [authPage, setAuthPage] = React.useState('login'); // 'login' or 'register'
@@ -106,28 +109,33 @@ function App(): React.ReactNode {
             
             if (academyData.status === 'paused') {
                 setCurrentUser(null);
+                setCurrentAcademy(null);
                 setLoginError("This academy account has been suspended. Please contact support.");
                 auth.signOut();
             } else {
                 setCurrentUser({ role: 'admin', data: academyData });
+                setCurrentAcademy(academyData);
                 setLoginError(null);
             }
             setIsOffline(false); 
             setCriticalError(null);
           } else {
             setCurrentUser(null);
+            setCurrentAcademy(null);
           }
           setIsLoading(false);
         }, (err) => {
           handleFirestoreError(err, 'academy data');
           if (err.code !== 'unavailable' && err.code !== 'cancelled') {
               setCurrentUser(null);
+              setCurrentAcademy(null);
           }
           setIsLoading(false);
         });
         return () => unsubscribeFirestore();
       } else {
         setCurrentUser(null);
+        setCurrentAcademy(null);
         setIsLoading(false);
       }
     });
@@ -176,9 +184,40 @@ function App(): React.ReactNode {
     };
   }, [academyId, isUsingPlaceholderConfig, isDemoMode]);
 
-  const handleLogin = (user: CurrentUser) => {
-    setCurrentUser(user);
-    setPage('dashboard');
+  const handleLogin = async (user: CurrentUser) => {
+      setIsLoading(true);
+      if (user.role === 'student') {
+          try {
+              if (user.academyId === 'ACDEMO') {
+                  setCurrentAcademy({
+                      id: 'demo-academy-id',
+                      academyId: 'ACDEMO',
+                      name: 'SM TUTORIALS',
+                      adminUid: 'demo-admin-uid',
+                      adminEmail: 'demo@classcaptain.com',
+                  });
+              } else {
+                  const academyDoc = await getDoc(doc(db, 'academies', user.academyId));
+                  if (academyDoc.exists()) {
+                      setCurrentAcademy({ id: academyDoc.id, ...academyDoc.data() } as Academy);
+                  } else {
+                      setLoginError(`Academy with ID ${user.academyId} not found.`);
+                      setIsLoading(false);
+                      return;
+                  }
+              }
+          } catch(e) {
+              console.error("Failed to fetch academy details for student:", e);
+              setLoginError("Could not fetch academy details. Please try again.");
+              setIsLoading(false);
+              return;
+          }
+      } else if (user.role === 'admin') {
+          setCurrentAcademy(user.data);
+      }
+      setCurrentUser(user);
+      setPage('dashboard');
+      setIsLoading(false);
   };
 
   const handleSuperAdminLogin = () => {
@@ -187,8 +226,11 @@ function App(): React.ReactNode {
   };
 
   const handleLogout = async () => {
-    await auth.signOut();
+    if (currentUser?.role !== 'student') {
+        await auth.signOut();
+    }
     setCurrentUser(null);
+    setCurrentAcademy(null);
     setIsSuperAdmin(false);
     setPage('dashboard');
     setAuthPage('login');
@@ -420,6 +462,19 @@ function App(): React.ReactNode {
   
   if (isSuperAdmin) {
     return <div><SuperAdminPanel onLogout={handleLogout} /></div>;
+  }
+  
+  if (currentUser?.role === 'student') {
+      if (!currentAcademy) {
+          return <div className="bg-slate-50 min-h-screen"><SplashScreen /></div>;
+      }
+      return (
+          <StudentDashboardPage
+              student={currentUser.data}
+              academy={currentAcademy}
+              onLogout={handleLogout}
+          />
+      );
   }
 
   if (!currentUser) {
