@@ -40,6 +40,7 @@ import { StudentDashboardPage } from './components/student/StudentDashboardPage'
 import { StudentFeeStatusPage } from './components/student/StudentFeeStatusPage';
 import { StudentSideNav } from './components/student/StudentSideNav';
 import { MyAcademyPage } from './components/student/MyAcademyPage';
+import { StudentAttendancePage } from './components/student/StudentAttendancePage';
 
 function App(): React.ReactNode {
   const [dataConsentGiven, setDataConsentGiven] = React.useState(() => {
@@ -514,6 +515,14 @@ function App(): React.ReactNode {
                   return (
                       <MyAcademyPage
                           academy={currentAcademy}
+                          onBack={() => setStudentPage('dashboard')}
+                      />
+                  );
+              case 'attendance':
+                  return (
+                      <StudentAttendancePage
+                          student={currentUser.data}
+                          academyId={academyId!}
                           onBack={() => setStudentPage('dashboard')}
                       />
                   );

@@ -39,6 +39,8 @@ export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav
                 return () => onNavigate('fee-status');
             case 'My Academy':
                 return () => onNavigate('my-academy');
+            case 'Attendance':
+                return () => onNavigate('attendance');
             default:
                 return () => alert(`${name} feature is under development.`);
         }
