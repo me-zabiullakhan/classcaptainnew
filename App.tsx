@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
@@ -36,6 +37,7 @@ import { FeeDuesListPage } from './components/FeeDuesListPage';
 import { FeeCollectionReportPage } from './components/FeeCollectionReportPage';
 import { ContactUsPage } from './components/ContactUsPage';
 import { StudentDashboardPage } from './components/student/StudentDashboardPage';
+import { StudentFeeStatusPage } from './components/student/StudentFeeStatusPage';
 
 function App(): React.ReactNode {
   const [dataConsentGiven, setDataConsentGiven] = React.useState(() => {
@@ -57,10 +59,12 @@ function App(): React.ReactNode {
   const [criticalError, setCriticalError] = React.useState<string | null>(null);
 
   const [page, setPage] = React.useState('dashboard');
+  const [studentPage, setStudentPage] = React.useState('dashboard');
   const [isNavOpen, setIsNavOpen] = React.useState(false);
   const [batches, setBatches] = React.useState<Batch[]>([]);
   const [students, setStudents] = React.useState<Student[]>([]);
   const [feeCollections, setFeeCollections] = React.useState<FeeCollection[]>([]);
+  const [studentFeeCollections, setStudentFeeCollections] = React.useState<FeeCollection[]>([]);
   const [selectedBatchId, setSelectedBatchId] = React.useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = React.useState<string | null>(null);
   const [batchFilter, setBatchFilter] = React.useState<string | null>(null);
@@ -149,7 +153,7 @@ function App(): React.ReactNode {
       return;
     }
 
-    if (!academyId || isUsingPlaceholderConfig) {
+    if (!academyId || isUsingPlaceholderConfig || currentUser?.role !== 'admin') {
         setBatches([]);
         setStudents([]);
         setFeeCollections([]);
@@ -182,7 +186,28 @@ function App(): React.ReactNode {
       unsubscribeStudents();
       unsubscribeFeeCollections();
     };
-  }, [academyId, isUsingPlaceholderConfig, isDemoMode]);
+  }, [academyId, isUsingPlaceholderConfig, isDemoMode, currentUser]);
+
+  React.useEffect(() => {
+    if (currentUser?.role !== 'student' || !academyId || isUsingPlaceholderConfig) {
+      setStudentFeeCollections([]);
+      return;
+    }
+
+    const feeCollectionsQuery = query(
+      collection(db, `academies/${academyId}/feeCollections`),
+      where('studentId', '==', currentUser.data.id)
+    );
+
+    const unsubscribe = onSnapshot(feeCollectionsQuery, (snapshot) => {
+      setStudentFeeCollections(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FeeCollection)));
+      setIsOffline(false);
+      setCriticalError(null);
+    }, (err) => handleFirestoreError(err, 'student fee collections'));
+
+    return () => unsubscribe();
+  }, [currentUser, academyId, isUsingPlaceholderConfig]);
+
 
   const handleLogin = async (user: CurrentUser) => {
       setIsLoading(true);
@@ -217,6 +242,7 @@ function App(): React.ReactNode {
       }
       setCurrentUser(user);
       setPage('dashboard');
+      setStudentPage('dashboard');
       setIsLoading(false);
   };
 
@@ -233,6 +259,7 @@ function App(): React.ReactNode {
     setCurrentAcademy(null);
     setIsSuperAdmin(false);
     setPage('dashboard');
+    setStudentPage('dashboard');
     setAuthPage('login');
     setLoginError(null);
     setIsNavOpen(false);
@@ -468,11 +495,21 @@ function App(): React.ReactNode {
       if (!currentAcademy) {
           return <div className="bg-slate-50 min-h-screen"><SplashScreen /></div>;
       }
+      if (studentPage === 'fee-status') {
+          return (
+              <StudentFeeStatusPage
+                  student={currentUser.data}
+                  feeCollections={studentFeeCollections}
+                  onBack={() => setStudentPage('dashboard')}
+              />
+          );
+      }
       return (
           <StudentDashboardPage
               student={currentUser.data}
               academy={currentAcademy}
               onLogout={handleLogout}
+              onNavigate={setStudentPage}
           />
       );
   }

@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { Student, Academy } from '../../types';
 import { StudentHeader } from './StudentHeader';
@@ -15,6 +16,7 @@ interface StudentDashboardPageProps {
     student: Student;
     academy: Academy;
     onLogout: () => void;
+    onNavigate: (page: string) => void;
 }
 
 const studentFeatures = [
@@ -27,7 +29,7 @@ const studentFeatures = [
     { name: 'Study Material', Icon: StudyMaterialStudentIcon, color: 'bg-black' },
 ];
 
-export function StudentDashboardPage({ student, academy, onLogout }: StudentDashboardPageProps): React.ReactNode {
+export function StudentDashboardPage({ student, academy, onLogout, onNavigate }: StudentDashboardPageProps): React.ReactNode {
     
     const placeholderPhoto = `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(student.name)}`;
 
@@ -75,7 +77,11 @@ export function StudentDashboardPage({ student, academy, onLogout }: StudentDash
                             <StudentFeatureIcon
                                 key={feature.name}
                                 {...feature}
-                                onClick={() => alert(`${feature.name} feature is under development.`)}
+                                onClick={
+                                    feature.name === 'Tuition Fees'
+                                        ? () => onNavigate('fee-status')
+                                        : () => alert(`${feature.name} feature is under development.`)
+                                }
                             />
                         ))}
                     </div>

@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { LogoIcon } from '../icons/LogoIcon';
 import { BuildingIcon } from '../icons/BuildingIcon';
@@ -372,7 +373,17 @@ export function LoginPage({ onLogin, onSuperAdminLogin, onNavigateToRegister, ex
                     </>
                 );
             case 'student':
-                return <StudentLoginForm onLogin={onLogin} onAcademyNotFound={() => setShowNotFoundPopup(true)} />;
+                 return (
+                    <>
+                        <StudentLoginForm onLogin={onLogin} onAcademyNotFound={() => setShowNotFoundPopup(true)} />
+                        <div className="text-center mt-6 text-xs text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <p className="font-bold text-gray-700 mb-1">Demo Student Login</p>
+                            <p>Academy ID: <code className="font-mono bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded">ACDEMO</code></p>
+                            <p className="mt-1">Password: <code className="font-mono bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded">alice123</code></p>
+                            <p className="mt-1">Date of Birth: <code className="font-mono bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded">2006-05-15</code></p>
+                        </div>
+                    </>
+                );
             case 'teacher':
                 return <TeacherLoginForm onLogin={onLogin} onAcademyNotFound={() => setShowNotFoundPopup(true)} />;
             default:
