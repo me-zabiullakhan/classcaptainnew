@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { Student } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';

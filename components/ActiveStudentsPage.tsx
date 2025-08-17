@@ -1,8 +1,9 @@
-
 import React from 'react';
 import type { Student, Batch } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { SearchIcon } from './icons/SearchIcon';
+import { PencilIcon } from './icons/PencilIcon';
+import { RegistrationFormIcon } from './icons/RegistrationFormIcon';
 
 // A simple toggle switch component
 const ToggleSwitch = ({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
@@ -19,8 +20,8 @@ const ToggleSwitch = ({ checked, onChange }: { checked: boolean; onChange: () =>
 );
 
 
-const StudentCard = ({ student, onToggleStatus }: { student: Student, onToggleStatus: (id: string) => void }) => (
-    <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-indigo-500">
+const StudentCard = ({ student, onToggleStatus, onEditStudent, onViewStudent }: { student: Student, onToggleStatus: (id: string) => void, onEditStudent: (id: string) => void, onViewStudent: (id: string) => void }) => (
+    <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-indigo-500 flex flex-col">
         <div className="flex justify-between items-start">
             <div className="flex items-center space-x-3">
                 {student.photo ? (
@@ -43,19 +44,48 @@ const StudentCard = ({ student, onToggleStatus }: { student: Student, onToggleSt
         <div className="mt-3 text-xs text-gray-600">
             Batches: {student.batches.join(', ') || 'None'}
         </div>
+        <div className="border-t mt-3 pt-3 flex justify-end space-x-2">
+            <button
+              onClick={() => onEditStudent(student.id)}
+              className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              aria-label={`Edit details for ${student.name}`}
+            >
+              <PencilIcon className="w-4 h-4" />
+              <span>Edit</span>
+            </button>
+            <button
+              onClick={() => onViewStudent(student.id)}
+              className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors"
+              aria-label={`View details for ${student.name}`}
+            >
+              <RegistrationFormIcon className="w-4 h-4" />
+              <span>View Details</span>
+            </button>
+        </div>
     </div>
 );
 
 
-export function ActiveStudentsPage({ onBack, students, batches, onToggleStudentStatus }: { onBack: () => void; students: Student[]; batches: Batch[]; onToggleStudentStatus: (studentId: string) => void; }) {
-    const [filter, setFilter] = React.useState('all');
+export function ActiveStudentsPage({ onBack, students, batches, onToggleStudentStatus, onEditStudent, onViewStudent, initialFilter = 'all' }: { 
+    onBack: () => void; 
+    students: Student[]; 
+    batches: Batch[]; 
+    onToggleStudentStatus: (studentId: string) => void; 
+    onEditStudent: (studentId: string) => void;
+    onViewStudent: (studentId: string) => void;
+    initialFilter?: string; 
+}) {
+    const [filter, setFilter] = React.useState(initialFilter);
     const [searchTerm, setSearchTerm] = React.useState('');
 
     const activeStudents = students.filter(s => s.isActive);
 
     const filteredStudents = activeStudents
         .filter(student => filter === 'all' || student.batches.includes(filter))
-        .filter(student => student.name.toLowerCase().includes(searchTerm.toLowerCase()));
+        .filter(student => 
+            student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (student.rollNumber && student.rollNumber.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
 
     return (
         <div className="animate-fade-in flex flex-col h-full">
@@ -70,7 +100,7 @@ export function ActiveStudentsPage({ onBack, students, batches, onToggleStudentS
                     <div className="relative flex-grow">
                         <input
                             type="text"
-                            placeholder="Search student..."
+                            placeholder="Search by name or roll no..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                             className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
@@ -92,7 +122,13 @@ export function ActiveStudentsPage({ onBack, students, batches, onToggleStudentS
                 <div className="space-y-4 pb-4">
                     {filteredStudents.length > 0 ? (
                         filteredStudents.map(student => (
-                            <StudentCard key={student.id} student={student} onToggleStatus={onToggleStudentStatus} />
+                            <StudentCard 
+                                key={student.id} 
+                                student={student} 
+                                onToggleStatus={onToggleStudentStatus}
+                                onEditStudent={onEditStudent}
+                                onViewStudent={onViewStudent}
+                             />
                         ))
                     ) : (
                         <div className="text-center py-20 px-4">

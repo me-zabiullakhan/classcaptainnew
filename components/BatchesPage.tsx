@@ -1,16 +1,18 @@
-
 import React from 'react';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { PlusIcon } from './icons/PlusIcon';
 import type { Batch } from '../types';
+import { PencilIcon } from './icons/PencilIcon';
+import { StudentsIcon } from './icons/StudentsIcon';
 
 interface BatchesPageProps {
   onBack: () => void;
   onCreate: () => void;
   batches: Batch[];
+  onViewStudents: (batchName: string) => void;
 }
 
-export function BatchesPage({ onBack, onCreate, batches }: BatchesPageProps): React.ReactNode {
+export function BatchesPage({ onBack, onCreate, batches, onViewStudents }: BatchesPageProps): React.ReactNode {
   return (
     <div className="animate-fade-in flex flex-col h-full">
       <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md w-full -mx-3 sm:-mx-4 mt-[-1rem]">
@@ -28,19 +30,40 @@ export function BatchesPage({ onBack, onCreate, batches }: BatchesPageProps): Re
         ) : (
           <div className="space-y-4 pb-20">
             {batches.map(batch => (
-              <div key={batch.id} className="bg-white p-4 rounded-lg shadow-md border-l-4 border-indigo-500 hover:shadow-lg transition-shadow duration-200">
-                <div className="flex justify-between items-start">
-                  <div>
-                      <h3 className="font-bold text-lg text-gray-800">{batch.name}</h3>
-                      <p className="text-sm text-gray-500 mb-2">{batch.teacher || 'No Teacher'} &middot; {batch.location || 'No Location'}</p>
+              <div key={batch.id} className="bg-white p-4 rounded-lg shadow-md border-l-4 border-indigo-500 hover:shadow-lg transition-shadow duration-200 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-start">
+                      <div>
+                          <h3 className="font-bold text-lg text-gray-800">{batch.name}</h3>
+                          <p className="text-sm text-gray-500 mb-2">{batch.teacher || 'No Teacher'} &middot; {batch.location || 'No Location'}</p>
+                      </div>
+                      <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full flex-shrink-0">{batch.time || 'Unscheduled'}</span>
                   </div>
-                  <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full">{batch.time || 'Unscheduled'}</span>
+                  <div className="flex justify-between items-center mt-2 text-sm text-gray-600">
+                    <span className="font-medium">{batch.currentStudents} / {batch.maxSlots} Students</span>
+                    <div className="flex space-x-1">
+                        {batch.days.map(day => <span key={day} className="text-xs font-semibold">{day}</span>)}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center mt-2 text-sm text-gray-600">
-                  <span className="font-medium">{batch.currentStudents} / {batch.maxSlots} Students</span>
-                  <div className="flex space-x-1">
-                      {batch.days.map(day => <span key={day} className="text-xs font-semibold">{day}</span>)}
-                  </div>
+
+                <div className="border-t mt-4 pt-3 flex justify-end space-x-2">
+                    <button
+                      onClick={() => alert('Edit feature is under development.')}
+                      className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                      aria-label={`Edit batch ${batch.name}`}
+                    >
+                      <PencilIcon className="w-4 h-4" />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      onClick={() => onViewStudents(batch.name)}
+                      className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors"
+                      aria-label={`View students in ${batch.name}`}
+                    >
+                      <StudentsIcon className="w-4 h-4" />
+                      <span>View Students</span>
+                    </button>
                 </div>
               </div>
             ))}

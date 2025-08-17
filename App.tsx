@@ -25,6 +25,8 @@ import { OfflineIndicator } from './components/OfflineIndicator';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
 import { DataConsentModal } from './components/DataConsentModal';
 import { SideNav } from './components/SideNav';
+import { demoBatches, demoStudents } from './demoData';
+import { EditStudentPage } from './components/EditStudentPage';
 
 function App(): React.ReactNode {
   const [dataConsentGiven, setDataConsentGiven] = React.useState(() => {
@@ -51,9 +53,11 @@ function App(): React.ReactNode {
   const [students, setStudents] = React.useState<Student[]>([]);
   const [selectedBatchId, setSelectedBatchId] = React.useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = React.useState<string | null>(null);
+  const [batchFilter, setBatchFilter] = React.useState<string | null>(null);
   
   const isUsingPlaceholderConfig = firebaseConfig.apiKey === "AIzaSyA_Nvv_zzZP-15Xaw0qsddKu5eahac-OvY";
   const academyId = currentUser?.role === 'admin' ? currentUser.data.id : currentUser?.academyId;
+  const isDemoMode = currentUser?.role === 'admin' && currentUser.data.academyId === 'ACDEMO';
 
   const handleAcceptDataConsent = () => {
     try {
@@ -130,7 +134,17 @@ function App(): React.ReactNode {
   }, [isUsingPlaceholderConfig]);
 
   React.useEffect(() => {
-    if (!academyId || isUsingPlaceholderConfig) return;
+    if (isDemoMode) {
+      setBatches(demoBatches);
+      setStudents(demoStudents);
+      return; // Skip Firestore for demo mode
+    }
+
+    if (!academyId || isUsingPlaceholderConfig) {
+        setBatches([]);
+        setStudents([]);
+        return;
+    }
 
     // Fetch Batches in real-time
     const batchesQuery = query(collection(db, `academies/${academyId}/batches`));
@@ -154,7 +168,7 @@ function App(): React.ReactNode {
       unsubscribeBatches();
       unsubscribeStudents();
     };
-  }, [academyId, isUsingPlaceholderConfig]);
+  }, [academyId, isUsingPlaceholderConfig, isDemoMode]);
 
   const handleLogin = (user: CurrentUser) => {
     setCurrentUser(user);
@@ -177,6 +191,10 @@ function App(): React.ReactNode {
   };
 
   const addBatch = async (newBatchData: Omit<Batch, 'id' | 'currentStudents'>) => {
+    if (isDemoMode) {
+      alert("Adding and editing data is disabled in demo mode.");
+      return;
+    }
     if (!academyId) return;
     try {
         await addDoc(collection(db, `academies/${academyId}/batches`), {
@@ -192,6 +210,10 @@ function App(): React.ReactNode {
   };
   
   const addStudent = async (newStudentData: Omit<Student, 'id' | 'isActive'>) => {
+    if (isDemoMode) {
+      alert("Adding and editing data is disabled in demo mode.");
+      return;
+    }
      if (!academyId) return;
 
     try {
@@ -221,7 +243,89 @@ function App(): React.ReactNode {
     }
   };
 
+  const updateStudent = async (updatedStudentData: Omit<Student, 'id' | 'isActive'>) => {
+    if (isDemoMode) {
+      alert("Editing data is disabled in demo mode.");
+      return;
+    }
+    if (!academyId || !selectedStudentId) return;
+
+    const originalStudent = students.find(s => s.id === selectedStudentId);
+    if (!originalStudent) {
+        alert("Could not find the original student data to update.");
+        return;
+    }
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            const studentRef = doc(db, `academies/${academyId}/students`, selectedStudentId);
+            
+            const oldBatches = new Set(originalStudent.batches);
+            const newBatches = new Set(updatedStudentData.batches);
+
+            const batchesToAdd = [...newBatches].filter(b => !oldBatches.has(b));
+            const batchesToRemove = [...oldBatches].filter(b => !newBatches.has(b));
+            const allAffectedBatches = [...new Set([...batchesToAdd, ...batchesToRemove])];
+            
+            if (allAffectedBatches.length > 0) {
+                 const batchRefsQuery = query(
+                    collection(db, `academies/${academyId}/batches`), 
+                    where("name", "in", allAffectedBatches)
+                );
+                const batchDocsSnapshot = await transaction.get(batchRefsQuery);
+
+                batchDocsSnapshot.forEach(batchDoc => {
+                    const batchName = batchDoc.data().name;
+                    if (batchesToAdd.includes(batchName)) {
+                        transaction.update(batchDoc.ref, { currentStudents: increment(1) });
+                    }
+                    if (batchesToRemove.includes(batchName)) {
+                        transaction.update(batchDoc.ref, { currentStudents: increment(-1) });
+                    }
+                });
+            }
+
+            // The 'isActive' status is preserved from the original student data
+            transaction.update(studentRef, {
+                ...updatedStudentData,
+                isActive: originalStudent.isActive 
+            });
+        });
+        setPage('active-students');
+        setSelectedStudentId(null);
+    } catch (e) {
+        console.error("Update transaction failed: ", e);
+        handleFirestoreError(e as any, 'updating student data');
+        alert("Failed to update student. Please try again.");
+    }
+  };
+
   const toggleStudentStatus = async (studentId: string) => {
+    if (isDemoMode) {
+      // Handle locally for demo mode for a better user experience
+      const studentToToggle = students.find(s => s.id === studentId);
+      if (!studentToToggle) return;
+
+      // Update student's status in local state
+      setStudents(prevStudents => 
+        prevStudents.map(student => 
+          student.id === studentId ? { ...student, isActive: !student.isActive } : student
+        )
+      );
+
+      // Update the batch counts locally
+      const studentCountChange = studentToToggle.isActive ? -1 : 1;
+      setBatches(prevBatches => 
+        prevBatches.map(batch => {
+          if (studentToToggle.batches.includes(batch.name)) {
+            return { ...batch, currentStudents: batch.currentStudents + studentCountChange };
+          }
+          return batch;
+        })
+      );
+      return;
+    }
+
     if (!academyId) return;
     
     try {
@@ -272,6 +376,16 @@ function App(): React.ReactNode {
     setSelectedStudentId(studentId);
     setPage('registration-form-view');
   };
+
+  const handleEditStudent = (studentId: string) => {
+    setSelectedStudentId(studentId);
+    setPage('edit-student');
+  };
+
+  const handleViewBatchStudents = (batchName: string) => {
+    setBatchFilter(batchName);
+    setPage('active-students');
+  };
   
   if (!dataConsentGiven && !isUsingPlaceholderConfig) {
     return <DataConsentModal onAccept={handleAcceptDataConsent} />;
@@ -311,9 +425,27 @@ function App(): React.ReactNode {
       case 'fees-options':
         return <FeesOptionsPage onBack={() => setPage('dashboard')} />;
       case 'student-options':
+        if (batchFilter) {
+          setBatchFilter(null);
+        }
         return <StudentOptionsPage onBack={() => setPage('dashboard')} onNavigate={setPage} />;
       case 'active-students':
-        return <ActiveStudentsPage onBack={() => setPage('student-options')} students={students} batches={batches} onToggleStudentStatus={toggleStudentStatus} />;
+        return <ActiveStudentsPage 
+                  onBack={() => {
+                      if (batchFilter) {
+                          setBatchFilter(null);
+                          setPage('batches');
+                      } else {
+                          setPage('student-options');
+                      }
+                  }}
+                  students={students}
+                  batches={batches}
+                  onToggleStudentStatus={toggleStudentStatus}
+                  onEditStudent={handleEditStudent}
+                  onViewStudent={handleViewRegistrationForm}
+                  initialFilter={batchFilter || 'all'}
+                />;
       case 'birthday-list':
         return <BirthdayListPage onBack={() => setPage('student-options')} students={students} />;
       case 'registration-form-list':
@@ -321,7 +453,7 @@ function App(): React.ReactNode {
       case 'my-account':
         return <MyAccountPage onBack={() => setPage('dashboard')} onLogout={handleLogout} />;
       case 'batches':
-        return <BatchesPage onBack={() => setPage('dashboard')} onCreate={() => setPage('new-batch')} batches={batches} />;
+        return <BatchesPage onBack={() => setPage('dashboard')} onCreate={() => setPage('new-batch')} batches={batches} onViewStudents={handleViewBatchStudents} />;
       case 'dashboard':
       default:
         return <Dashboard onNavigate={setPage} academy={currentUser.data as Academy} />;
@@ -344,9 +476,27 @@ function App(): React.ReactNode {
     );
   }
   
+  if (page === 'edit-student') {
+    const selectedStudent = students.find(s => s.id === selectedStudentId);
+    if (!selectedStudent) {
+        setPage('active-students'); // Go back if student not found
+        return null;
+    }
+    return (
+        <div className="bg-white min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl">
+            <EditStudentPage 
+                onBack={() => setPage('active-students')} 
+                onUpdate={updateStudent} 
+                student={selectedStudent}
+                batches={batches} 
+            />
+        </div>
+    );
+  }
+
   if (page === 'take-attendance') {
     const selectedBatch = batches.find(b => b.id === selectedBatchId);
-    if (!selectedBatch) {
+    if (!selectedBatch || !academyId) {
       setPage('select-batch-attendance');
       return null; 
     }
@@ -358,6 +508,8 @@ function App(): React.ReactNode {
           onBack={() => setPage('select-batch-attendance')}
           batch={selectedBatch}
           students={batchStudents}
+          academyId={academyId}
+          isDemoMode={isDemoMode}
         />
       </div>
     );
@@ -370,7 +522,7 @@ function App(): React.ReactNode {
         return null;
     }
     return (
-        <RegistrationFormViewPage onBack={() => setPage('registration-form-list')} student={selectedStudent} />
+        <RegistrationFormViewPage onBack={() => setPage('active-students')} student={selectedStudent} />
     );
   }
   
