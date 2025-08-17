@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { LogoIcon } from '../icons/LogoIcon';
 import { BuildingIcon } from '../icons/BuildingIcon';
@@ -6,9 +7,10 @@ import { EmailIcon } from '../icons/EmailIcon';
 import { LockIcon } from '../icons/LockIcon';
 import { collection, doc, runTransaction } from 'firebase/firestore';
 import { auth, db } from '../../firebaseConfig';
+import type { Academy } from '../../types';
 
 interface RegisterPageProps {
-    onRegisterSuccess: () => void;
+    onRegisterSuccess: (academy: Academy) => void;
     onNavigateToLogin: () => void;
 }
 
@@ -66,7 +68,7 @@ const InfoNote = ({ children }: { children: React.ReactNode }) => (
 export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterPageProps) {
     const [error, setError] = React.useState('');
     const [isLoading, setIsLoading] = React.useState(false);
-    const [newAcademyId, setNewAcademyId] = React.useState<string | null>(null);
+    const [newAcademy, setNewAcademy] = React.useState<Academy | null>(null);
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -93,7 +95,7 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
                 throw new Error("User creation failed.");
             }
 
-            const generatedId = await runTransaction(db, async (transaction) => {
+            const createdAcademy: Academy = await runTransaction(db, async (transaction) => {
                 const counterRef = doc(db, 'counters', 'academyCounter');
                 const counterDoc = await transaction.get(counterRef);
                 
@@ -102,21 +104,31 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
                 const formattedId = `AC${String(newIdNumber).padStart(4, '0')}`;
                 
                 const newAcademyRef = doc(collection(db, 'academies'));
-                transaction.set(newAcademyRef, {
+                
+                const academyDataForFirestore = {
                     name: instituteName,
-                    adminEmail: user.email,
+                    adminEmail: user.email!,
                     adminUid: user.uid,
                     createdAt: new Date(),
-                    status: 'active',
+                    status: 'active' as const,
                     academyId: formattedId,
-                });
+                };
+                transaction.set(newAcademyRef, academyDataForFirestore);
                 
                 transaction.set(counterRef, { lastId: newIdNumber }, { merge: !counterDoc.exists() });
 
-                return formattedId;
+                // Return an object that matches the Academy type for client-side state
+                return {
+                    id: newAcademyRef.id,
+                    academyId: formattedId,
+                    name: instituteName,
+                    adminEmail: user.email!,
+                    adminUid: user.uid,
+                    status: 'active' as const,
+                };
             });
             
-            setNewAcademyId(generatedId);
+            setNewAcademy(createdAcademy);
 
         } catch (err: any) {
              if (err.code === 'auth/email-already-in-use') {
@@ -129,7 +141,7 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
         }
     };
 
-    if (newAcademyId) {
+    if (newAcademy) {
         return (
             <AuthLayout title="Registration Successful!" subtitle="Your academy is now ready to go.">
                 <AuthCard>
@@ -137,17 +149,17 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
                         <p className="text-gray-600 mb-4">Here is your unique Academy ID. Please save it carefully. Your students and teachers will need this ID to log in.</p>
                         <div className="bg-gray-100 p-4 rounded-lg my-4">
                             <p className="text-gray-500 text-sm">Academy ID</p>
-                            <p className="text-indigo-600 font-bold text-xl tracking-widest">{newAcademyId}</p>
+                            <p className="text-indigo-600 font-bold text-xl tracking-widest">{newAcademy.academyId}</p>
                         </div>
                         <button
                             onClick={() => {
-                                navigator.clipboard.writeText(newAcademyId);
+                                navigator.clipboard.writeText(newAcademy.academyId);
                                 alert('Academy ID copied to clipboard!');
-                                onRegisterSuccess();
+                                onRegisterSuccess(newAcademy);
                             }}
                             className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4"
                         >
-                            Copy ID & Proceed to Login
+                            Copy ID & Proceed to Dashboard
                         </button>
                     </div>
                 </AuthCard>

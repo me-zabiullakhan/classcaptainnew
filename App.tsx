@@ -271,6 +271,14 @@ function App(): React.ReactNode {
       setIsLoading(false);
   };
 
+  const handleLoginAfterRegister = (academy: Academy) => {
+    // The user is already authenticated in Firebase via createUserWithEmailAndPassword.
+    // We can directly set the state to log them in to the app and go to the dashboard.
+    setCurrentUser({ role: 'admin', data: academy });
+    setCurrentAcademy(academy);
+    setPage('dashboard');
+  };
+
   const handleSuperAdminLogin = () => {
     setIsSuperAdmin(true);
     setIsLoading(false);
@@ -579,7 +587,7 @@ function App(): React.ReactNode {
             {!isUsingPlaceholderConfig && criticalError && <ConnectionErrorBanner message={criticalError} onClose={() => setCriticalError(null)} />}
             {!isUsingPlaceholderConfig && isOffline && <OfflineIndicator />}
             {authPage === 'login' && <LoginPage onLogin={handleLogin} onSuperAdminLogin={handleSuperAdminLogin} onNavigateToRegister={() => setAuthPage('register')} externalError={loginError} clearExternalError={() => setLoginError(null)} />}
-            {authPage === 'register' && <RegisterPage onRegisterSuccess={() => setAuthPage('login')} onNavigateToLogin={() => setAuthPage('login')} />}
+            {authPage === 'register' && <RegisterPage onRegisterSuccess={handleLoginAfterRegister} onNavigateToLogin={() => setAuthPage('login')} />}
         </div>
     );
   }
