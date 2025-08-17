@@ -17,14 +17,24 @@ const getPendingMonths = (student: Student, paidMonths: Set<string>): string[] =
     const admissionDate = new Date(student.admissionDate);
     const today = new Date();
     
-    let currentDate = new Date(admissionDate.getFullYear(), admissionDate.getMonth(), 1);
-
-    while (currentDate <= today) {
-        const monthString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-        if (!paidMonths.has(monthString)) {
-            pending.push(monthString);
+    if (student.feeType === 'Monthly') {
+        let currentDate = new Date(admissionDate.getFullYear(), admissionDate.getMonth(), 1);
+        while (currentDate <= today) {
+            const monthString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+            if (!paidMonths.has(monthString)) {
+                pending.push(monthString);
+            }
+            currentDate.setMonth(currentDate.getMonth() + 1);
         }
-        currentDate.setMonth(currentDate.getMonth() + 1);
+    } else { // Handles 'Yearly'
+        let cycleStartDate = new Date(admissionDate.getFullYear(), admissionDate.getMonth(), 1);
+        while (cycleStartDate <= today) {
+            const cycleStartString = `${cycleStartDate.getFullYear()}-${String(cycleStartDate.getMonth() + 1).padStart(2, '0')}`;
+            if (!paidMonths.has(cycleStartString)) {
+                pending.push(cycleStartString);
+            }
+            cycleStartDate.setFullYear(cycleStartDate.getFullYear() + 1);
+        }
     }
 
     return pending;
@@ -39,7 +49,18 @@ const PaymentModal = ({ month, student, onSave, onClose }: { month: string, stud
     const totalAmount = student.feeAmount || 0;
     const discountAmount = parseFloat(discount) || 0;
     const finalAmount = Math.max(0, totalAmount - discountAmount);
-    const monthFormatted = new Date(month + '-02').toLocaleString('default', { month: 'long', year: 'numeric' });
+    
+    let monthFormatted;
+    if (student.feeType === 'Yearly') {
+        const startDate = new Date(month + '-02');
+        const endDate = new Date(startDate);
+        endDate.setFullYear(endDate.getFullYear() + 1);
+        endDate.setDate(endDate.getDate() - 1);
+        monthFormatted = `${startDate.toLocaleString('default', { month: 'long', year: 'numeric' })} - ${endDate.toLocaleString('default', { month: 'long', year: 'numeric' })}`;
+    } else {
+        monthFormatted = new Date(month + '-02').toLocaleString('default', { month: 'long', year: 'numeric' });
+    }
+
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -131,7 +152,7 @@ export function StudentFeeDetailsPage({ onBack, student, feeCollections, onSaveP
                 <div className="p-4 bg-white border-b">
                     <h2 className="text-lg font-bold text-gray-800">{student.name}</h2>
                     <p className="text-sm text-gray-500">{student.rollNumber}</p>
-                    <p className="text-sm text-indigo-600 font-semibold mt-1">Monthly Fee: ₹{student.feeAmount || 0}</p>
+                    <p className="text-sm text-indigo-600 font-semibold mt-1">{student.feeType} Fee: ₹{student.feeAmount || 0}</p>
                 </div>
 
                 <main className="flex-grow p-4 overflow-y-auto">
@@ -140,12 +161,19 @@ export function StudentFeeDetailsPage({ onBack, student, feeCollections, onSaveP
                         <div className="space-y-3">
                             {pendingMonths.map(month => {
                                 const monthDate = new Date(month + '-02'); // Use day 2 to avoid timezone issues
-                                const monthName = monthDate.toLocaleString('default', { month: 'long' });
-                                const year = monthDate.getFullYear();
+                                let monthLabel;
+                                if (student.feeType === 'Yearly') {
+                                    const endDate = new Date(monthDate);
+                                    endDate.setFullYear(endDate.getFullYear() + 1);
+                                    endDate.setDate(endDate.getDate() - 1);
+                                    monthLabel = `Year: ${monthDate.getFullYear()} - ${endDate.getFullYear()}`;
+                                } else {
+                                    monthLabel = `${monthDate.toLocaleString('default', { month: 'long' })}, ${monthDate.getFullYear()}`;
+                                }
                                 return (
                                     <div key={month} className="bg-white p-3 rounded-lg shadow-sm border flex justify-between items-center">
                                         <div>
-                                            <p className="font-semibold text-gray-800">{monthName}, {year}</p>
+                                            <p className="font-semibold text-gray-800">{monthLabel}</p>
                                             <p className="text-sm text-red-600">Amount Due: ₹{student.feeAmount || 0}</p>
                                         </div>
                                         <button onClick={() => setSelectedMonth(month)} className="bg-green-600 text-white font-bold py-1.5 px-4 rounded-lg hover:bg-green-700 transition-colors text-sm">

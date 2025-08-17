@@ -24,14 +24,25 @@ const getDuesData = (students: Student[], feeCollections: FeeCollection[]) => {
         const pending: string[] = [];
         const admissionDate = new Date(student.admissionDate);
         const today = new Date();
-        let currentDate = new Date(admissionDate.getFullYear(), admissionDate.getMonth(), 1);
 
-        while (currentDate <= today) {
-            const monthString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-            if (!paidMonths.has(monthString)) {
-                pending.push(monthString);
+        if (student.feeType === 'Monthly') {
+            let currentDate = new Date(admissionDate.getFullYear(), admissionDate.getMonth(), 1);
+            while (currentDate <= today) {
+                const monthString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+                if (!paidMonths.has(monthString)) {
+                    pending.push(monthString);
+                }
+                currentDate.setMonth(currentDate.getMonth() + 1);
             }
-            currentDate.setMonth(currentDate.getMonth() + 1);
+        } else { // Handles 'Yearly'
+            let cycleStartDate = new Date(admissionDate.getFullYear(), admissionDate.getMonth(), 1);
+            while (cycleStartDate <= today) {
+                const cycleStartString = `${cycleStartDate.getFullYear()}-${String(cycleStartDate.getMonth() + 1).padStart(2, '0')}`;
+                if (!paidMonths.has(cycleStartString)) {
+                    pending.push(cycleStartString);
+                }
+                cycleStartDate.setFullYear(cycleStartDate.getFullYear() + 1);
+            }
         }
 
         if (pending.length > 0) {
@@ -87,7 +98,7 @@ export function FeeDuesListPage({ onBack, students, batches, feeCollections }: F
                                             </div>
                                             <div className="text-right">
                                                 <p className="font-bold text-lg text-red-600">₹{totalDue.toFixed(2)}</p>
-                                                <p className="text-xs text-gray-500">{pendingMonths.length} month(s) due</p>
+                                                <p className="text-xs text-gray-500">{pendingMonths.length} {student.feeType === 'Monthly' ? 'month(s)' : 'year(s)'} due</p>
                                             </div>
                                         </div>
                                     </div>

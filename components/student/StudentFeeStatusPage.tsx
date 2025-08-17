@@ -4,7 +4,7 @@ import { ArrowLeftIcon } from '../icons/ArrowLeftIcon';
 
 const getFeeStatusMonths = (student: Student, feeCollections: FeeCollection[]) => {
     const statusMonths: { month: string; status: 'Paid' | 'Pending'; details: FeeCollection | null }[] = [];
-    if (!student.admissionDate) return statusMonths;
+    if (!student.admissionDate || !student.feeType) return statusMonths;
 
     const paidMonthsMap = new Map<string, FeeCollection>();
     feeCollections.forEach(fc => {
@@ -13,16 +13,29 @@ const getFeeStatusMonths = (student: Student, feeCollections: FeeCollection[]) =
 
     const admissionDate = new Date(student.admissionDate);
     const today = new Date();
-    let currentDate = new Date(admissionDate.getFullYear(), admissionDate.getMonth(), 1);
-
-    while (currentDate <= today) {
-        const monthString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-        if (paidMonthsMap.has(monthString)) {
-            statusMonths.push({ month: monthString, status: 'Paid', details: paidMonthsMap.get(monthString)! });
-        } else {
-            statusMonths.push({ month: monthString, status: 'Pending', details: null });
+    
+    if (student.feeType === 'Monthly') {
+        let currentDate = new Date(admissionDate.getFullYear(), admissionDate.getMonth(), 1);
+        while (currentDate <= today) {
+            const monthString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+            if (paidMonthsMap.has(monthString)) {
+                statusMonths.push({ month: monthString, status: 'Paid', details: paidMonthsMap.get(monthString)! });
+            } else {
+                statusMonths.push({ month: monthString, status: 'Pending', details: null });
+            }
+            currentDate.setMonth(currentDate.getMonth() + 1);
         }
-        currentDate.setMonth(currentDate.getMonth() + 1);
+    } else { // Yearly
+        let cycleStartDate = new Date(admissionDate.getFullYear(), admissionDate.getMonth(), 1);
+        while (cycleStartDate <= today) {
+            const cycleStartString = `${cycleStartDate.getFullYear()}-${String(cycleStartDate.getMonth() + 1).padStart(2, '0')}`;
+            if (paidMonthsMap.has(cycleStartString)) {
+                statusMonths.push({ month: cycleStartString, status: 'Paid', details: paidMonthsMap.get(cycleStartString)! });
+            } else {
+                statusMonths.push({ month: cycleStartString, status: 'Pending', details: null });
+            }
+            cycleStartDate.setFullYear(cycleStartDate.getFullYear() + 1);
+        }
     }
     
     // Reverse the array to show the most recent month first
@@ -44,7 +57,7 @@ export function StudentFeeStatusPage({ student, feeCollections, onBack }: { stud
             <div className="p-4 bg-white border-b">
                 <h2 className="text-lg font-bold text-gray-800">{student.name}</h2>
                 <p className="text-sm text-gray-500">{student.rollNumber}</p>
-                <p className="text-sm text-indigo-600 font-semibold mt-1">Monthly Fee: ₹{student.feeAmount || 0}</p>
+                <p className="text-sm text-indigo-600 font-semibold mt-1">{student.feeType} Fee: ₹{student.feeAmount || 0}</p>
             </div>
             
             <main className="flex-grow p-4 overflow-y-auto">
@@ -52,7 +65,15 @@ export function StudentFeeStatusPage({ student, feeCollections, onBack }: { stud
                     <div className="space-y-3">
                         {feeStatusMonths.map(({ month, status, details }) => {
                             const monthDate = new Date(month + '-02');
-                            const monthName = monthDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+                            let monthName;
+                            if (student.feeType === 'Yearly') {
+                                const endDate = new Date(monthDate);
+                                endDate.setFullYear(endDate.getFullYear() + 1);
+                                endDate.setDate(endDate.getDate() - 1);
+                                monthName = `Year: ${monthDate.getFullYear()} - ${endDate.getFullYear()}`;
+                            } else {
+                                monthName = monthDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+                            }
                             const isPaid = status === 'Paid';
 
                             return (
