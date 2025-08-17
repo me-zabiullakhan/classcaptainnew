@@ -7,16 +7,16 @@ import { FeeCollectionReportIcon } from './icons/FeeCollectionReportIcon';
 
 interface FeesOptionsPageProps {
   onBack: () => void;
-  // onSelectOption: (option: string) => void; // Future use
+  onNavigate: (page: string) => void;
 }
 
 const feeOptions = [
-  { name: 'Pay Fees', Icon: PayFeesIcon, key: 'pay-fees' },
-  { name: 'Fees Dues List', Icon: FeesDuesListIcon, key: 'dues-list' },
-  { name: 'Fee Collection Report', Icon: FeeCollectionReportIcon, key: 'collection-report' },
+  { name: 'Pay Fees', Icon: PayFeesIcon, key: 'select-batch-for-fees' },
+  { name: 'Fees Dues List', Icon: FeesDuesListIcon, key: 'fee-dues-list' },
+  { name: 'Fee Collection Report', Icon: FeeCollectionReportIcon, key: 'fee-collection-report' },
 ];
 
-export function FeesOptionsPage({ onBack }: FeesOptionsPageProps): React.ReactNode {
+export function FeesOptionsPage({ onBack, onNavigate }: FeesOptionsPageProps): React.ReactNode {
   return (
     <div className="animate-fade-in flex flex-col h-full">
       <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md w-full -mx-3 sm:-mx-4 mt-[-1rem]">
@@ -31,7 +31,7 @@ export function FeesOptionsPage({ onBack }: FeesOptionsPageProps): React.ReactNo
           {feeOptions.map(({ name, Icon, key }) => (
             <button
               key={key}
-              // onClick={() => onSelectOption(key)} // Future use
+              onClick={() => onNavigate(key)}
               className="w-full bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 flex items-center space-x-4 text-left"
             >
               <div className="w-10 h-10 text-indigo-500">

@@ -1,5 +1,6 @@
 
 import type { FC } from 'react';
+import type { Timestamp } from 'firebase/firestore';
 
 export interface FeatureItem {
   name: string;
@@ -76,3 +77,19 @@ export type CurrentUser = {
 
 
 export type AttendanceStatus = 'Not Set' | 'Holiday' | 'Leave' | 'Present' | 'Absent';
+
+export interface FeeCollection {
+  id: string; // Firestore document ID
+  studentId: string;
+  studentName: string;
+  studentRollNumber: string;
+  batchNames: string[];
+  paymentDate: Timestamp;
+  feeForMonth: string; // e.g., "2024-08"
+  totalAmount: number; // The original fee amount
+  discount: number;
+  amountPaid: number; // totalAmount - discount
+  paymentMode: 'Cash' | 'UPI' | 'Card' | 'Other';
+  collectedBy?: string; // admin's email or ID
+  createdAt: Timestamp;
+}

@@ -9,7 +9,7 @@ import { FeesOptionsPage } from './components/FeesOptionsPage';
 import { NewStudentPage } from './components/NewStudentPage';
 import { SelectBatchForAttendancePage } from './components/SelectBatchForAttendancePage';
 import { TakeAttendancePage } from './components/TakeAttendancePage';
-import type { Batch, Student, CurrentUser, Academy } from './types';
+import type { Batch, Student, CurrentUser, Academy, FeeCollection } from './types';
 import { ActiveStudentsPage } from './components/ActiveStudentsPage';
 import { InactiveStudentsPage } from './components/InactiveStudentsPage';
 import { BirthdayListPage } from './components/BirthdayListPage';
@@ -19,7 +19,7 @@ import { LoginPage } from './components/auth/LoginPage';
 import { RegisterPage } from './components/auth/RegisterPage';
 import { MyAccountPage } from './components/MyAccountPage';
 import { auth, db, firebaseConfig } from './firebaseConfig';
-import { collection, addDoc, onSnapshot, query, where, doc, runTransaction, increment } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, where, doc, runTransaction, increment, Timestamp } from 'firebase/firestore';
 import { SplashScreen } from './components/SplashScreen';
 import { ConnectionErrorBanner } from './components/ConnectionErrorBanner';
 import { OfflineIndicator } from './components/OfflineIndicator';
@@ -28,11 +28,15 @@ import { DataConsentModal } from './components/DataConsentModal';
 import { SideNav } from './components/SideNav';
 import { demoBatches, demoStudents } from './demoData';
 import { EditStudentPage } from './components/EditStudentPage';
+import { SelectBatchForFeesPage } from './components/SelectBatchForFeesPage';
+import { SelectStudentForFeesPage } from './components/SelectStudentForFeesPage';
+import { StudentFeeDetailsPage } from './components/StudentFeeDetailsPage';
+import { FeeDuesListPage } from './components/FeeDuesListPage';
+import { FeeCollectionReportPage } from './components/FeeCollectionReportPage';
 
 function App(): React.ReactNode {
   const [dataConsentGiven, setDataConsentGiven] = React.useState(() => {
     try {
-      // If localStorage is not available, default to true to avoid blocking the app.
       return localStorage.getItem('dataConsentAccepted') === 'true';
     } catch (e) {
       console.error("Could not access localStorage. Proceeding without consent check.", e);
@@ -52,6 +56,7 @@ function App(): React.ReactNode {
   const [isNavOpen, setIsNavOpen] = React.useState(false);
   const [batches, setBatches] = React.useState<Batch[]>([]);
   const [students, setStudents] = React.useState<Student[]>([]);
+  const [feeCollections, setFeeCollections] = React.useState<FeeCollection[]>([]);
   const [selectedBatchId, setSelectedBatchId] = React.useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = React.useState<string | null>(null);
   const [batchFilter, setBatchFilter] = React.useState<string | null>(null);
@@ -66,16 +71,14 @@ function App(): React.ReactNode {
       setDataConsentGiven(true);
     } catch (e) {
       console.error("Could not save data consent to localStorage. Proceeding anyway.", e);
-      // Let the user proceed even if localStorage fails to write.
       setDataConsentGiven(true);
     }
   };
 
   const handleFirestoreError = (err: any, context: string) => {
     console.error(`Firestore error fetching ${context}:`, err);
-    if (isUsingPlaceholderConfig) return; // Don't show other errors if config is wrong
+    if (isUsingPlaceholderConfig) return;
 
-    // Firebase uses 'unavailable' for network issues and 'cancelled' if the client is offline.
     if (err.code === 'unavailable' || err.code === 'cancelled') {
         setIsOffline(true);
         setCriticalError(null);
@@ -101,7 +104,6 @@ function App(): React.ReactNode {
             const academyData = { id: academyDoc.id, ...academyDoc.data() } as Academy;
             
             if (academyData.status === 'paused') {
-                console.warn("Login attempt for a paused academy:", academyData.name);
                 setCurrentUser(null);
                 setLoginError("This academy account has been suspended. Please contact support.");
                 auth.signOut();
@@ -109,17 +111,14 @@ function App(): React.ReactNode {
                 setCurrentUser({ role: 'admin', data: academyData });
                 setLoginError(null);
             }
-
             setIsOffline(false); 
             setCriticalError(null);
           } else {
-            console.warn("User authenticated but no academy document found in Firestore.");
             setCurrentUser(null);
           }
           setIsLoading(false);
         }, (err) => {
           handleFirestoreError(err, 'academy data');
-          // Don't set current user to null here if offline, let cache work
           if (err.code !== 'unavailable' && err.code !== 'cancelled') {
               setCurrentUser(null);
           }
@@ -138,36 +137,41 @@ function App(): React.ReactNode {
     if (isDemoMode) {
       setBatches(demoBatches);
       setStudents(demoStudents);
-      return; // Skip Firestore for demo mode
+      return;
     }
 
     if (!academyId || isUsingPlaceholderConfig) {
         setBatches([]);
         setStudents([]);
+        setFeeCollections([]);
         return;
     }
 
-    // Fetch Batches in real-time
     const batchesQuery = query(collection(db, `academies/${academyId}/batches`));
     const unsubscribeBatches = onSnapshot(batchesQuery, (snapshot) => {
-      const batchesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Batch));
-      setBatches(batchesData);
+      setBatches(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Batch)));
       setIsOffline(false);
       setCriticalError(null);
     }, (err) => handleFirestoreError(err, 'batches'));
 
-    // Fetch Students in real-time
     const studentsQuery = query(collection(db, `academies/${academyId}/students`));
     const unsubscribeStudents = onSnapshot(studentsQuery, (snapshot) => {
-      const studentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Student));
-      setStudents(studentsData);
+      setStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Student)));
       setIsOffline(false);
       setCriticalError(null);
     }, (err) => handleFirestoreError(err, 'students'));
+    
+    const feeCollectionsQuery = query(collection(db, `academies/${academyId}/feeCollections`));
+    const unsubscribeFeeCollections = onSnapshot(feeCollectionsQuery, (snapshot) => {
+      setFeeCollections(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FeeCollection)));
+      setIsOffline(false);
+      setCriticalError(null);
+    }, (err) => handleFirestoreError(err, 'fee collections'));
 
     return () => {
       unsubscribeBatches();
       unsubscribeStudents();
+      unsubscribeFeeCollections();
     };
   }, [academyId, isUsingPlaceholderConfig, isDemoMode]);
 
@@ -204,7 +208,6 @@ function App(): React.ReactNode {
         });
         setPage('batches');
     } catch (e) {
-        console.error("Failed to add batch:", e);
         handleFirestoreError(e as any, 'adding batch');
         alert("Failed to create the new batch. Please check your connection and try again.");
     }
@@ -224,13 +227,9 @@ function App(): React.ReactNode {
                 where("name", "in", newStudentData.batches)
             );
             const batchDocsSnapshot = await transaction.get(batchRefsQuery);
-
             const newStudentRef = doc(collection(db, `academies/${academyId}/students`));
             
-            transaction.set(newStudentRef, {
-                ...newStudentData,
-                isActive: true
-            });
+            transaction.set(newStudentRef, { ...newStudentData, isActive: true });
 
             batchDocsSnapshot.forEach(batchDoc => {
                 transaction.update(batchDoc.ref, { currentStudents: increment(1) });
@@ -238,7 +237,6 @@ function App(): React.ReactNode {
         });
         setPage('student-options');
     } catch (e) {
-        console.error("Transaction failed: ", e);
         handleFirestoreError(e as any, 'saving student data');
         alert("Failed to save student. Please try again.");
     }
@@ -286,16 +284,11 @@ function App(): React.ReactNode {
                 });
             }
 
-            // The 'isActive' status is preserved from the original student data
-            transaction.update(studentRef, {
-                ...updatedStudentData,
-                isActive: originalStudent.isActive 
-            });
+            transaction.update(studentRef, { ...updatedStudentData, isActive: originalStudent.isActive });
         });
         setPage('active-students');
         setSelectedStudentId(null);
     } catch (e) {
-        console.error("Update transaction failed: ", e);
         handleFirestoreError(e as any, 'updating student data');
         alert("Failed to update student. Please try again.");
     }
@@ -303,21 +296,11 @@ function App(): React.ReactNode {
 
   const toggleStudentStatus = async (studentId: string) => {
     if (isDemoMode) {
-      // Handle locally for demo mode for a better user experience
       const studentToToggle = students.find(s => s.id === studentId);
       if (!studentToToggle) return;
-
-      // Update student's status in local state
-      setStudents(prevStudents => 
-        prevStudents.map(student => 
-          student.id === studentId ? { ...student, isActive: !student.isActive } : student
-        )
-      );
-
-      // Update the batch counts locally
+      setStudents(prevStudents => prevStudents.map(student => student.id === studentId ? { ...student, isActive: !student.isActive } : student));
       const studentCountChange = studentToToggle.isActive ? -1 : 1;
-      setBatches(prevBatches => 
-        prevBatches.map(batch => {
+      setBatches(prevBatches => prevBatches.map(batch => {
           if (studentToToggle.batches.includes(batch.name)) {
             return { ...batch, currentStudents: batch.currentStudents + studentCountChange };
           }
@@ -333,25 +316,18 @@ function App(): React.ReactNode {
         await runTransaction(db, async (transaction) => {
             const studentRef = doc(db, `academies/${academyId}/students`, studentId);
             const studentDoc = await transaction.get(studentRef);
-
-            if (!studentDoc.exists()) {
-                throw new Error("Student document not found!");
-            }
+            if (!studentDoc.exists()) throw new Error("Student document not found!");
 
             const studentData = studentDoc.data() as Student;
             let batchDocsSnapshot: Awaited<ReturnType<typeof transaction.get>> | null = null;
             
             if (studentData.batches && studentData.batches.length > 0) {
-                 const batchRefsQuery = query(
-                     collection(db, `academies/${academyId}/batches`), 
-                     where("name", "in", studentData.batches)
-                 );
+                 const batchRefsQuery = query(collection(db, `academies/${academyId}/batches`), where("name", "in", studentData.batches));
                  batchDocsSnapshot = await transaction.get(batchRefsQuery);
             }
 
             const newIsActive = !studentData.isActive;
             const studentCountChange = newIsActive ? 1 : -1;
-
             transaction.update(studentRef, { isActive: newIsActive });
 
             if (batchDocsSnapshot) {
@@ -361,9 +337,28 @@ function App(): React.ReactNode {
             }
         });
     } catch (e) {
-        console.error("Toggle status transaction failed: ", e);
         handleFirestoreError(e as any, 'updating student status');
         alert("Failed to update student status. Please try again.");
+    }
+  };
+  
+  const saveFeePayment = async (paymentData: Omit<FeeCollection, 'id'>) => {
+    if (isDemoMode) {
+        alert("Saving data is disabled in demo mode.");
+        return;
+    }
+    if (!academyId) return;
+
+    try {
+        await addDoc(collection(db, `academies/${academyId}/feeCollections`), {
+            ...paymentData,
+            paymentDate: Timestamp.fromDate(new Date(paymentData.paymentDate as any)),
+            createdAt: Timestamp.now()
+        });
+    } catch (e) {
+        handleFirestoreError(e as any, 'saving fee payment');
+        alert("Failed to save fee payment. Please check your connection and try again.");
+        throw e; // Re-throw to be caught by the calling component for UI reversal
     }
   };
 
@@ -387,25 +382,27 @@ function App(): React.ReactNode {
     setBatchFilter(batchName);
     setPage('active-students');
   };
+
+  const handleSelectBatchForFees = (batchId: string) => {
+    setSelectedBatchId(batchId);
+    setPage('select-student-for-fees');
+  }
+
+  const handleSelectStudentForFees = (studentId: string) => {
+    setSelectedStudentId(studentId);
+    setPage('student-fee-details');
+  }
   
   if (!dataConsentGiven && !isUsingPlaceholderConfig) {
     return <DataConsentModal onAccept={handleAcceptDataConsent} />;
   }
   
   if (isLoading) {
-    return (
-        <div className="bg-slate-50 min-h-screen">
-            <SplashScreen />
-        </div>
-    );
+    return <div className="bg-slate-50 min-h-screen"><SplashScreen /></div>;
   }
   
   if (isSuperAdmin) {
-    return (
-        <div>
-            <SuperAdminPanel onLogout={handleLogout} />
-        </div>
-    );
+    return <div><SuperAdminPanel onLogout={handleLogout} /></div>;
   }
 
   if (!currentUser) {
@@ -424,11 +421,15 @@ function App(): React.ReactNode {
       case 'select-batch-attendance':
         return <SelectBatchForAttendancePage onBack={() => setPage('dashboard')} batches={batches.filter(b => b.currentStudents > 0)} onSelectBatch={handleSelectBatchForAttendance} />;
       case 'fees-options':
-        return <FeesOptionsPage onBack={() => setPage('dashboard')} />;
+        return <FeesOptionsPage onBack={() => setPage('dashboard')} onNavigate={setPage}/>;
+      case 'select-batch-for-fees':
+        return <SelectBatchForFeesPage onBack={() => setPage('fees-options')} batches={batches} onSelectBatch={handleSelectBatchForFees} />;
+      case 'fee-dues-list':
+        return <FeeDuesListPage onBack={() => setPage('fees-options')} students={students} batches={batches} feeCollections={feeCollections} />;
+      case 'fee-collection-report':
+        return <FeeCollectionReportPage onBack={() => setPage('fees-options')} feeCollections={feeCollections} />;
       case 'student-options':
-        if (batchFilter) {
-          setBatchFilter(null);
-        }
+        if (batchFilter) setBatchFilter(null);
         return <StudentOptionsPage onBack={() => setPage('dashboard')} onNavigate={setPage} />;
       case 'active-students':
         return <ActiveStudentsPage 
@@ -448,12 +449,7 @@ function App(): React.ReactNode {
                   initialFilter={batchFilter || 'all'}
                 />;
       case 'inactive-students':
-        return <InactiveStudentsPage
-                  onBack={() => setPage('student-options')}
-                  students={students}
-                  batches={batches}
-                  onToggleStudentStatus={toggleStudentStatus}
-                />;
+        return <InactiveStudentsPage onBack={() => setPage('student-options')} students={students} batches={batches} onToggleStudentStatus={toggleStudentStatus} />;
       case 'birthday-list':
         return <BirthdayListPage onBack={() => setPage('student-options')} students={students} />;
       case 'registration-form-list':
@@ -467,39 +463,54 @@ function App(): React.ReactNode {
         return <Dashboard onNavigate={setPage} academy={currentUser.data as Academy} />;
     }
   };
-
-  if (page === 'new-batch') {
+  
+  if (page === 'select-student-for-fees') {
+    const selectedBatch = batches.find(b => b.id === selectedBatchId);
+    if (!selectedBatch) {
+        setPage('select-batch-for-fees');
+        return null;
+    }
+    const batchStudents = students.filter(s => s.batches.includes(selectedBatch.name) && s.isActive);
     return (
         <div className="bg-white min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl">
-            <NewBatchPage onBack={() => setPage('batches')} onSave={addBatch} />
+            <SelectStudentForFeesPage onBack={() => setPage('select-batch-for-fees')} batch={selectedBatch} students={batchStudents} onSelectStudent={handleSelectStudentForFees} />
+        </div>
+    );
+  }
+  
+  if (page === 'student-fee-details') {
+    const selectedStudent = students.find(s => s.id === selectedStudentId);
+    if (!selectedStudent) {
+        setPage('select-batch-for-fees');
+        return null;
+    }
+    return (
+        <div className="bg-white min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl">
+            <StudentFeeDetailsPage 
+                onBack={() => setPage('select-student-for-fees')} 
+                student={selectedStudent} 
+                feeCollections={feeCollections.filter(fc => fc.studentId === selectedStudent.id)}
+                onSavePayment={saveFeePayment}
+            />
         </div>
     );
   }
 
+  if (page === 'new-batch') {
+    return <div className="bg-white min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl"><NewBatchPage onBack={() => setPage('batches')} onSave={addBatch} /></div>;
+  }
+
   if (page === 'new-student') {
-    return (
-      <div className="bg-white min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl">
-        <NewStudentPage onBack={() => setPage('student-options')} onSave={addStudent} batches={batches} />
-      </div>
-    );
+    return <div className="bg-white min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl"><NewStudentPage onBack={() => setPage('student-options')} onSave={addStudent} batches={batches} /></div>;
   }
   
   if (page === 'edit-student') {
     const selectedStudent = students.find(s => s.id === selectedStudentId);
     if (!selectedStudent) {
-        setPage('active-students'); // Go back if student not found
+        setPage('active-students');
         return null;
     }
-    return (
-        <div className="bg-white min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl">
-            <EditStudentPage 
-                onBack={() => setPage('active-students')} 
-                onUpdate={updateStudent} 
-                student={selectedStudent}
-                batches={batches} 
-            />
-        </div>
-    );
+    return <div className="bg-white min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl"><EditStudentPage onBack={() => setPage('active-students')} onUpdate={updateStudent} student={selectedStudent} batches={batches} /></div>;
   }
 
   if (page === 'take-attendance') {
@@ -510,17 +521,7 @@ function App(): React.ReactNode {
     }
     const batchStudents = students.filter(s => s.batches.includes(selectedBatch.name) && s.isActive);
     
-    return (
-      <div className="bg-white min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl">
-        <TakeAttendancePage 
-          onBack={() => setPage('select-batch-attendance')}
-          batch={selectedBatch}
-          students={batchStudents}
-          academyId={academyId}
-          isDemoMode={isDemoMode}
-        />
-      </div>
-    );
+    return <div className="bg-white min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl"><TakeAttendancePage onBack={() => setPage('select-batch-attendance')} batch={selectedBatch} students={batchStudents} academyId={academyId} isDemoMode={isDemoMode} /></div>;
   }
   
   if (page === 'registration-form-view') {
@@ -529,31 +530,17 @@ function App(): React.ReactNode {
         setPage('registration-form-list');
         return null;
     }
-    return (
-        <RegistrationFormViewPage onBack={() => setPage('active-students')} student={selectedStudent} />
-    );
+    return <RegistrationFormViewPage onBack={() => setPage('active-students')} student={selectedStudent} />;
   }
   
   const academyData = currentUser.role === 'admin' ? currentUser.data : null;
 
   return (
     <div className="bg-slate-100 min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl">
-      <SideNav 
-        isOpen={isNavOpen} 
-        onClose={() => setIsNavOpen(false)} 
-        onNavigate={setPage}
-        onLogout={handleLogout}
-      />
+      <SideNav isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} onNavigate={setPage} onLogout={handleLogout} />
       {!isUsingPlaceholderConfig && criticalError && <ConnectionErrorBanner message={criticalError} onClose={() => setCriticalError(null)} />}
       {!isUsingPlaceholderConfig && isOffline && <OfflineIndicator />}
-      {page === 'dashboard' && academyData && 
-        <Header 
-          academyName={academyData.name} 
-          academyId={academyData.academyId} 
-          onLogout={handleLogout}
-          onToggleNav={() => setIsNavOpen(true)}
-        />
-      }
+      {page === 'dashboard' && academyData && <Header academyName={academyData.name} academyId={academyData.academyId} onLogout={handleLogout} onToggleNav={() => setIsNavOpen(true)} />}
       <main className="flex-grow px-3 sm:px-4 py-4 relative">
         {renderPage()}
       </main>
