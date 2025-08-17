@@ -102,6 +102,18 @@ function App(): React.ReactNode {
 
 
   React.useEffect(() => {
+    // Proactive network status monitoring
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Set initial status based on navigator.onLine
+    if (typeof navigator.onLine === 'boolean' && !navigator.onLine) {
+        handleOffline();
+    }
+
     if (isUsingPlaceholderConfig) {
       setIsLoading(false);
       return;
@@ -147,7 +159,12 @@ function App(): React.ReactNode {
         setIsLoading(false);
       }
     });
-    return () => unsubscribe();
+
+    return () => {
+        unsubscribe();
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+    };
   }, [isUsingPlaceholderConfig]);
 
   React.useEffect(() => {

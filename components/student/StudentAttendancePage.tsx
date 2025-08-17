@@ -56,78 +56,85 @@ export function StudentAttendancePage({ student, academyId, onBack }: StudentAtt
     const [attendanceData, setAttendanceData] = React.useState<Record<string, AttendanceStatus>>({});
     const [summary, setSummary] = React.useState({ present: 0, absent: 0, leave: 0, holiday: 0 });
     const [isLoading, setIsLoading] = React.useState(true);
+    const [error, setError] = React.useState<string | null>(null);
 
-    React.useEffect(() => {
-        const fetchData = async () => {
-            setIsLoading(true);
-            if (!student || !academyId || student.batches.length === 0) {
-                setAttendanceData({});
-                setSummary({ present: 0, absent: 0, leave: 0, holiday: 0 });
-                setIsLoading(false);
-                return;
-            }
+    const fetchData = React.useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        if (!student || !academyId || student.batches.length === 0) {
+            setAttendanceData({});
+            setSummary({ present: 0, absent: 0, leave: 0, holiday: 0 });
+            setIsLoading(false);
+            return;
+        }
 
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-            const dateStrings: string[] = Array.from({ length: daysInMonth }, (_, i) => {
-                const day = i + 1;
-                return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            });
+        const dateStrings: string[] = Array.from({ length: daysInMonth }, (_, i) => {
+            const day = i + 1;
+            return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        });
 
-            const newAttendanceData: Record<string, AttendanceStatus> = {};
+        const newAttendanceData: Record<string, AttendanceStatus> = {};
+        
+        try {
+            const batchesRef = collection(db, `academies/${academyId}/batches`);
+            const q = query(batchesRef, where('name', 'in', student.batches));
+            const batchDocsSnapshot = await getDocs(q);
+            const studentBatchIds = batchDocsSnapshot.docs.map(d => d.id);
             
-            try {
-                const batchesRef = collection(db, `academies/${academyId}/batches`);
-                const q = query(batchesRef, where('name', 'in', student.batches));
-                const batchDocsSnapshot = await getDocs(q);
-                const studentBatchIds = batchDocsSnapshot.docs.map(d => d.id);
-                
-                for (const batchId of studentBatchIds) {
-                    const docRefs = dateStrings.map(dateString =>
-                        doc(db, `academies/${academyId}/batches/${batchId}/attendance`, dateString)
-                    );
+            for (const batchId of studentBatchIds) {
+                const docRefs = dateStrings.map(dateString =>
+                    doc(db, `academies/${academyId}/batches/${batchId}/attendance`, dateString)
+                );
 
-                    const docSnaps = await Promise.all(docRefs.map(ref => getDoc(ref)));
+                const docSnaps = await Promise.all(docRefs.map(ref => getDoc(ref)));
 
-                    docSnaps.forEach((docSnap, index) => {
-                        if (docSnap.exists()) {
-                            const dayData = docSnap.data();
-                            const status = dayData[student.id];
-                            if (status) {
-                                const dayNumber = String(index + 1);
-                                const existingStatus = newAttendanceData[dayNumber];
-                                const priority: Record<AttendanceStatus, number> = { 'Present': 4, 'Leave': 3, 'Holiday': 2, 'Absent': 1, 'Not Set': 0 };
+                docSnaps.forEach((docSnap, index) => {
+                    if (docSnap.exists()) {
+                        const dayData = docSnap.data();
+                        const status = dayData[student.id];
+                        if (status) {
+                            const dayNumber = String(index + 1);
+                            const existingStatus = newAttendanceData[dayNumber];
+                            const priority: Record<AttendanceStatus, number> = { 'Present': 4, 'Leave': 3, 'Holiday': 2, 'Absent': 1, 'Not Set': 0 };
 
-                                if (!existingStatus || priority[status] > priority[existingStatus]) {
-                                    newAttendanceData[dayNumber] = status;
-                                }
+                            if (!existingStatus || priority[status] > priority[existingStatus]) {
+                                newAttendanceData[dayNumber] = status;
                             }
                         }
-                    });
-                }
-
-                setAttendanceData(newAttendanceData);
-
-                const newSummary = Object.values(newAttendanceData).reduce((acc, status) => {
-                    if (status === 'Present') acc.present++;
-                    else if (status === 'Absent') acc.absent++;
-                    else if (status === 'Leave') acc.leave++;
-                    else if (status === 'Holiday') acc.holiday++;
-                    return acc;
-                }, { present: 0, absent: 0, leave: 0, holiday: 0 });
-                setSummary(newSummary);
-
-            } catch (error) {
-                console.error("Error fetching student attendance: ", error);
-            } finally {
-                setIsLoading(false);
+                    }
+                });
             }
-        };
 
-        fetchData();
+            setAttendanceData(newAttendanceData);
+
+            const newSummary = Object.values(newAttendanceData).reduce((acc, status) => {
+                if (status === 'Present') acc.present++;
+                else if (status === 'Absent') acc.absent++;
+                else if (status === 'Leave') acc.leave++;
+                else if (status === 'Holiday') acc.holiday++;
+                return acc;
+            }, { present: 0, absent: 0, leave: 0, holiday: 0 });
+            setSummary(newSummary);
+
+        } catch (err: any) {
+            console.error("Error fetching student attendance: ", err);
+            if (err.code === 'unavailable') {
+                setError("You appear to be offline. Please check your internet connection and try again.");
+            } else {
+                setError("Could not load attendance data. Please try again later.");
+            }
+        } finally {
+            setIsLoading(false);
+        }
     }, [currentDate, student, academyId]);
+    
+    React.useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
     const handleDateChange = (direction: 'prev' | 'next') => {
         setCurrentDate(prevDate => {
@@ -175,7 +182,21 @@ export function StudentAttendancePage({ student, academyId, onBack }: StudentAtt
                     </div>
 
                     {isLoading ? (
-                         <div className="text-center py-10">Loading attendance...</div>
+                         <div className="flex justify-center items-center py-10">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                            <p className="ml-3 text-gray-600">Loading attendance...</p>
+                        </div>
+                    ) : error ? (
+                        <div className="text-center py-10 px-4 bg-red-50 text-red-700 rounded-lg">
+                            <p className="font-bold mb-2">Failed to Load Data</p>
+                            <p className="text-sm">{error}</p>
+                            <button
+                                onClick={fetchData}
+                                className="mt-4 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                                Retry
+                            </button>
+                        </div>
                     ) : (
                         <div className="grid grid-cols-7 gap-1">
                             {Array.from({ length: firstDayOfMonth }).map((_, i) => <div key={`empty-${i}`}></div>)}
