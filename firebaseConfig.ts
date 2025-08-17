@@ -1,6 +1,6 @@
-
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/auth';
+import 'firebase/compat/firestore';
 import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 
 // IMPORTANT: Replace the following with your app's Firebase project configuration
@@ -15,12 +15,15 @@ export const firebaseConfig = {
   measurementId: "G-D1J5FWWC8G"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase using the compat library.
+// This sets up the default app instance that the modular SDK can use.
+firebase.initializeApp(firebaseConfig);
 
-// Initialize and export Firebase services
-export const db = getFirestore(app);
-export const auth = getAuth(app);
+// Initialize and export Firebase services.
+// Firestore uses the modular SDK, while Auth uses the compat SDK.
+// This is a supported pattern.
+export const db = getFirestore();
+export const auth = firebase.auth();
 
 // Enable Firestore offline persistence to improve resilience to network issues.
 // This helps the app function even when the connection to the backend is temporarily unavailable.

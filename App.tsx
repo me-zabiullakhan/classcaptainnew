@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
@@ -19,13 +18,11 @@ import { LoginPage } from './components/auth/LoginPage';
 import { RegisterPage } from './components/auth/RegisterPage';
 import { MyAccountPage } from './components/MyAccountPage';
 import { auth, db, firebaseConfig } from './firebaseConfig';
-import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { collection, addDoc, onSnapshot, query, where, doc, runTransaction, increment } from 'firebase/firestore';
 import { SplashScreen } from './components/SplashScreen';
 import { ConnectionErrorBanner } from './components/ConnectionErrorBanner';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
-import { ConfigurationWarning } from './components/ConfigurationWarning';
 import { DataConsentModal } from './components/DataConsentModal';
 
 function App(): React.ReactNode {
@@ -87,7 +84,7 @@ function App(): React.ReactNode {
       setIsLoading(false);
       return;
     }
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         const academiesRef = collection(db, 'academies');
         const q = query(academiesRef, where('adminUid', '==', user.uid));
@@ -100,7 +97,7 @@ function App(): React.ReactNode {
                 console.warn("Login attempt for a paused academy:", academyData.name);
                 setCurrentUser(null);
                 setLoginError("This academy account has been suspended. Please contact support.");
-                firebaseSignOut(auth);
+                auth.signOut();
             } else {
                 setCurrentUser({ role: 'admin', data: academyData });
                 setLoginError(null);
@@ -168,7 +165,7 @@ function App(): React.ReactNode {
   };
 
   const handleLogout = async () => {
-    await firebaseSignOut(auth);
+    await auth.signOut();
     setCurrentUser(null);
     setIsSuperAdmin(false);
     setPage('dashboard');
@@ -280,7 +277,6 @@ function App(): React.ReactNode {
   if (isLoading) {
     return (
         <div className="bg-slate-50 min-h-screen">
-            {isUsingPlaceholderConfig && <ConfigurationWarning />}
             <SplashScreen />
         </div>
     );
@@ -289,7 +285,6 @@ function App(): React.ReactNode {
   if (isSuperAdmin) {
     return (
         <div>
-            {isUsingPlaceholderConfig && <ConfigurationWarning />}
             <SuperAdminPanel onLogout={handleLogout} />
         </div>
     );
@@ -298,7 +293,6 @@ function App(): React.ReactNode {
   if (!currentUser) {
     return (
         <div className="bg-gray-50 font-sans min-h-screen">
-            {isUsingPlaceholderConfig && <ConfigurationWarning />}
             {!isUsingPlaceholderConfig && criticalError && <ConnectionErrorBanner message={criticalError} onClose={() => setCriticalError(null)} />}
             {!isUsingPlaceholderConfig && isOffline && <OfflineIndicator />}
             {authPage === 'login' && <LoginPage onLogin={handleLogin} onSuperAdminLogin={handleSuperAdminLogin} onNavigateToRegister={() => setAuthPage('register')} externalError={loginError} clearExternalError={() => setLoginError(null)} />}
@@ -381,7 +375,6 @@ function App(): React.ReactNode {
 
   return (
     <div className="bg-slate-100 min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl">
-      {isUsingPlaceholderConfig && <ConfigurationWarning />}
       {!isUsingPlaceholderConfig && criticalError && <ConnectionErrorBanner message={criticalError} onClose={() => setCriticalError(null)} />}
       {!isUsingPlaceholderConfig && isOffline && <OfflineIndicator />}
       {page === 'dashboard' && academyData && 

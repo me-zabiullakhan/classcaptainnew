@@ -1,10 +1,8 @@
-
 import React from 'react';
 import { LogoIcon } from '../icons/LogoIcon';
 import { BuildingIcon } from '../icons/BuildingIcon';
 import { EmailIcon } from '../icons/EmailIcon';
 import { LockIcon } from '../icons/LockIcon';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { collection, doc, runTransaction } from 'firebase/firestore';
 import { auth, db } from '../../firebaseConfig';
 
@@ -87,8 +85,12 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
         }
 
         try {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
             const user = userCredential.user;
+
+            if (!user) {
+                throw new Error("User creation failed.");
+            }
 
             const generatedId = await runTransaction(db, async (transaction) => {
                 const counterRef = doc(db, 'counters', 'academyCounter');

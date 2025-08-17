@@ -7,7 +7,6 @@ import { LockIcon } from '../icons/LockIcon';
 import { UserIcon } from '../icons/UserIcon';
 import { CalendarIcon } from '../icons/CalendarIcon';
 import { BookIcon } from '../icons/BookIcon';
-import { signInWithEmailAndPassword } from 'firebase/auth';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebaseConfig';
 import type { CurrentUser, Student, Teacher, Academy } from '../../types';
@@ -113,7 +112,7 @@ const sha256 = async (message: string) => {
 const SUPER_ADMIN_EMAIL_HASH = 'f19f1aa2185579916327663473177891823126b484777490f2b3433a0b35b5df';
 const SUPER_ADMIN_PASS_HASH = 'd0a708a28f5223c345b85a3fd8667b93a8cf88b90c000302256799d5357eb433';
 
-const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onSuperAdminLogin }: { setIsLoading: (l:boolean)=>void, setError: (e:string)=>void, onLoginFailed: () => void, onSuperAdminLogin: () => void }) => (
+const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onSuperAdminLogin, onLogin }: { setIsLoading: (l:boolean)=>void, setError: (e:string)=>void, onLoginFailed: () => void, onSuperAdminLogin: () => void, onLogin: (user: CurrentUser) => void }) => (
     <form onSubmit={async (e) => {
         e.preventDefault();
         setError('');
@@ -124,6 +123,20 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onSuperAdminL
         const passwordInput = form.elements.namedItem('password') as HTMLInputElement;
         const rawEmail = emailInput.value;
         const rawPassword = passwordInput.value;
+
+        if (rawEmail === 'demo@classcaptain.com' && rawPassword === 'demo123') {
+            const demoAcademy: Academy = {
+                id: 'demo-academy-id',
+                academyId: 'ACDEMO',
+                name: 'Demo Academy',
+                adminUid: 'demo-admin-uid',
+                adminEmail: 'demo@classcaptain.com',
+                status: 'active',
+            };
+            onLogin({ role: 'admin', data: demoAcademy });
+            setIsLoading(false);
+            return;
+        }
 
         try {
             // Super admin check: trim inputs and lowercase email for robust matching.
@@ -139,10 +152,10 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onSuperAdminL
             }
             
             // If not super admin, proceed with Firebase auth using raw, untrimmed values.
-            await signInWithEmailAndPassword(auth, rawEmail, rawPassword);
+            await auth.signInWithEmailAndPassword(rawEmail, rawPassword);
             // onAuthStateChanged in App.tsx will handle the rest
         } catch (err: any) {
-            if (err.code === 'auth/invalid-credential') {
+            if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
                 // This error is from Firebase Auth, so the super admin check also failed.
                 onLoginFailed();
             } else if (err instanceof TypeError) {
@@ -329,7 +342,22 @@ export function LoginPage({ onLogin, onSuperAdminLogin, onNavigateToRegister, ex
     const renderForm = () => {
         switch (activeRole) {
             case 'academy':
-                return <AcademyLoginForm setIsLoading={setIsLoading} setError={setError} onLoginFailed={() => setShowAcademyLoginFailedPopup(true)} onSuperAdminLogin={onSuperAdminLogin} />;
+                return (
+                    <>
+                        <AcademyLoginForm
+                            setIsLoading={setIsLoading}
+                            setError={setError}
+                            onLoginFailed={() => setShowAcademyLoginFailedPopup(true)}
+                            onSuperAdminLogin={onSuperAdminLogin}
+                            onLogin={onLogin}
+                        />
+                         <div className="text-center mt-6 text-xs text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <p className="font-bold text-gray-700 mb-1">Demo Login</p>
+                            <p>Email: <code className="font-mono bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded">demo@classcaptain.com</code></p>
+                            <p className="mt-1">Password: <code className="font-mono bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded">demo123</code></p>
+                        </div>
+                    </>
+                );
             case 'student':
                 return <StudentLoginForm onLogin={onLogin} onAcademyNotFound={() => setShowNotFoundPopup(true)} />;
             case 'teacher':
