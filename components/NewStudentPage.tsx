@@ -127,31 +127,31 @@ export function NewStudentPage({ onBack, onSave, batches }: NewStudentPageProps)
       <main className="flex-grow p-4 overflow-y-auto">
         <form id="new-student-form" onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-5">
             <div className="flex justify-center">
-                <button type="button" className="w-24 h-24 rounded-full border-2 border-orange-400 bg-white flex items-center justify-center text-blue-800 hover:bg-gray-100 transition" aria-label="Upload student photo">
+                <button type="button" className="w-24 h-24 rounded-full border-2 border-indigo-400 bg-white flex items-center justify-center text-indigo-800 hover:bg-gray-100 transition" aria-label="Upload student photo">
                     <CameraIcon className="w-12 h-12"/>
                 </button>
             </div>
 
             <FormInput label="Roll Number / Student ID" id="rollNumber" name="rollNumber" placeholder="Unique ID for login" value={formData.rollNumber} onChange={handleChange} required />
-            <FormInput label="Student Name" id="studentName" name="name" value={formData.name} onChange={handleChange} required containerClassName="border-purple-500 border-2" />
+            <FormInput label="Student Name" id="studentName" name="name" value={formData.name} onChange={handleChange} required containerClassName="border-indigo-500 border-2" />
             <FormInput label="Father Name" id="fatherName" name="fatherName" value={formData.fatherName} onChange={handleChange} required />
             <FormInput label="Mother Name" id="motherName" name="motherName" value={formData.motherName} onChange={handleChange} required />
             <FormInput label="Date of birth" id="dob" name="dob" type="date" value={formData.dob} onChange={handleChange} required />
             
             <FormInput label="Mobile Number" id="mobile1" name="mobile1" type="tel" value={formData.mobile1} onChange={handleChange} required>
                 <span className="text-gray-500 mr-2">+91</span>
-                <ContactsIcon className="w-6 h-6 text-blue-600" />
+                <ContactsIcon className="w-6 h-6 text-indigo-600" />
             </FormInput>
             <FormInput label="Mobile Number" id="mobile2" name="mobile2" type="tel" value={formData.mobile2} onChange={handleChange}>
                 <span className="text-gray-500 mr-2">+91</span>
-                <ContactsIcon className="w-6 h-6 text-blue-600" />
+                <ContactsIcon className="w-6 h-6 text-indigo-600" />
             </FormInput>
 
             <div className="bg-white p-3 rounded-lg border border-gray-300">
                 <div className="flex items-center justify-around">
                     {['Male', 'Female', 'Other'].map(gender => (
                         <label key={gender} className="flex items-center space-x-2 text-gray-700 cursor-pointer">
-                            <input type="radio" name="gender" value={gender} checked={formData.gender === gender} onChange={handleRadioChange} className="form-radio text-purple-500 focus:ring-purple-500" />
+                            <input type="radio" name="gender" value={gender} checked={formData.gender === gender} onChange={handleRadioChange} className="form-radio text-indigo-600 focus:ring-indigo-500" />
                             <span>{gender}</span>
                         </label>
                     ))}
@@ -161,7 +161,7 @@ export function NewStudentPage({ onBack, onSave, batches }: NewStudentPageProps)
             <FormInput label="Address" id="address" name="address" value={formData.address} onChange={handleChange} required />
             <FormInput label="Admission Date" id="admissionDate" name="admissionDate" type="date" value={formData.admissionDate} onChange={handleChange} required />
             
-            <button type="button" onClick={() => setBatchModalOpen(true)} className="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors shadow-md">
+            <button type="button" onClick={() => setBatchModalOpen(true)} className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors shadow-md">
                 {formData.batches.length > 0 ? `Selected Batches (${formData.batches.length})` : 'SELECT BATCHES'}
             </button>
 
@@ -176,7 +176,7 @@ export function NewStudentPage({ onBack, onSave, batches }: NewStudentPageProps)
                                 value={type}
                                 checked={formData.feeType === type}
                                 onChange={handleRadioChange}
-                                className="form-radio text-purple-500 focus:ring-purple-500"
+                                className="form-radio text-indigo-600 focus:ring-indigo-500"
                             />
                             <span>{type}</span>
                         </label>
@@ -184,10 +184,10 @@ export function NewStudentPage({ onBack, onSave, batches }: NewStudentPageProps)
                 </div>
             </div>
 
-            <div className="relative bg-white p-3 rounded-lg border border-purple-500 border-2">
+            <div className="relative bg-white p-3 rounded-lg border border-indigo-500 border-2">
                 <label htmlFor="feeAmount" className="absolute -top-2.5 left-3 bg-white px-1 text-xs text-gray-500">
                     Fee Amount
-                    {batchFeeHint && <span className="ml-2 font-semibold text-purple-600">{batchFeeHint}</span>}
+                    {batchFeeHint && <span className="ml-2 font-semibold text-indigo-600">{batchFeeHint}</span>}
                 </label>
                 <div className="flex items-center">
                     <span className="text-gray-500 text-lg mr-2">₹</span>
@@ -208,11 +208,11 @@ export function NewStudentPage({ onBack, onSave, batches }: NewStudentPageProps)
             <FormInput label="Password" id="password" name="password" value={formData.password} readOnly />
 
             <div className="relative bg-white rounded-lg border border-gray-300">
-                <select id="transport" name="transport" value={formData.transport} onChange={handleChange} className="w-full appearance-none bg-white p-3 pr-8 rounded-lg text-gray-800 outline-none border-2 border-purple-500">
+                <select id="transport" name="transport" value={formData.transport} onChange={handleChange} className="w-full appearance-none bg-white p-3 pr-8 rounded-lg text-gray-800 outline-none border-2 border-indigo-500">
                     <option value="NO_TRANSPORT_USE">NO TRANSPORT USE</option>
                     <option value="USE_TRANSPORT">USE TRANSPORT</option>
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-orange-500">
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-indigo-500">
                     <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
                 </div>
             </div>
@@ -234,7 +234,7 @@ export function NewStudentPage({ onBack, onSave, batches }: NewStudentPageProps)
         <button
           type="submit"
           form="new-student-form"
-          className="w-full bg-purple-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-600 transition-colors shadow-md"
+          className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors shadow-md"
         >
           SAVE
         </button>
@@ -249,7 +249,7 @@ export function NewStudentPage({ onBack, onSave, batches }: NewStudentPageProps)
                         <label key={batch.id} className="flex items-center p-3 rounded-lg hover:bg-slate-100 cursor-pointer">
                             <input 
                                 type="checkbox" 
-                                className="h-5 w-5 rounded text-purple-600 focus:ring-purple-500"
+                                className="h-5 w-5 rounded text-indigo-600 focus:ring-indigo-500"
                                 checked={formData.batches.includes(batch.name)}
                                 onChange={() => handleBatchSelection(batch.name)}
                             />
@@ -260,7 +260,7 @@ export function NewStudentPage({ onBack, onSave, batches }: NewStudentPageProps)
                     )}
                 </div>
                 <div className="p-4 border-t">
-                    <button onClick={() => setBatchModalOpen(false)} className="w-full bg-purple-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-600 transition-colors">
+                    <button onClick={() => setBatchModalOpen(false)} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors">
                         Done
                     </button>
                 </div>

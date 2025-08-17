@@ -22,14 +22,14 @@ export function BirthdayListPage({ onBack, students }: { onBack: () => void; stu
                 <h1 className="text-xl font-bold ml-2">Today's Birthdays</h1>
             </header>
             <main className="flex-grow pt-4">
-                <div className="text-center mb-6 p-4 bg-purple-50 rounded-lg">
-                    <p className="font-semibold text-purple-800">{todayFormatted}</p>
+                <div className="text-center mb-6 p-4 bg-indigo-50 rounded-lg">
+                    <p className="font-semibold text-indigo-800">{todayFormatted}</p>
                 </div>
                 {birthdayStudents.length > 0 ? (
                     <div className="space-y-3">
                         {birthdayStudents.map(student => (
                             <div key={student.id} className="bg-white p-4 rounded-lg shadow-md flex items-center space-x-4">
-                                <BirthdayIcon className="w-10 h-10 text-orange-500" />
+                                <BirthdayIcon className="w-10 h-10 text-indigo-500" />
                                 <div>
                                     <p className="font-bold text-gray-800 text-lg">{student.name}</p>
                                     <p className="text-sm text-gray-500">Batch: {student.batches.join(', ')}</p>
@@ -39,7 +39,7 @@ export function BirthdayListPage({ onBack, students }: { onBack: () => void; stu
                     </div>
                 ) : (
                     <div className="text-center py-20 px-4">
-                         <BirthdayIcon className="w-24 h-24 text-purple-300 mx-auto" />
+                         <BirthdayIcon className="w-24 h-24 text-indigo-300 mx-auto" />
                         <p className="text-lg text-gray-500 mt-4">No birthdays today.</p>
                         <p className="text-sm text-gray-400 mt-2">Come back tomorrow to check again!</p>
                     </div>

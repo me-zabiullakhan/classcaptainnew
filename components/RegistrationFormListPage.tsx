@@ -22,7 +22,7 @@ export function RegistrationFormListPage({ onBack, students, onSelectStudent }: 
                                 className="w-full bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 text-left flex justify-between items-center"
                             >
                                 <div>
-                                    <p className="font-bold text-purple-800">{student.name}</p>
+                                    <p className="font-bold text-indigo-800">{student.name}</p>
                                     <p className="text-sm text-gray-500">{student.id}</p>
                                 </div>
                                 <span className={`text-xs px-2 py-1 rounded-full ${student.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>

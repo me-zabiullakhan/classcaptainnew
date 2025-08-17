@@ -16,7 +16,7 @@ const attendanceStatuses: AttendanceStatus[] = ['Not Set', 'Holiday', 'Leave', '
 
 const StatusButton = ({ status, isActive, onClick }: { status: AttendanceStatus, isActive: boolean, onClick: () => void }) => {
     const baseClasses = 'px-3 py-1 text-xs rounded-md font-medium transition-colors';
-    const activeClasses = 'bg-purple-500 text-white';
+    const activeClasses = 'bg-indigo-600 text-white';
     const inactiveClasses = 'bg-gray-200 text-gray-600 hover:bg-gray-300';
     return (
         <button onClick={onClick} className={`${baseClasses} ${isActive ? activeClasses : inactiveClasses}`}>
@@ -31,11 +31,11 @@ const StudentAttendanceCard = ({ student, batch, status, onStatusChange }: { stu
         <div className="bg-white p-3 rounded-lg shadow-sm border">
             <div className="flex justify-between items-center">
                 <div className="flex-1">
-                    <p className="text-sm text-purple-700 font-semibold">{student.rollNumber || student.id}</p>
+                    <p className="text-sm text-indigo-700 font-semibold">{student.rollNumber || student.id}</p>
                     <p className="text-base font-bold text-gray-800">{student.name}</p>
                     <p className="text-xs text-gray-500">{batch.name}</p>
                 </div>
-                <div className="text-purple-600">
+                <div className="text-indigo-600">
                     <InfoIcon className="w-6 h-6" />
                 </div>
             </div>

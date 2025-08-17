@@ -58,10 +58,10 @@ export function StudentOptionsPage({ onBack, onNavigate }: StudentOptionsPagePro
               onClick={() => handleClick(key)}
               className="w-full bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 flex items-center space-x-4 text-left"
             >
-              <div className="w-10 h-10 text-orange-500">
+              <div className="w-10 h-10 text-indigo-500">
                 <Icon />
               </div>
-              <span className="text-lg font-medium text-purple-800">{name}</span>
+              <span className="text-lg font-medium text-indigo-800">{name}</span>
             </button>
           ))}
         </div>

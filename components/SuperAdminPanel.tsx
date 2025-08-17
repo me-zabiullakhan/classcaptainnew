@@ -72,7 +72,7 @@ export function SuperAdminPanel({ onLogout }: SuperAdminPanelProps): React.React
         <div className="bg-gray-900 text-gray-100 min-h-screen font-sans">
             <header className="bg-gray-800 p-4 shadow-lg flex justify-between items-center">
                 <div className="flex items-center space-x-3">
-                    <LogoIcon className="w-10 h-10" />
+                    <LogoIcon className="w-10 h-10 text-indigo-500" />
                     <h1 className="text-xl font-bold">Super Admin Panel</h1>
                 </div>
                 <button onClick={onLogout} className="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors">
@@ -89,7 +89,7 @@ export function SuperAdminPanel({ onLogout }: SuperAdminPanelProps): React.React
                         {academies.map(academy => (
                             <div key={academy.id} className="bg-gray-800 rounded-lg p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                 <div>
-                                    <h2 className="font-bold text-lg text-purple-400">{academy.name}</h2>
+                                    <h2 className="font-bold text-lg text-indigo-400">{academy.name}</h2>
                                     <p className="text-xs text-gray-400">ID: {academy.id}</p>
                                     <p className="text-sm text-gray-300 mt-1">{academy.adminEmail}</p>
                                 </div>

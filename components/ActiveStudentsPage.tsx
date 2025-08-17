@@ -8,7 +8,7 @@ import { SearchIcon } from './icons/SearchIcon';
 const ToggleSwitch = ({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
     <button
         type="button"
-        className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${checked ? 'bg-purple-600' : 'bg-gray-300'}`}
+        className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${checked ? 'bg-indigo-600' : 'bg-gray-300'}`}
         onClick={onChange}
         aria-pressed={checked}
     >
@@ -20,13 +20,13 @@ const ToggleSwitch = ({ checked, onChange }: { checked: boolean; onChange: () =>
 
 
 const StudentCard = ({ student, onToggleStatus }: { student: Student, onToggleStatus: (id: string) => void }) => (
-    <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-purple-500">
+    <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-indigo-500">
         <div className="flex justify-between items-start">
             <div className="flex items-center space-x-3">
                 {student.photo ? (
                     <img src={student.photo} alt={student.name} className="w-12 h-12 rounded-full object-cover" />
                 ) : (
-                    <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-xl">
+                    <div className="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xl">
                         {student.name.charAt(0)}
                     </div>
                 )}
@@ -73,14 +73,14 @@ export function ActiveStudentsPage({ onBack, students, batches, onToggleStudentS
                             placeholder="Search student..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-purple-500 focus:border-purple-500"
+                            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                         />
                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     </div>
                     <select
                         value={filter}
                         onChange={e => setFilter(e.target.value)}
-                        className="w-full sm:w-auto px-4 py-2 border rounded-lg focus:ring-purple-500 focus:border-purple-500"
+                        className="w-full sm:w-auto px-4 py-2 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                     >
                         <option value="all">All Batches</option>
                         {batches.map(batch => (

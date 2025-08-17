@@ -12,7 +12,7 @@ const FormInput = ({ label, ...props }: { label: string } & React.InputHTMLAttri
   <div className="mb-6">
     <label className="block text-gray-500 text-sm font-medium mb-2">{label}</label>
     <input 
-      className="w-full bg-transparent border-b-2 border-gray-300 focus:border-purple-500 pb-2 text-lg text-gray-800 outline-none transition-colors"
+      className="w-full bg-transparent border-b-2 border-gray-300 focus:border-indigo-500 pb-2 text-lg text-gray-800 outline-none transition-colors"
       {...props} 
     />
   </div>
@@ -24,7 +24,7 @@ const DayButton = ({ day, isSelected, onClick }: { day: string, isSelected: bool
     onClick={onClick}
     className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
       isSelected
-        ? 'bg-purple-500 border-purple-500 text-white'
+        ? 'bg-indigo-600 border-indigo-600 text-white'
         : 'bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200'
     }`}
   >
@@ -106,7 +106,7 @@ export function NewBatchPage({ onBack, onSave }: NewBatchPageProps): React.React
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">₹</span>
                 <input 
-                  className="w-full bg-transparent border-b-2 border-gray-300 focus:border-purple-500 pl-8 pr-2 pb-2 text-lg text-gray-800 outline-none transition-colors"
+                  className="w-full bg-transparent border-b-2 border-gray-300 focus:border-indigo-500 pl-8 pr-2 pb-2 text-lg text-gray-800 outline-none transition-colors"
                   type="number"
                   inputMode="numeric"
                   placeholder="e.g. 500"
@@ -123,7 +123,7 @@ export function NewBatchPage({ onBack, onSave }: NewBatchPageProps): React.React
                       value={type}
                       checked={batchFeeType === type}
                       onChange={() => setBatchFeeType(type)}
-                      className="form-radio text-purple-500 focus:ring-purple-500"
+                      className="form-radio text-indigo-600 focus:ring-indigo-500"
                       disabled={!batchFeeAmount}
                     />
                     <span>{type}</span>
@@ -155,7 +155,7 @@ export function NewBatchPage({ onBack, onSave }: NewBatchPageProps): React.React
         <button
           type="submit"
           form="new-batch-form"
-          className="w-full bg-purple-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-600 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+          className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
           SAVE BATCH
         </button>

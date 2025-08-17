@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { LogoIcon } from '../icons/LogoIcon';
 import { BuildingIcon } from '../icons/BuildingIcon';
@@ -15,7 +16,7 @@ const AuthLayout = ({ title, subtitle, children }: { title: string, subtitle: st
     <div className="min-h-screen flex flex-col justify-center items-center px-4 py-8" style={{background: 'linear-gradient(160deg, #f3e8ff 0%, #f4f5f7 100%)'}}>
         <div className="text-center mb-8">
             <div className="flex justify-center items-center gap-3 mb-4">
-                <LogoIcon className="w-12 h-12" />
+                <LogoIcon className="w-12 h-12 text-indigo-600" />
                 <span className="text-3xl font-bold text-gray-800">Class Captain</span>
             </div>
             <h1 className="text-2xl font-bold text-gray-800">{title}</h1>
@@ -41,7 +42,7 @@ const FormInput = ({ icon, label, ...props }: { icon: React.ReactNode, label: st
                 {icon}
             </div>
             <input 
-                className="w-full bg-white text-black pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-400 focus:border-purple-400 outline-none transition"
+                className="w-full bg-white text-black pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition"
                 {...props}
             />
         </div>
@@ -49,14 +50,14 @@ const FormInput = ({ icon, label, ...props }: { icon: React.ReactNode, label: st
 );
 
 const InfoNote = ({ children }: { children: React.ReactNode }) => (
-    <div className="bg-purple-50 border-l-4 border-purple-300 p-4 rounded-r-lg mt-6">
+    <div className="bg-indigo-50 border-l-4 border-indigo-300 p-4 rounded-r-lg mt-6">
         <div className="flex">
             <div className="flex-shrink-0">
                 <span className="text-lg">📝</span>
             </div>
             <div className="ml-3">
-                <h3 className="text-sm font-bold text-purple-800">Note:</h3>
-                <p className="text-sm text-purple-700 mt-1">{children}</p>
+                <h3 className="text-sm font-bold text-indigo-800">Note:</h3>
+                <p className="text-sm text-indigo-700 mt-1">{children}</p>
             </div>
         </div>
     </div>
@@ -136,7 +137,7 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
                         <p className="text-gray-600 mb-4">Here is your unique Academy ID. Please save it carefully. Your students and teachers will need this ID to log in.</p>
                         <div className="bg-gray-100 p-4 rounded-lg my-4">
                             <p className="text-gray-500 text-sm">Academy ID</p>
-                            <p className="text-purple-600 font-bold text-xl tracking-widest">{newAcademyId}</p>
+                            <p className="text-indigo-600 font-bold text-xl tracking-widest">{newAcademyId}</p>
                         </div>
                         <button
                             onClick={() => {
@@ -144,7 +145,7 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
                                 alert('Academy ID copied to clipboard!');
                                 onRegisterSuccess();
                             }}
-                            className="w-full bg-purple-600 text-white font-bold py-3 rounded-lg hover:bg-purple-700 transition-colors shadow-md mt-4"
+                            className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4"
                         >
                             Copy ID & Proceed to Login
                         </button>
@@ -165,7 +166,7 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
                     
                     {error && <p className="text-red-500 text-sm text-center mb-4">{error}</p>}
 
-                    <button type="submit" disabled={isLoading} className="w-full bg-purple-600 text-white font-bold py-3 rounded-lg hover:bg-purple-700 transition-colors shadow-md mt-4 disabled:bg-purple-300">
+                    <button type="submit" disabled={isLoading} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4 disabled:bg-indigo-300">
                         {isLoading ? 'Creating Account...' : 'Create Account'}
                     </button>
                 </form>
@@ -173,7 +174,7 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
                 <div className="text-center mt-6">
                     <p className="text-sm text-gray-600">
                         Already have an account?{' '}
-                        <button onClick={onNavigateToLogin} className="font-medium text-purple-600 hover:underline">
+                        <button onClick={onNavigateToLogin} className="font-medium text-indigo-600 hover:underline">
                             Sign in here
                         </button>
                     </p>

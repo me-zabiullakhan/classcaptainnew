@@ -48,7 +48,7 @@ export function RegistrationFormViewPage({ onBack, student }: { onBack: () => vo
                     {/* Form Header */}
                     <div className="flex justify-between items-start pb-4 border-b-2 border-gray-500">
                         <div className="flex items-center space-x-4">
-                            <LogoIcon className="w-16 h-16 text-purple-600" />
+                            <LogoIcon className="w-16 h-16 text-indigo-600" />
                             <div>
                                 <h1 className="text-2xl font-extrabold text-gray-800 tracking-wider">CLASS CAPTAIN</h1>
                                 <p className="text-xs text-gray-500">Institute Management System</p>
@@ -79,7 +79,7 @@ export function RegistrationFormViewPage({ onBack, student }: { onBack: () => vo
                     
                     {/* Personal & Contact Details */}
                     <div className="mb-8">
-                        <h3 className="text-lg font-semibold text-purple-700 mb-2 border-b pb-1">Personal & Contact Details</h3>
+                        <h3 className="text-lg font-semibold text-indigo-700 mb-2 border-b pb-1">Personal & Contact Details</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
                             <FormRow label="Date of Birth" value={student.dob} />
                             <FormRow label="Gender" value={student.gender} />
@@ -92,7 +92,7 @@ export function RegistrationFormViewPage({ onBack, student }: { onBack: () => vo
 
                     {/* Academic Details */}
                     <div className="mb-8">
-                        <h3 className="text-lg font-semibold text-purple-700 mb-2 border-b pb-1">Academic Details</h3>
+                        <h3 className="text-lg font-semibold text-indigo-700 mb-2 border-b pb-1">Academic Details</h3>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
                             <FormRow label="Admission Date" value={student.admissionDate} />
                             <FormRow label="Enrolled Batches" value={student.batches.join(', ')} />

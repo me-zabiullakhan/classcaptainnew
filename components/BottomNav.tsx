@@ -15,7 +15,7 @@ export function BottomNav({ onNavigate, activePage }: BottomNavProps): React.Rea
       <div className="flex justify-around items-center h-16">
         <button 
           onClick={() => onNavigate('dashboard')} 
-          className={`flex flex-col items-center font-semibold ${activePage === 'dashboard' ? 'text-purple-600' : 'text-gray-500'}`} 
+          className={`flex flex-col items-center font-semibold ${activePage === 'dashboard' ? 'text-indigo-600' : 'text-gray-500'}`} 
           aria-label="Go to dashboard"
         >
           <DashboardIcon className="w-6 h-6 mb-1" />
@@ -23,14 +23,14 @@ export function BottomNav({ onNavigate, activePage }: BottomNavProps): React.Rea
         </button>
         
         <div className="relative -mt-12">
-          <button className="w-16 h-16 rounded-full bg-purple-500 text-white flex items-center justify-center shadow-lg border-4 border-white" aria-label="Central Action">
+          <button className="w-16 h-16 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg border-4 border-white" aria-label="Central Action">
             <CentralIcon className="w-8 h-8"/>
           </button>
         </div>
         
         <button 
           onClick={() => onNavigate('my-account')} 
-          className={`flex flex-col items-center font-semibold ${activePage === 'my-account' ? 'text-purple-600' : 'text-gray-500'}`} 
+          className={`flex flex-col items-center font-semibold ${activePage === 'my-account' ? 'text-indigo-600' : 'text-gray-500'}`} 
           aria-label="Go to my account"
         >
           <AccountIcon className="w-6 h-6 mb-1" />

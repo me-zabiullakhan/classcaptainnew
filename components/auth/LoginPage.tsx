@@ -25,7 +25,7 @@ const AuthLayout = ({ title, subtitle, children }: { title: string, subtitle: st
     <div className="min-h-screen flex flex-col justify-center items-center px-4 py-8" style={{background: 'linear-gradient(160deg, #f3e8ff 0%, #f4f5f7 100%)'}}>
         <div className="text-center mb-8">
             <div className="flex justify-center items-center gap-3 mb-4">
-                <LogoIcon className="w-12 h-12" />
+                <LogoIcon className="w-12 h-12 text-indigo-600" />
                 <span className="text-3xl font-bold text-gray-800">Class Captain</span>
             </div>
             <h1 className="text-2xl font-bold text-gray-800">{title}</h1>
@@ -51,7 +51,7 @@ const FormInput = ({ icon, label, ...props }: { icon: React.ReactNode, label: st
                 {icon}
             </div>
             <input
-                className="w-full bg-white text-black pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-400 focus:border-purple-400 outline-none transition"
+                className="w-full bg-white text-black pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition"
                 {...props}
             />
         </div>
@@ -73,7 +73,7 @@ const RoleSwitcher = ({ activeRole, onRoleChange }: { activeRole: Role, onRoleCh
                     key={id}
                     onClick={() => onRoleChange(id)}
                     className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-semibold transition-colors ${
-                        activeRole === id ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500 hover:bg-gray-200'
+                        activeRole === id ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:bg-gray-200'
                     }`}
                 >
                     {icon}
@@ -90,7 +90,7 @@ const AcademyLoginFailedPopup = ({ onCancel, onRegister }: { onCancel: () => voi
             <h3 className="text-lg font-bold text-gray-800">Account Not Found</h3>
             <p className="text-gray-600 mt-2 mb-6">We couldn't find an academy account for that email. Please check for typos or register a new academy.</p>
             <div className="flex flex-col gap-3">
-                <button onClick={onRegister} className="w-full bg-purple-600 text-white font-bold py-2.5 rounded-lg hover:bg-purple-700 transition-colors">
+                <button onClick={onRegister} className="w-full bg-indigo-600 text-white font-bold py-2.5 rounded-lg hover:bg-indigo-700 transition-colors">
                     Register Academy
                 </button>
                 <button onClick={onCancel} className="w-full bg-gray-200 text-gray-800 font-bold py-2.5 rounded-lg hover:bg-gray-300 transition-colors">
@@ -173,7 +173,7 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onSuperAdminL
     }}>
         <FormInput icon={<EmailIcon className="w-5 h-5" />} label="Email Address" type="email" name="email" placeholder="Enter your email" required />
         <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" name="password" placeholder="Enter your password" required />
-        <button type="submit" className="w-full bg-purple-600 text-white font-bold py-3 rounded-lg hover:bg-purple-700 transition-colors shadow-md mt-4">
+        <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4">
             Sign In
         </button>
     </form>
@@ -232,7 +232,7 @@ const StudentLoginForm = ({ onLogin, onAcademyNotFound }: { onLogin: (u: Current
             <FormInput icon={<UserIcon className="w-5 h-5" />} label="Student ID" type="text" name="studentId" placeholder="Enter your student ID" required />
             <FormInput icon={<CalendarIcon className="w-5 h-5" />} label="Date of Birth" type="date" name="dob" placeholder="mm/dd/yyyy" required />
             {error && <p className="text-red-500 text-sm text-center mb-4">{error}</p>}
-            <button type="submit" disabled={isLoading} className="w-full bg-purple-600 text-white font-bold py-3 rounded-lg hover:bg-purple-700 transition-colors shadow-md mt-4 disabled:bg-purple-300">
+            <button type="submit" disabled={isLoading} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4 disabled:bg-indigo-300">
                 {isLoading ? 'Signing In...' : 'Sign In'}
             </button>
         </form>
@@ -293,7 +293,7 @@ const TeacherLoginForm = ({ onLogin, onAcademyNotFound }: { onLogin: (u: Current
             <FormInput icon={<UserIcon className="w-5 h-5" />} label="Teacher ID" type="text" name="teacherId" placeholder="Enter your teacher ID" required />
             <FormInput icon={<CalendarIcon className="w-5 h-5" />} label="Date of Birth" type="date" name="dob" placeholder="mm/dd/yyyy" required />
             {error && <p className="text-red-500 text-sm text-center mb-4">{error}</p>}
-            <button type="submit" disabled={isLoading} className="w-full bg-purple-600 text-white font-bold py-3 rounded-lg hover:bg-purple-700 transition-colors shadow-md mt-4 disabled:bg-purple-300">
+            <button type="submit" disabled={isLoading} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4 disabled:bg-indigo-300">
                 {isLoading ? 'Signing In...' : 'Sign In'}
             </button>
         </form>
@@ -306,7 +306,7 @@ const AcademyNotFoundPopup = ({ onCancel, onRegister }: { onCancel: () => void, 
             <h3 className="text-lg font-bold text-gray-800">Academy Not Found</h3>
             <p className="text-gray-600 mt-2 mb-6">The Academy ID you entered is not registered or has been suspended. Please check the ID or register the academy.</p>
             <div className="flex flex-col gap-3">
-                <button onClick={onRegister} className="w-full bg-purple-600 text-white font-bold py-2.5 rounded-lg hover:bg-purple-700 transition-colors">
+                <button onClick={onRegister} className="w-full bg-indigo-600 text-white font-bold py-2.5 rounded-lg hover:bg-indigo-700 transition-colors">
                     Register Now
                 </button>
                 <button onClick={onCancel} className="w-full bg-gray-200 text-gray-800 font-bold py-2.5 rounded-lg hover:bg-gray-300 transition-colors">
@@ -398,7 +398,7 @@ export function LoginPage({ onLogin, onSuperAdminLogin, onNavigateToRegister, ex
             
             <div className="text-center mt-6">
                  {activeRole === 'academy' && (
-                    <a href="#" className="text-sm font-medium text-purple-600 hover:underline">
+                    <a href="#" className="text-sm font-medium text-indigo-600 hover:underline">
                         Forgot your password?
                     </a>
                 )}
@@ -407,7 +407,7 @@ export function LoginPage({ onLogin, onSuperAdminLogin, onNavigateToRegister, ex
             <div className="text-center mt-4">
                 <p className="text-sm text-gray-600">
                     Don't have an account?{' '}
-                    <button onClick={onNavigateToRegister} className="font-medium text-purple-600 hover:underline">
+                    <button onClick={onNavigateToRegister} className="font-medium text-indigo-600 hover:underline">
                         Register here
                     </button>
                 </p>

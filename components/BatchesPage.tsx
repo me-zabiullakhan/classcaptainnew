@@ -23,12 +23,12 @@ export function BatchesPage({ onBack, onCreate, batches }: BatchesPageProps): Re
         {batches.length === 0 ? (
           <div className="text-center py-20 px-4">
             <p className="text-lg text-gray-500 mb-4">No batches have been created yet.</p>
-            <p className="text-gray-400">Click the <span className="font-bold text-purple-500">+</span> button to add your first batch.</p>
+            <p className="text-gray-400">Click the <span className="font-bold text-indigo-500">+</span> button to add your first batch.</p>
           </div>
         ) : (
           <div className="space-y-4 pb-20">
             {batches.map(batch => (
-              <div key={batch.id} className="bg-white p-4 rounded-lg shadow-md border-l-4 border-purple-500 hover:shadow-lg transition-shadow duration-200">
+              <div key={batch.id} className="bg-white p-4 rounded-lg shadow-md border-l-4 border-indigo-500 hover:shadow-lg transition-shadow duration-200">
                 <div className="flex justify-between items-start">
                   <div>
                       <h3 className="font-bold text-lg text-gray-800">{batch.name}</h3>
@@ -50,7 +50,7 @@ export function BatchesPage({ onBack, onCreate, batches }: BatchesPageProps): Re
 
       <button
         onClick={onCreate}
-        className="absolute bottom-4 right-4 bg-purple-500 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:bg-purple-600 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+        className="absolute bottom-4 right-4 bg-indigo-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         aria-label="Create New Batch"
       >
         <PlusIcon className="w-8 h-8" />

@@ -13,7 +13,7 @@ interface SelectBatchForAttendancePageProps {
 const BatchAttendanceCard = ({ batch, onSelect }: { batch: Batch; onSelect: () => void; }) => (
   <button onClick={onSelect} className="w-full bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 text-left">
     <div className="flex justify-between items-start mb-4">
-      <h3 className="font-bold text-purple-800 text-base">{batch.name}</h3>
+      <h3 className="font-bold text-indigo-800 text-base">{batch.name}</h3>
       <span className="text-sm text-gray-500 font-medium">{batch.time}</span>
     </div>
     <div className="grid grid-cols-3 text-center">
