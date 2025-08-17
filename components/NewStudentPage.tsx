@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { Student, Batch } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -116,8 +117,8 @@ export function NewStudentPage({ onBack, onSave, batches }: NewStudentPageProps)
   return (
     <>
     <div className="bg-slate-100 flex flex-col h-screen animate-fade-in">
-      <header className="bg-purple-600 text-white p-3 flex items-center shadow-md flex-shrink-0">
-        <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-purple-700 transition-colors" aria-label="Go back">
+      <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md flex-shrink-0">
+        <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back">
           <ArrowLeftIcon className="w-6 h-6" />
         </button>
         <h1 className="text-xl font-bold ml-2">New Student</h1>

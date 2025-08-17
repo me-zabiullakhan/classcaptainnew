@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { Student } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -21,15 +22,15 @@ export function RegistrationFormViewPage({ onBack, student }: { onBack: () => vo
     
     return (
         <div className="bg-slate-200 min-h-screen">
-            <header className="no-print bg-purple-600 text-white p-3 flex items-center justify-between shadow-md sticky top-0 z-10">
+            <header className="no-print bg-indigo-700 text-white p-3 flex items-center justify-between shadow-md sticky top-0 z-10">
                 <div className="flex items-center">
-                    <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-purple-700 transition-colors" aria-label="Go back">
+                    <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back">
                         <ArrowLeftIcon className="w-6 h-6" />
                     </button>
                     <h1 className="text-xl font-bold ml-2">Registration Form</h1>
                 </div>
                 <div className="relative">
-                     <button onClick={() => setMenuOpen(prev => !prev)} className="p-1 rounded-full hover:bg-purple-700">
+                     <button onClick={() => setMenuOpen(prev => !prev)} className="p-1 rounded-full hover:bg-indigo-800">
                         <MoreVertIcon className="w-6 h-6" />
                     </button>
                     {menuOpen && (

@@ -11,8 +11,8 @@ interface MyAccountPageProps {
 export function MyAccountPage({ onBack, onLogout }: MyAccountPageProps): React.ReactNode {
   return (
     <div className="animate-fade-in flex flex-col h-full">
-      <header className="bg-purple-600 text-white p-3 flex items-center shadow-md w-full -mx-3 sm:-mx-4 mt-[-1rem]">
-        <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-purple-700 transition-colors" aria-label="Go back to dashboard">
+      <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md w-full -mx-3 sm:-mx-4 mt-[-1rem]">
+        <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back to dashboard">
           <ArrowLeftIcon className="w-6 h-6" />
         </button>
         <h1 className="text-xl font-bold ml-2">My Account</h1>

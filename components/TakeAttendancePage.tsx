@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { Batch, Student, AttendanceStatus } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -84,27 +85,27 @@ export function TakeAttendancePage({ onBack, batch, students }: TakeAttendancePa
 
     return (
         <div className="bg-slate-100 flex flex-col h-screen animate-fade-in">
-            <header className="bg-purple-600 text-white p-3 flex items-center justify-between shadow-md flex-shrink-0">
+            <header className="bg-indigo-700 text-white p-3 flex items-center justify-between shadow-md flex-shrink-0">
                 <div className="flex items-center">
-                    <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-purple-700" aria-label="Go back">
+                    <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800" aria-label="Go back">
                         <ArrowLeftIcon className="w-6 h-6" />
                     </button>
                     <h1 className="text-xl font-bold ml-2">Take Attendance</h1>
                 </div>
                 <div className="flex items-center space-x-2">
                     <button className="text-sm font-medium">SMS</button>
-                    <button className="p-1 rounded-full hover:bg-purple-700">
+                    <button className="p-1 rounded-full hover:bg-indigo-800">
                         <MoreVertIcon className="w-6 h-6" />
                     </button>
                 </div>
             </header>
 
-            <div className="bg-purple-800 text-white p-2 flex items-center justify-between">
-                <button onClick={() => handleDateChange('prev')} className="p-2 rounded-full hover:bg-purple-700">
+            <div className="bg-indigo-900 text-white p-2 flex items-center justify-between">
+                <button onClick={() => handleDateChange('prev')} className="p-2 rounded-full hover:bg-indigo-800">
                     <ArrowLeftIcon className="w-5 h-5" />
                 </button>
                 <span className="font-bold text-lg">{formattedDate}</span>
-                <button onClick={() => handleDateChange('next')} className="p-2 rounded-full hover:bg-purple-700">
+                <button onClick={() => handleDateChange('next')} className="p-2 rounded-full hover:bg-indigo-800">
                     <ArrowRightIcon className="w-5 h-5" />
                 </button>
             </div>

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { Batch } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -35,14 +36,14 @@ const BatchAttendanceCard = ({ batch, onSelect }: { batch: Batch; onSelect: () =
 export function SelectBatchForAttendancePage({ onBack, batches, onSelectBatch }: SelectBatchForAttendancePageProps): React.ReactNode {
   return (
     <div className="animate-fade-in flex flex-col h-full">
-      <header className="bg-purple-600 text-white p-3 flex items-center justify-between shadow-md w-full -mx-3 sm:-mx-4 mt-[-1rem]">
+      <header className="bg-indigo-700 text-white p-3 flex items-center justify-between shadow-md w-full -mx-3 sm:-mx-4 mt-[-1rem]">
         <div className="flex items-center">
-          <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-purple-700 transition-colors" aria-label="Go back to dashboard">
+          <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back to dashboard">
             <ArrowLeftIcon className="w-6 h-6" />
           </button>
           <h1 className="text-xl font-bold ml-2">Select Batch</h1>
         </div>
-        <button className="p-2 rounded-full hover:bg-purple-700 transition-colors" aria-label="Search batches">
+        <button className="p-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Search batches">
           <SearchIcon className="w-6 h-6" />
         </button>
       </header>
