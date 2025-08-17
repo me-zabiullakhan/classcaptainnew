@@ -436,10 +436,11 @@ function App(): React.ReactNode {
   
   const saveFeePayment = async (paymentData: Omit<FeeCollection, 'id'>) => {
     if (isDemoMode) {
-        alert("Saving data is disabled in demo mode.");
-        return;
+        const error = new Error("Saving data is disabled in demo mode.");
+        (error as any).code = 'demo-mode';
+        throw error;
     }
-    if (!academyId) return;
+    if (!academyId) throw new Error("Academy ID is not available.");
 
     try {
         await addDoc(collection(db, `academies/${academyId}/feeCollections`), {
@@ -449,8 +450,7 @@ function App(): React.ReactNode {
         });
     } catch (e) {
         handleFirestoreError(e as any, 'saving fee payment');
-        alert("Failed to save fee payment. Please check your connection and try again.");
-        throw e; // Re-throw to be caught by the calling component for UI reversal
+        throw e; // Re-throw to be caught by the calling component for UI feedback
     }
   };
   

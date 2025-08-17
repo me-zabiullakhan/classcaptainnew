@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { collection, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
@@ -17,6 +18,7 @@ export function SuperAdminPanel({ onLogout }: SuperAdminPanelProps): React.React
     const [academies, setAcademies] = React.useState<Academy[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
+    const [actionError, setActionError] = React.useState<string | null>(null);
 
     const fetchAcademies = async () => {
         setIsLoading(true);
@@ -42,6 +44,7 @@ export function SuperAdminPanel({ onLogout }: SuperAdminPanelProps): React.React
     }, []);
 
     const toggleAcademyStatus = async (academy: Academy) => {
+        setActionError(null);
         const newStatus = academy.status === 'active' ? 'paused' : 'active';
         const academyRef = doc(db, 'academies', academy.id);
         try {
@@ -49,12 +52,13 @@ export function SuperAdminPanel({ onLogout }: SuperAdminPanelProps): React.React
             setAcademies(prev => prev.map(a => a.id === academy.id ? { ...a, status: newStatus } : a));
         } catch (err) {
             console.error("Error updating academy status:", err);
-            alert("Failed to update status. Please try again.");
+            setActionError(`Failed to update status for ${academy.name}. Please try again.`);
         }
     };
 
-    const deleteAcademy = async (academyId: string) => {
-        if (!window.confirm("Are you sure you want to delete this academy? This action is irreversible and will delete the academy's main record.")) {
+    const deleteAcademy = async (academyId: string, academyName: string) => {
+        setActionError(null);
+        if (!window.confirm(`Are you sure you want to delete ${academyName}? This action is irreversible and will delete the academy's main record.`)) {
             return;
         }
         // Note: This only deletes the academy document itself. Deleting all sub-collections (students, batches)
@@ -64,7 +68,7 @@ export function SuperAdminPanel({ onLogout }: SuperAdminPanelProps): React.React
             setAcademies(prev => prev.filter(a => a.id !== academyId));
         } catch (err) {
             console.error("Error deleting academy:", err);
-            alert("Failed to delete academy. Please try again.");
+            setActionError(`Failed to delete academy ${academyName}. Please try again.`);
         }
     };
     
@@ -84,6 +88,15 @@ export function SuperAdminPanel({ onLogout }: SuperAdminPanelProps): React.React
             <main className="p-4 md:p-8">
                 {isLoading && <p className="text-center">Loading academies...</p>}
                 {error && <p className="text-center text-red-400">{error}</p>}
+                {actionError && (
+                    <div className="bg-red-900 border border-red-700 text-red-300 px-4 py-3 rounded-lg relative mb-4" role="alert">
+                        <strong className="font-bold">Error: </strong>
+                        <span className="block sm:inline">{actionError}</span>
+                        <button onClick={() => setActionError(null)} className="absolute top-0 bottom-0 right-0 px-4 py-3">
+                            <span className="text-2xl">&times;</span>
+                        </button>
+                    </div>
+                )}
                 {!isLoading && !error && (
                     <div className="space-y-4">
                         {academies.map(academy => (
@@ -100,7 +113,7 @@ export function SuperAdminPanel({ onLogout }: SuperAdminPanelProps): React.React
                                     <button onClick={() => toggleAcademyStatus(academy)} className="p-2 bg-gray-700 hover:bg-gray-600 rounded-full transition-colors" title={academy.status === 'active' ? 'Pause Academy' : 'Resume Academy'}>
                                         {academy.status === 'active' ? <PauseIcon className="w-5 h-5"/> : <PlayIcon className="w-5 h-5" />}
                                     </button>
-                                    <button onClick={() => deleteAcademy(academy.id)} className="p-2 bg-red-800 hover:bg-red-700 rounded-full transition-colors" title="Delete Academy">
+                                    <button onClick={() => deleteAcademy(academy.id, academy.name)} className="p-2 bg-red-800 hover:bg-red-700 rounded-full transition-colors" title="Delete Academy">
                                         <TrashIcon className="w-5 h-5"/>
                                     </button>
                                 </div>

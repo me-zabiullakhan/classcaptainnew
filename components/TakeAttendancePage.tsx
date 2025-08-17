@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { Batch, Student, AttendanceStatus } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -7,6 +8,7 @@ import { InfoIcon } from './icons/InfoIcon';
 import { MoreVertIcon } from './icons/MoreVertIcon';
 import { db } from '../firebaseConfig';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { XCircleIcon } from './icons/XCircleIcon';
 
 interface TakeAttendancePageProps {
   onBack: () => void;
@@ -68,6 +70,10 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
     const [currentDate, setCurrentDate] = React.useState(new Date());
     const [attendance, setAttendance] = React.useState<Record<string, AttendanceStatus>>({});
     const [isLoading, setIsLoading] = React.useState(true);
+    const [error, setError] = React.useState<string | null>(null);
+    const [savingError, setSavingError] = React.useState<string | null>(null);
+    const [retryTrigger, setRetryTrigger] = React.useState(0);
+
 
     const getFormattedDate = (date: Date) => {
         const year = date.getFullYear();
@@ -88,6 +94,8 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
         if (!academyId || !batch.id) return;
 
         setIsLoading(true);
+        setError(null);
+        setSavingError(null);
         const dateString = getFormattedDate(currentDate);
         const attendanceRef = doc(db, `academies/${academyId}/batches/${batch.id}/attendance`, dateString);
 
@@ -99,14 +107,18 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
             });
             setAttendance(newAttendanceState);
             setIsLoading(false);
-        }, (error) => {
-            console.error("Error fetching attendance:", error);
+        }, (err) => {
+            console.error("Error fetching attendance:", err);
+            if (err.code === 'unavailable') {
+                setError("You seem to be offline. Please check your connection.");
+            } else {
+                setError("Could not load attendance data. Please try again.");
+            }
             setIsLoading(false);
-            alert("Could not load attendance data.");
         });
 
         return () => unsubscribe();
-    }, [currentDate, batch.id, academyId, students, isDemoMode]);
+    }, [currentDate, batch.id, academyId, students, isDemoMode, retryTrigger]);
 
 
     const handleDateChange = (direction: 'prev' | 'next') => {
@@ -118,6 +130,7 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
     };
 
     const handleStatusChange = async (studentId: string, status: AttendanceStatus) => {
+        setSavingError(null);
         const oldStatus = attendance[studentId];
         setAttendance(prev => ({ ...prev, [studentId]: status }));
 
@@ -130,11 +143,14 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
         } catch (error) {
             console.error("Failed to save attendance:", error);
             setAttendance(prev => ({...prev, [studentId]: oldStatus })); // Revert on error
-            alert("Failed to save attendance. Please check your connection.");
+            setSavingError("Failed to save. Check your connection.");
+            setTimeout(() => setSavingError(null), 3000);
         }
     };
 
     const handleSetAll = async (status: AttendanceStatus) => {
+        setSavingError(null);
+        const oldAttendance = { ...attendance };
         const newAttendance: Record<string, AttendanceStatus> = {};
         students.forEach(s => { newAttendance[s.id] = status; });
         setAttendance(newAttendance);
@@ -147,9 +163,15 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
             await setDoc(attendanceRef, newAttendance, { merge: true });
         } catch (error) {
             console.error("Failed to set all attendance:", error);
-            alert("Failed to save bulk attendance. Please check your connection.");
+            setAttendance(oldAttendance);
+            setSavingError("Failed to save. Check your connection.");
+            setTimeout(() => setSavingError(null), 3000);
         }
     };
+    
+    const handleRetry = () => {
+        setRetryTrigger(c => c + 1);
+    }
 
     const formattedDate = currentDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
@@ -189,10 +211,26 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
                  </div>
             </div>
             
-            <main className="flex-grow p-2 sm:p-3 overflow-y-auto">
+            <main className="flex-grow p-2 sm:p-3 overflow-y-auto relative">
+                 {savingError && (
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-red-600 text-white text-sm font-semibold py-2 px-4 rounded-lg shadow-lg animate-fade-in z-10 flex items-center space-x-2">
+                        <XCircleIcon className="w-5 h-5" />
+                        <span>{savingError}</span>
+                    </div>
+                )}
                 {isLoading ? (
                     <div className="flex justify-center items-center h-full">
                         <p className="text-gray-500">Loading attendance...</p>
+                    </div>
+                ) : error ? (
+                     <div className="text-center py-20 px-4">
+                        <p className="text-lg text-red-600 font-semibold">{error}</p>
+                        <button
+                            onClick={handleRetry}
+                            className="mt-4 px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+                        >
+                            Retry
+                        </button>
                     </div>
                 ) : students.length > 0 ? (
                     <div className="space-y-3 pb-4">

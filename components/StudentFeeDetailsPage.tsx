@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { Student, FeeCollection } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -47,6 +48,7 @@ const PaymentModal = ({ month, student, onSave, onClose }: { month: string, stud
     const [paymentMode, setPaymentMode] = React.useState<'Cash' | 'UPI' | 'Card' | 'Other'>('Cash');
     const [discount, setDiscount] = React.useState('0');
     const [isSaving, setIsSaving] = React.useState(false);
+    const [saveError, setSaveError] = React.useState<string | null>(null);
 
     const totalAmount = student.feeAmount || 0;
     const discountAmount = parseFloat(discount) || 0;
@@ -67,6 +69,7 @@ const PaymentModal = ({ month, student, onSave, onClose }: { month: string, stud
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSaving(true);
+        setSaveError(null);
         try {
             await onSave({
                 studentId: student.id,
@@ -81,10 +84,15 @@ const PaymentModal = ({ month, student, onSave, onClose }: { month: string, stud
                 paymentMode: paymentMode,
                 createdAt: new Date() as any, // Placeholder, will be replaced
             });
-        } catch (error) {
+            // On success, the parent component will close the modal
+        } catch (error: any) {
+            if (error.code === 'demo-mode') {
+                setSaveError(error.message);
+            } else {
+                setSaveError("Save failed. Check connection and try again.");
+            }
             console.error(error);
-        } finally {
-            setIsSaving(false);
+            setIsSaving(false); // Only stop saving on error, success unmounts
         }
     };
 
@@ -120,6 +128,7 @@ const PaymentModal = ({ month, student, onSave, onClose }: { month: string, stud
                         <div className="flex justify-between text-red-600"><span className="text-gray-600">Discount:</span> <span className="font-semibold">- ₹{discountAmount.toFixed(2)}</span></div>
                         <div className="flex justify-between text-lg font-bold text-indigo-700"><span className="text-gray-800">Final Amount:</span> <span>₹{finalAmount.toFixed(2)}</span></div>
                     </div>
+                     {saveError && <div className="bg-red-50 text-red-700 text-sm text-center p-3 rounded-lg border border-red-200">{saveError}</div>}
                 </div>
                 <div className="p-4 bg-gray-50 rounded-b-lg grid grid-cols-2 gap-3">
                     <button type="button" onClick={onClose} disabled={isSaving} className="w-full bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">Cancel</button>
@@ -140,10 +149,15 @@ export function StudentFeeDetailsPage({ onBack, student, feeCollections, onSaveP
     const pendingMonths = getPendingMonths(student, paidMonths);
 
     const handleSave = async (data: Omit<FeeCollection, 'id'>) => {
-        await onSavePayment(data);
-        setSelectedMonth(null);
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 2000);
+        try {
+            await onSavePayment(data);
+            setSelectedMonth(null);
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 2000);
+        } catch (error) {
+            // Re-throw the error so the modal can catch it and display the message
+            throw error;
+        }
     };
 
     return (
