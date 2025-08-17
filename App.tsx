@@ -140,6 +140,10 @@ function App(): React.ReactNode {
             setIsOffline(false); 
             setCriticalError(null);
           } else {
+            // This case handles a valid Firebase Auth user who has no corresponding academy document.
+            // This is an invalid state, so we provide feedback and sign them out.
+            setLoginError("Your account was found, but it's not linked to any academy. Please register or contact support.");
+            auth.signOut(); // Log them out of Firebase Auth to clear the invalid state.
             setCurrentUser(null);
             setCurrentAcademy(null);
           }
