@@ -1,7 +1,9 @@
+
 import React from 'react';
 import type { Student, FeeCollection } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { CheckCircleIcon } from './icons/CheckCircleIcon';
+import { CalendarIcon } from './icons/CalendarIcon';
 
 interface StudentFeeDetailsPageProps {
   onBack: () => void;
@@ -92,8 +94,13 @@ const PaymentModal = ({ month, student, onSave, onClose }: { month: string, stud
                 <h3 className="text-lg font-bold p-4 border-b text-center bg-gray-50 rounded-t-lg">Collect Fee for {monthFormatted}</h3>
                 <div className="p-4 space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Payment Date</label>
-                        <input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required />
+                        <label htmlFor="paymentDate" className="block text-sm font-medium text-gray-700">Payment Date</label>
+                        <div className="relative mt-1">
+                            <input id="paymentDate" type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required />
+                            <label htmlFor="paymentDate" className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer">
+                                <CalendarIcon className="w-5 h-5 text-gray-400" />
+                            </label>
+                        </div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Payment Mode</label>

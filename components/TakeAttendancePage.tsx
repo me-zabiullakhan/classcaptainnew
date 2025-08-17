@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { Batch, Student, AttendanceStatus } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -150,7 +151,7 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
         }
     };
 
-    const formattedDate = currentDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+    const formattedDate = currentDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
     return (
         <div className="bg-slate-100 flex flex-col h-screen animate-fade-in">

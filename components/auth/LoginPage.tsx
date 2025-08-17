@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import { LogoIcon } from '../icons/LogoIcon';
 import { BuildingIcon } from '../icons/BuildingIcon';
@@ -47,12 +46,13 @@ const AuthCard = ({ children }: { children: React.ReactNode }) => (
 
 const FormInput = ({ icon, label, ...props }: { icon: React.ReactNode, label: string } & React.InputHTMLAttributes<HTMLInputElement>) => (
     <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-600 mb-2">{label}</label>
+        <label htmlFor={props.id || props.name} className="block text-sm font-medium text-gray-600 mb-2">{label}</label>
         <div className="relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+            <label htmlFor={props.id || props.name} className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 cursor-pointer">
                 {icon}
-            </div>
+            </label>
             <input
+                id={props.id || props.name}
                 className="w-full bg-white text-black pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition"
                 {...props}
             />
@@ -244,7 +244,7 @@ const StudentLoginForm = ({ onLogin, onAcademyNotFound }: { onLogin: (u: Current
         <form onSubmit={handleStudentLogin}>
             <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Academy ID" type="text" name="academyId" placeholder="Enter your academy ID" required />
             <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" name="password" placeholder="Enter your password" required />
-            <FormInput icon={<CalendarIcon className="w-5 h-5" />} label="Date of Birth" type="date" name="dob" placeholder="mm/dd/yyyy" required />
+            <FormInput icon={<CalendarIcon className="w-5 h-5" />} label="Date of Birth" type="date" name="dob" placeholder="dd/mm/yyyy" required />
             {error && <p className="text-red-500 text-sm text-center mb-4">{error}</p>}
             <button type="submit" disabled={isLoading} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4 disabled:bg-indigo-300">
                 {isLoading ? 'Signing In...' : 'Sign In'}
@@ -305,7 +305,7 @@ const TeacherLoginForm = ({ onLogin, onAcademyNotFound }: { onLogin: (u: Current
         <form onSubmit={handleTeacherLogin}>
             <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Academy ID" type="text" name="academyId" placeholder="Enter your academy ID" required />
             <FormInput icon={<UserIcon className="w-5 h-5" />} label="Teacher ID" type="text" name="teacherId" placeholder="Enter your teacher ID" required />
-            <FormInput icon={<CalendarIcon className="w-5 h-5" />} label="Date of Birth" type="date" name="dob" placeholder="mm/dd/yyyy" required />
+            <FormInput icon={<CalendarIcon className="w-5 h-5" />} label="Date of Birth" type="date" name="dob" placeholder="dd/mm/yyyy" required />
             {error && <p className="text-red-500 text-sm text-center mb-4">{error}</p>}
             <button type="submit" disabled={isLoading} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4 disabled:bg-indigo-300">
                 {isLoading ? 'Signing In...' : 'Sign In'}

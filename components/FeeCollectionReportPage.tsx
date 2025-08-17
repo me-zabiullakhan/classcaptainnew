@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { FeeCollection } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -55,7 +56,7 @@ export function FeeCollectionReportPage({ onBack, feeCollections }: FeeCollectio
                             </div>
                             <div className="text-right">
                                 <p className="font-bold text-lg text-green-600">₹{fc.amountPaid.toFixed(2)}</p>
-                                <p className="text-xs text-gray-500">{paymentDate.toLocaleDateString()}</p>
+                                <p className="text-xs text-gray-500">{paymentDate.toLocaleDateString('en-GB')}</p>
                             </div>
                         </div>
                         <div className="text-xs text-gray-600 mt-2 pt-2 border-t">

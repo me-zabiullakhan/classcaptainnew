@@ -1,8 +1,18 @@
+
 import React from 'react';
 import type { Student } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { MoreVertIcon } from './icons/MoreVertIcon';
 import { LogoIcon } from './icons/LogoIcon';
+
+const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return '-';
+    // Input is YYYY-MM-DD
+    const [year, month, day] = dateString.split('-');
+    if (!year || !month || !day) return dateString;
+    // Return DD/MM/YYYY
+    return `${day}/${month}/${year}`;
+};
 
 const FormRow = ({ label, value }: { label: string, value?: string | number | null }) => (
     <div className="grid grid-cols-3 gap-4 py-2 border-b border-gray-200">
@@ -80,7 +90,7 @@ export function RegistrationFormViewPage({ onBack, student }: { onBack: () => vo
                     <div className="mb-8">
                         <h3 className="text-lg font-semibold text-indigo-700 mb-2 border-b pb-1">Personal & Contact Details</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
-                            <FormRow label="Date of Birth" value={student.dob} />
+                            <FormRow label="Date of Birth" value={formatDate(student.dob)} />
                             <FormRow label="Gender" value={student.gender} />
                             <FormRow label="Mobile Number 1" value={student.mobile1} />
                             <FormRow label="Mobile Number 2" value={student.mobile2} />
@@ -93,7 +103,7 @@ export function RegistrationFormViewPage({ onBack, student }: { onBack: () => vo
                     <div className="mb-8">
                         <h3 className="text-lg font-semibold text-indigo-700 mb-2 border-b pb-1">Academic Details</h3>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
-                            <FormRow label="Admission Date" value={student.admissionDate} />
+                            <FormRow label="Admission Date" value={formatDate(student.admissionDate)} />
                             <FormRow label="Enrolled Batches" value={student.batches.join(', ')} />
                             <FormRow label="Fee Type" value={student.feeType} />
                             <FormRow label="Fee Amount" value={`₹${student.feeAmount}`} />

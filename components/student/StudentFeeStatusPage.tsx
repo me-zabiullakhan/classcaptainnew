@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { Student, FeeCollection } from '../../types';
 import { ArrowLeftIcon } from '../icons/ArrowLeftIcon';
@@ -88,7 +89,7 @@ export function StudentFeeStatusPage({ student, feeCollections, onBack }: { stud
                                         {isPaid && details ? (
                                             <>
                                                 <p>Amount Paid: <span className="font-semibold text-gray-900">₹{details.amountPaid.toFixed(2)}</span></p>
-                                                <p>Payment Date: <span className="font-semibold text-gray-900">{details.paymentDate.toDate().toLocaleDateString()}</span></p>
+                                                <p>Payment Date: <span className="font-semibold text-gray-900">{details.paymentDate.toDate().toLocaleDateString('en-GB')}</span></p>
                                                 {details.discount > 0 && <p className="text-orange-600">Discount: <span className="font-semibold">₹{details.discount.toFixed(2)}</span></p>}
                                             </>
                                         ) : (

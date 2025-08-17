@@ -1,8 +1,10 @@
+
 import React from 'react';
 import type { Student, Batch } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { CameraIcon } from './icons/CameraIcon';
 import { ContactsIcon } from './icons/ContactsIcon';
+import { CalendarIcon } from './icons/CalendarIcon';
 
 interface EditStudentPageProps {
   onBack: () => void;
@@ -20,7 +22,7 @@ const FormInput = ({ label, id, children, containerClassName, ...props }: { labe
         className="w-full text-gray-800 bg-transparent outline-none"
         {...props} 
       />
-      {children}
+      {children && <label htmlFor={id} className="cursor-pointer">{children}</label>}
     </div>
   </div>
 );
@@ -99,7 +101,9 @@ export function EditStudentPage({ onBack, onUpdate, student, batches }: EditStud
             <FormInput label="Student Name" id="studentName" name="name" value={formData.name} onChange={handleChange} required containerClassName="border-indigo-500 border-2" />
             <FormInput label="Father Name" id="fatherName" name="fatherName" value={formData.fatherName} onChange={handleChange} required />
             <FormInput label="Mother Name" id="motherName" name="motherName" value={formData.motherName} onChange={handleChange} required />
-            <FormInput label="Date of birth" id="dob" name="dob" type="date" value={formData.dob} onChange={handleChange} required />
+            <FormInput label="Date of birth" id="dob" name="dob" type="date" value={formData.dob} onChange={handleChange} required>
+                <CalendarIcon className="w-6 h-6 text-indigo-600" />
+            </FormInput>
             
             <FormInput label="Mobile Number" id="mobile1" name="mobile1" type="tel" value={formData.mobile1} onChange={handleChange} required>
                 <span className="text-gray-500 mr-2">+91</span>
@@ -122,7 +126,9 @@ export function EditStudentPage({ onBack, onUpdate, student, batches }: EditStud
             </div>
 
             <FormInput label="Address" id="address" name="address" value={formData.address} onChange={handleChange} required />
-            <FormInput label="Admission Date" id="admissionDate" name="admissionDate" type="date" value={formData.admissionDate} onChange={handleChange} required />
+            <FormInput label="Admission Date" id="admissionDate" name="admissionDate" type="date" value={formData.admissionDate} onChange={handleChange} required>
+                <CalendarIcon className="w-6 h-6 text-indigo-600" />
+            </FormInput>
             
             <button type="button" onClick={() => setBatchModalOpen(true)} className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors shadow-md">
                 {formData.batches.length > 0 ? `Selected Batches (${formData.batches.length})` : 'SELECT BATCHES'}

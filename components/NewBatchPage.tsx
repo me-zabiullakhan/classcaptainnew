@@ -2,19 +2,22 @@
 import React from 'react';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import type { Batch } from '../types';
+import { ClockIcon } from './icons/ClockIcon';
 
 interface NewBatchPageProps {
   onBack: () => void;
   onSave: (batchData: Omit<Batch, 'id' | 'currentStudents'>) => void;
 }
 
-const FormInput = ({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) => (
-  <div className="mb-6">
-    <label className="block text-gray-500 text-sm font-medium mb-2">{label}</label>
+const FormInput = ({ label, id, icon, ...props }: { label: string, id: string, icon?: React.ReactNode } & React.InputHTMLAttributes<HTMLInputElement>) => (
+  <div className="mb-6 relative">
+    <label htmlFor={id} className="block text-gray-500 text-sm font-medium mb-2">{label}</label>
     <input 
+      id={id}
       className="w-full bg-transparent border-b-2 border-gray-300 focus:border-indigo-500 pb-2 text-lg text-gray-800 outline-none transition-colors"
       {...props} 
     />
+    {icon && <label htmlFor={id} className="absolute right-0 bottom-2 text-gray-400 cursor-pointer">{icon}</label>}
   </div>
 );
 
@@ -95,10 +98,10 @@ export function NewBatchPage({ onBack, onSave }: NewBatchPageProps): React.React
       
       <main className="flex-grow p-4 overflow-y-auto">
         <form id="new-batch-form" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
-          <FormInput label="Batch Name" value={name} onChange={e => setName(e.target.value)} required />
-          <FormInput label="Batch Location" value={location} onChange={e => setLocation(e.target.value)} />
-          <FormInput label="Batch Teacher" value={teacher} onChange={e => setTeacher(e.target.value)} />
-          <FormInput label="Batch Time" type="time" value={time} onChange={e => setTime(e.target.value)} />
+          <FormInput id="batchName" label="Batch Name" value={name} onChange={e => setName(e.target.value)} required />
+          <FormInput id="batchLocation" label="Batch Location" value={location} onChange={e => setLocation(e.target.value)} />
+          <FormInput id="batchTeacher" label="Batch Teacher" value={teacher} onChange={e => setTeacher(e.target.value)} />
+          <FormInput id="batchTime" label="Batch Time" type="time" value={time} onChange={e => setTime(e.target.value)} icon={<ClockIcon className="w-6 h-6" />} />
           
           <div className="mb-6">
             <label className="block text-gray-500 text-sm font-medium mb-3">Batch Fee (Optional)</label>
@@ -147,7 +150,7 @@ export function NewBatchPage({ onBack, onSave }: NewBatchPageProps): React.React
             </div>
           </div>
           
-          <FormInput label="Batch Maximum Slots" type="number" inputMode="numeric" pattern="[0-9]*" value={maxSlots} onChange={e => setMaxSlots(e.target.value)} required />
+          <FormInput id="maxSlots" label="Batch Maximum Slots" type="number" inputMode="numeric" pattern="[0-9]*" value={maxSlots} onChange={e => setMaxSlots(e.target.value)} required />
         </form>
       </main>
       
