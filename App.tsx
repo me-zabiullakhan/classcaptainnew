@@ -24,6 +24,7 @@ import { ConnectionErrorBanner } from './components/ConnectionErrorBanner';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
 import { DataConsentModal } from './components/DataConsentModal';
+import { SideNav } from './components/SideNav';
 
 function App(): React.ReactNode {
   const [dataConsentGiven, setDataConsentGiven] = React.useState(() => {
@@ -45,6 +46,7 @@ function App(): React.ReactNode {
   const [criticalError, setCriticalError] = React.useState<string | null>(null);
 
   const [page, setPage] = React.useState('dashboard');
+  const [isNavOpen, setIsNavOpen] = React.useState(false);
   const [batches, setBatches] = React.useState<Batch[]>([]);
   const [students, setStudents] = React.useState<Student[]>([]);
   const [selectedBatchId, setSelectedBatchId] = React.useState<string | null>(null);
@@ -171,6 +173,7 @@ function App(): React.ReactNode {
     setPage('dashboard');
     setAuthPage('login');
     setLoginError(null);
+    setIsNavOpen(false);
   };
 
   const addBatch = async (newBatchData: Omit<Batch, 'id' | 'currentStudents'>) => {
@@ -375,13 +378,20 @@ function App(): React.ReactNode {
 
   return (
     <div className="bg-slate-100 min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl">
+      <SideNav 
+        isOpen={isNavOpen} 
+        onClose={() => setIsNavOpen(false)} 
+        onNavigate={setPage}
+        onLogout={handleLogout}
+      />
       {!isUsingPlaceholderConfig && criticalError && <ConnectionErrorBanner message={criticalError} onClose={() => setCriticalError(null)} />}
       {!isUsingPlaceholderConfig && isOffline && <OfflineIndicator />}
       {page === 'dashboard' && academyData && 
         <Header 
           academyName={academyData.name} 
           academyId={academyData.academyId} 
-          onLogout={handleLogout} 
+          onLogout={handleLogout}
+          onToggleNav={() => setIsNavOpen(true)}
         />
       }
       <main className="flex-grow px-3 sm:px-4 py-4 relative">
