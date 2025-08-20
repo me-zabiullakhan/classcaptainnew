@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { LogoIcon } from '../icons/LogoIcon';
 import { BuildingIcon } from '../icons/BuildingIcon';
@@ -16,7 +17,6 @@ type Role = 'academy' | 'student' | 'teacher';
 
 interface LoginPageProps {
     onLogin: (user: CurrentUser) => void;
-    onSuperAdminLogin: () => void;
     onNavigateToRegister: () => void;
     externalError: string | null;
     clearExternalError: () => void;
@@ -103,18 +103,7 @@ const AcademyLoginFailedPopup = ({ onCancel, onRegister }: { onCancel: () => voi
     </div>
 );
 
-const sha256 = async (message: string) => {
-    const msgBuffer = new TextEncoder().encode(message);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    return hashHex;
-};
-
-const SUPER_ADMIN_EMAIL_HASH = 'f19f1aa2185579916327663473177891823126b484777490f2b3433a0b35b5df';
-const SUPER_ADMIN_PASS_HASH = 'd0a708a28f5223c345b85a3fd8667b93a8cf88b90c000302256799d5357eb433';
-
-const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onSuperAdminLogin, onLogin }: { setIsLoading: (l:boolean)=>void, setError: (e:string)=>void, onLoginFailed: () => void, onSuperAdminLogin: () => void, onLogin: (user: CurrentUser) => void }) => (
+const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { setIsLoading: (l:boolean)=>void, setError: (e:string)=>void, onLoginFailed: () => void, onLogin: (user: CurrentUser) => void }) => (
     <form onSubmit={async (e) => {
         e.preventDefault();
         setError('');
@@ -141,29 +130,11 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onSuperAdminL
         }
 
         try {
-            // Super admin check: trim inputs and lowercase email for robust matching.
-            const emailForCheck = rawEmail.trim().toLowerCase();
-            const passwordForCheck = rawPassword.trim(); // Only trim, preserve case for password.
-
-            const emailHash = await sha256(emailForCheck);
-            const passwordHash = await sha256(passwordForCheck);
-            
-            if (emailHash === SUPER_ADMIN_EMAIL_HASH && passwordHash === SUPER_ADMIN_PASS_HASH) {
-                onSuperAdminLogin();
-                return; // Exit after successful super admin login
-            }
-            
-            // If not super admin, proceed with Firebase auth using raw, untrimmed values.
             await auth.signInWithEmailAndPassword(rawEmail, rawPassword);
             // onAuthStateChanged in App.tsx will handle the rest
         } catch (err: any) {
             if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-                // This error is from Firebase Auth, so the super admin check also failed.
                 onLoginFailed();
-            } else if (err instanceof TypeError) {
-                // This can happen if crypto.subtle is not available (e.g., on http).
-                console.error("Crypto API error during login:", err);
-                setError("A security error occurred. Please use a secure connection (HTTPS).");
             } else {
                 // General error for Firebase or other issues.
                 console.error("Login Error:", err);
@@ -332,7 +303,7 @@ const AcademyNotFoundPopup = ({ onCancel, onRegister }: { onCancel: () => void, 
 );
 
 
-export function LoginPage({ onLogin, onSuperAdminLogin, onNavigateToRegister, externalError, clearExternalError }: LoginPageProps) {
+export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearExternalError }: LoginPageProps) {
     const [activeRole, setActiveRole] = React.useState<Role>('academy');
     const [error, setError] = React.useState('');
     const [isLoading, setIsLoading] = React.useState(false);
@@ -362,7 +333,6 @@ export function LoginPage({ onLogin, onSuperAdminLogin, onNavigateToRegister, ex
                             setIsLoading={setIsLoading}
                             setError={setError}
                             onLoginFailed={() => setShowAcademyLoginFailedPopup(true)}
-                            onSuperAdminLogin={onSuperAdminLogin}
                             onLogin={onLogin}
                         />
                          <div className="text-center mt-6 text-xs text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-200">

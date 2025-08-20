@@ -25,7 +25,6 @@ import { collection, addDoc, onSnapshot, query, where, doc, runTransaction, incr
 import { SplashScreen } from './components/SplashScreen';
 import { ConnectionErrorBanner } from './components/ConnectionErrorBanner';
 import { OfflineIndicator } from './components/OfflineIndicator';
-import { SuperAdminPanel } from './components/SuperAdminPanel';
 import { DataConsentModal } from './components/DataConsentModal';
 import { SideNav } from './components/SideNav';
 import { demoBatches, demoStudents } from './demoData';
@@ -54,7 +53,6 @@ function App(): React.ReactNode {
 
   const [currentUser, setCurrentUser] = React.useState<CurrentUser | null>(null);
   const [currentAcademy, setCurrentAcademy] = React.useState<Academy | null>(null);
-  const [isSuperAdmin, setIsSuperAdmin] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
   const [authPage, setAuthPage] = React.useState('login'); // 'login' or 'register'
   const [loginError, setLoginError] = React.useState<string | null>(null);
@@ -279,18 +277,12 @@ function App(): React.ReactNode {
     setPage('dashboard');
   };
 
-  const handleSuperAdminLogin = () => {
-    setIsSuperAdmin(true);
-    setIsLoading(false);
-  };
-
   const handleLogout = async () => {
     if (currentUser?.role !== 'student') {
         await auth.signOut();
     }
     setCurrentUser(null);
     setCurrentAcademy(null);
-    setIsSuperAdmin(false);
     setPage('dashboard');
     setStudentPage('dashboard');
     setAuthPage('login');
@@ -521,10 +513,6 @@ function App(): React.ReactNode {
     return <div className="bg-slate-50 min-h-screen"><SplashScreen /></div>;
   }
   
-  if (isSuperAdmin) {
-    return <div><SuperAdminPanel onLogout={handleLogout} /></div>;
-  }
-  
   if (currentUser?.role === 'student') {
       if (!currentAcademy) {
           return <div className="bg-slate-50 min-h-screen"><SplashScreen /></div>;
@@ -586,7 +574,7 @@ function App(): React.ReactNode {
         <div className="bg-gray-50 font-sans min-h-screen">
             {!isUsingPlaceholderConfig && criticalError && <ConnectionErrorBanner message={criticalError} onClose={() => setCriticalError(null)} />}
             {!isUsingPlaceholderConfig && isOffline && <OfflineIndicator />}
-            {authPage === 'login' && <LoginPage onLogin={handleLogin} onSuperAdminLogin={handleSuperAdminLogin} onNavigateToRegister={() => setAuthPage('register')} externalError={loginError} clearExternalError={() => setLoginError(null)} />}
+            {authPage === 'login' && <LoginPage onLogin={handleLogin} onNavigateToRegister={() => setAuthPage('register')} externalError={loginError} clearExternalError={() => setLoginError(null)} />}
             {authPage === 'register' && <RegisterPage onRegisterSuccess={handleLoginAfterRegister} onNavigateToLogin={() => setAuthPage('login')} />}
         </div>
     );
