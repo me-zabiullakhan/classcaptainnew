@@ -24,22 +24,22 @@ export function BatchesPage({ onBack, onCreate, batches, onViewStudents }: Batch
       <main className="flex-grow pt-6">
         {batches.length === 0 ? (
           <div className="text-center py-20 px-4">
-            <p className="text-lg text-gray-500 mb-4">No batches have been created yet.</p>
-            <p className="text-gray-400">Click the <span className="font-bold text-indigo-500">+</span> button to add your first batch.</p>
+            <p className="text-lg text-gray-500 dark:text-gray-400 mb-4">No batches have been created yet.</p>
+            <p className="text-gray-400 dark:text-gray-500">Click the <span className="font-bold text-indigo-500">+</span> button to add your first batch.</p>
           </div>
         ) : (
           <div className="space-y-4 pb-20">
             {batches.map(batch => (
-              <div key={batch.id} className="bg-white p-4 rounded-lg shadow-md border-l-4 border-indigo-500 hover:shadow-lg transition-shadow duration-200 flex flex-col justify-between">
+              <div key={batch.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border-l-4 border-indigo-500 hover:shadow-lg transition-shadow duration-200 flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-start">
                       <div>
-                          <h3 className="font-bold text-lg text-gray-800">{batch.name}</h3>
-                          <p className="text-sm text-gray-500 mb-2">{batch.teacher || 'No Teacher'} &middot; {batch.location || 'No Location'}</p>
+                          <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100">{batch.name}</h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{batch.teacher || 'No Teacher'} &middot; {batch.location || 'No Location'}</p>
                       </div>
-                      <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full flex-shrink-0">{batch.time || 'Unscheduled'}</span>
+                      <span className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-full flex-shrink-0">{batch.time || 'Unscheduled'}</span>
                   </div>
-                  <div className="flex justify-between items-center mt-2 text-sm text-gray-600">
+                  <div className="flex justify-between items-center mt-2 text-sm text-gray-600 dark:text-gray-300">
                     <span className="font-medium">{batch.currentStudents} / {batch.maxSlots} Students</span>
                     <div className="flex space-x-1">
                         {batch.days.map(day => <span key={day} className="text-xs font-semibold">{day}</span>)}
@@ -47,10 +47,10 @@ export function BatchesPage({ onBack, onCreate, batches, onViewStudents }: Batch
                   </div>
                 </div>
 
-                <div className="border-t mt-4 pt-3 flex justify-end space-x-2">
+                <div className="border-t dark:border-gray-700 mt-4 pt-3 flex justify-end space-x-2">
                     <button
                       onClick={() => alert('Edit feature is under development.')}
-                      className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                      className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-200 bg-gray-100 dark:bg-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
                       aria-label={`Edit batch ${batch.name}`}
                     >
                       <PencilIcon className="w-4 h-4" />

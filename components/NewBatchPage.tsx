@@ -1,6 +1,4 @@
 
-
-
 import React from 'react';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import type { Batch } from '../types';
@@ -13,10 +11,10 @@ interface NewBatchPageProps {
 
 const FormInput = ({ label, id, icon, ...props }: { label: string, id: string, icon?: React.ReactNode } & React.InputHTMLAttributes<HTMLInputElement>) => (
   <div className="mb-6 relative">
-    <label htmlFor={id} className="block text-gray-500 text-sm font-medium mb-2">{label}</label>
+    <label htmlFor={id} className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-2">{label}</label>
     <input 
       id={id}
-      className="w-full bg-transparent border-b-2 border-gray-300 focus:border-indigo-500 pb-2 text-lg text-gray-800 outline-none transition-colors"
+      className="w-full bg-transparent border-b-2 border-gray-300 dark:border-gray-600 focus:border-indigo-500 dark:focus:border-indigo-400 pb-2 text-lg text-gray-800 dark:text-gray-100 outline-none transition-colors"
       {...props} 
     />
     {icon && <label htmlFor={id} className="absolute right-0 bottom-2 text-gray-400 cursor-pointer">{icon}</label>}
@@ -30,7 +28,7 @@ const DayButton: React.FC<{ day: string, isSelected: boolean, onClick: () => voi
     className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
       isSelected
         ? 'bg-indigo-600 border-indigo-600 text-white'
-        : 'bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200'
+        : 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
     }`}
   >
     {day}
@@ -90,7 +88,7 @@ export function NewBatchPage({ onBack, onSave }: NewBatchPageProps): React.React
   };
 
   return (
-    <div className="bg-slate-100 flex flex-col h-full animate-fade-in">
+    <div className="bg-slate-100 dark:bg-gray-900 flex flex-col h-full animate-fade-in">
       <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md flex-shrink-0">
         <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back to batches">
           <ArrowLeftIcon className="w-6 h-6" />
@@ -106,12 +104,12 @@ export function NewBatchPage({ onBack, onSave }: NewBatchPageProps): React.React
           <FormInput id="batchTime" label="Batch Time" type="time" value={time} onChange={e => setTime(e.target.value)} icon={<ClockIcon className="w-6 h-6" />} />
           
           <div className="mb-6">
-            <label className="block text-gray-500 text-sm font-medium mb-3">Batch Fee (Optional)</label>
+            <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-3">Batch Fee (Optional)</label>
             <div className="grid grid-cols-2 gap-4">
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">₹</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-lg">₹</span>
                 <input 
-                  className="w-full bg-transparent border-b-2 border-gray-300 focus:border-indigo-500 pl-8 pr-2 pb-2 text-lg text-gray-800 outline-none transition-colors"
+                  className="w-full bg-transparent border-b-2 border-gray-300 dark:border-gray-600 focus:border-indigo-500 dark:focus:border-indigo-400 pl-8 pr-2 pb-2 text-lg text-gray-800 dark:text-gray-100 outline-none transition-colors"
                   type="number"
                   inputMode="numeric"
                   placeholder="e.g. 500"
@@ -121,14 +119,14 @@ export function NewBatchPage({ onBack, onSave }: NewBatchPageProps): React.React
               </div>
               <div className="flex items-center justify-end gap-3 self-end mb-1">
                 {(['Monthly', 'Yearly'] as const).map(type => (
-                  <label key={type} className="flex items-center space-x-2 text-gray-700 cursor-pointer">
+                  <label key={type} className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 cursor-pointer">
                     <input
                       type="radio"
                       name="batchFeeType"
                       value={type}
                       checked={batchFeeType === type}
                       onChange={() => setBatchFeeType(type)}
-                      className="form-radio text-indigo-600 focus:ring-indigo-500"
+                      className="form-radio text-indigo-600 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600"
                       disabled={!batchFeeAmount}
                     />
                     <span>{type}</span>
@@ -139,7 +137,7 @@ export function NewBatchPage({ onBack, onSave }: NewBatchPageProps): React.React
           </div>
           
           <div className="mb-6">
-            <label className="block text-gray-500 text-sm font-medium mb-3">Batch Days</label>
+            <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-3">Batch Days</label>
             <div className="flex flex-wrap gap-2">
               {daysOfWeek.map(day => (
                 <DayButton
@@ -156,7 +154,7 @@ export function NewBatchPage({ onBack, onSave }: NewBatchPageProps): React.React
         </form>
       </main>
       
-      <footer className="p-4 flex-shrink-0 bg-slate-100">
+      <footer className="p-4 flex-shrink-0 bg-slate-100 dark:bg-gray-900">
         <button
           type="submit"
           form="new-batch-form"

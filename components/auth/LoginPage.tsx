@@ -22,14 +22,14 @@ interface LoginPageProps {
 }
 
 const AuthLayout: React.FC<{ title: string, subtitle: string }> = ({ title, subtitle, children }) => (
-    <div className="min-h-screen flex flex-col justify-center items-center px-4 py-8" style={{background: 'linear-gradient(160deg, #f3e8ff 0%, #f4f5f7 100%)'}}>
+    <div className="min-h-screen flex flex-col justify-center items-center px-4 py-8 bg-gradient-to-br from-purple-50 to-slate-100 dark:from-indigo-900 dark:to-gray-900">
         <div className="text-center mb-8">
             <div className="flex justify-center items-center gap-3 mb-4">
-                <LogoIcon className="w-12 h-12 text-indigo-600" />
-                <span className="text-3xl font-bold text-gray-800">Class Captain</span>
+                <LogoIcon className="w-12 h-12 text-indigo-600 dark:text-indigo-400" />
+                <span className="text-3xl font-bold text-gray-800 dark:text-gray-100">Class Captain</span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-800">{title}</h1>
-            <p className="text-gray-500 mt-1">{subtitle}</p>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{title}</h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">{subtitle}</p>
         </div>
         <div className="w-full max-w-sm">
             {children}
@@ -38,21 +38,21 @@ const AuthLayout: React.FC<{ title: string, subtitle: string }> = ({ title, subt
 );
 
 const AuthCard: React.FC<{}> = ({ children }) => (
-    <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
+    <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-lg">
         {children}
     </div>
 );
 
 const FormInput = ({ icon, label, ...props }: { icon: React.ReactNode, label: string } & React.InputHTMLAttributes<HTMLInputElement>) => (
     <div className="mb-4">
-        <label htmlFor={props.id || props.name} className="block text-sm font-medium text-gray-600 mb-2">{label}</label>
+        <label htmlFor={props.id || props.name} className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">{label}</label>
         <div className="relative">
             <label htmlFor={props.id || props.name} className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 cursor-pointer">
                 {icon}
             </label>
             <input
                 id={props.id || props.name}
-                className="w-full bg-white text-black pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition"
+                className="w-full bg-white dark:bg-gray-700 text-black dark:text-white pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition"
                 {...props}
             />
         </div>
@@ -68,13 +68,13 @@ const RoleSwitcher = ({ activeRole, onRoleChange }: { activeRole: Role, onRoleCh
     ];
 
     return (
-        <div className="bg-gray-100 p-1 rounded-lg flex justify-between gap-1 mb-6">
+        <div className="bg-gray-100 dark:bg-gray-700 p-1 rounded-lg flex justify-between gap-1 mb-6">
             {roles.map(({ id, name, icon }) => (
                 <button
                     key={id}
                     onClick={() => onRoleChange(id)}
                     className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-semibold transition-colors ${
-                        activeRole === id ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:bg-gray-200'
+                        activeRole === id ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-gray-500 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                     }`}
                 >
                     {icon}
@@ -349,10 +349,10 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
                             onLoginFailed={() => setShowAcademyLoginFailedPopup(true)}
                             onLogin={onLogin}
                         />
-                         <div className="text-center mt-6 text-xs text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                            <p className="font-bold text-gray-700 mb-1">Demo Login</p>
-                            <p>Email: <code className="font-mono bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded">demo@classcaptain.com</code></p>
-                            <p className="mt-1">Password: <code className="font-mono bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded">demo123</code></p>
+                         <div className="text-center mt-6 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
+                            <p className="font-bold text-gray-700 dark:text-gray-200 mb-1">Demo Login</p>
+                            <p>Email: <code className="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-1.5 py-0.5 rounded">demo@classcaptain.com</code></p>
+                            <p className="mt-1">Password: <code className="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-1.5 py-0.5 rounded">demo123</code></p>
                         </div>
                     </>
                 );
@@ -360,11 +360,11 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
                  return (
                     <>
                         <StudentLoginForm onLogin={onLogin} onAcademyNotFound={() => setShowNotFoundPopup(true)} />
-                        <div className="text-center mt-6 text-xs text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                            <p className="font-bold text-gray-700 mb-1">Demo Student Login</p>
-                            <p>Academy ID: <code className="font-mono bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded">ACDEMO</code></p>
-                            <p className="mt-1">Password: <code className="font-mono bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded">alice123</code></p>
-                            <p className="mt-1">Date of Birth: <code className="font-mono bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded">2006-05-15</code></p>
+                        <div className="text-center mt-6 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
+                            <p className="font-bold text-gray-700 dark:text-gray-200 mb-1">Demo Student Login</p>
+                            <p>Academy ID: <code className="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-1.5 py-0.5 rounded">ACDEMO</code></p>
+                            <p className="mt-1">Password: <code className="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-1.5 py-0.5 rounded">alice123</code></p>
+                            <p className="mt-1">Date of Birth: <code className="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-1.5 py-0.5 rounded">2006-05-15</code></p>
                         </div>
                     </>
                 );
@@ -372,21 +372,21 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
                 return (
                     <>
                         <StaffLoginForm onLogin={onLogin} onAcademyNotFound={() => setShowNotFoundPopup(true)} />
-                        <div className="text-center mt-6 text-xs text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                            <p className="font-bold text-gray-700 mb-2">Demo Teacher/Staff Logins</p>
+                        <div className="text-center mt-6 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
+                            <p className="font-bold text-gray-700 dark:text-gray-200 mb-2">Demo Teacher/Staff Logins</p>
                             <div className="text-left space-y-2">
                                 <div>
-                                    <p className="font-semibold">Teacher (Dr. Reed):</p>
-                                    <p>Staff ID: <code className="font-mono bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded">T02</code></p>
-                                    <p>Password: <code className="font-mono bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded">demoteacher</code></p>
+                                    <p className="font-semibold dark:text-gray-300">Teacher (Dr. Reed):</p>
+                                    <p>Staff ID: <code className="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-1.5 py-0.5 rounded">T02</code></p>
+                                    <p>Password: <code className="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-1.5 py-0.5 rounded">demoteacher</code></p>
                                 </div>
-                                <div className="pt-2 border-t border-gray-200">
-                                    <p className="font-semibold">Staff (Mr. Grant):</p>
-                                    <p>Staff ID: <code className="font-mono bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded">T01</code></p>
-                                    <p>Password: <code className="font-mono bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded">demostaff</code></p>
+                                <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
+                                    <p className="font-semibold dark:text-gray-300">Staff (Mr. Grant):</p>
+                                    <p>Staff ID: <code className="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-1.5 py-0.5 rounded">T01</code></p>
+                                    <p>Password: <code className="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-1.5 py-0.5 rounded">demostaff</code></p>
                                 </div>
                             </div>
-                            <p className="mt-2">Academy ID for both is <code className="font-mono bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded">ACDEMO</code></p>
+                            <p className="mt-2">Academy ID for both is <code className="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-1.5 py-0.5 rounded">ACDEMO</code></p>
                         </div>
                     </>
                 );
@@ -426,16 +426,16 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
             
             <div className="text-center mt-6">
                  {activeRole === 'academy' && (
-                    <a href="#" className="text-sm font-medium text-indigo-600 hover:underline">
+                    <a href="#" className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
                         Forgot your password?
                     </a>
                 )}
             </div>
 
             <div className="text-center mt-4">
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
                     Don't have an account?{' '}
-                    <button onClick={onNavigateToRegister} className="font-medium text-indigo-600 hover:underline">
+                    <button onClick={onNavigateToRegister} className="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
                         Register here
                     </button>
                 </p>

@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import type { Student, Batch, BatchAccessPermissions } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -10,7 +9,7 @@ import { RegistrationFormIcon } from './icons/RegistrationFormIcon';
 const ToggleSwitch: React.FC<{ checked: boolean; onChange: () => void }> = ({ checked, onChange }) => (
     <button
         type="button"
-        className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${checked ? 'bg-indigo-600' : 'bg-gray-300'}`}
+        className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${checked ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'}`}
         onClick={onChange}
         aria-pressed={checked}
     >
@@ -43,34 +42,34 @@ const StudentCard: React.FC<{
 
 
     return (
-        <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-indigo-500 flex flex-col">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border-l-4 border-indigo-500 flex flex-col">
             <div className="flex justify-between items-start">
                 <div className="flex items-center space-x-3">
                     {student.photo ? (
                         <img src={student.photo} alt={student.name} className="w-12 h-12 rounded-full object-cover" />
                     ) : (
-                        <div className="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xl">
+                        <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 flex items-center justify-center font-bold text-xl">
                             {student.name.charAt(0)}
                         </div>
                     )}
                     <div>
-                        <h3 className="font-bold text-gray-800">{student.name}</h3>
-                        <p className="text-sm text-gray-500">{student.rollNumber || student.id}</p>
+                        <h3 className="font-bold text-gray-800 dark:text-gray-100">{student.name}</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{student.rollNumber || student.id}</p>
                     </div>
                 </div>
                 <div className="flex flex-col items-end">
                     <ToggleSwitch checked={student.isActive} onChange={() => onToggleStatus(student.id)} />
-                    <span className="text-xs text-gray-400 mt-1">{student.isActive ? 'Active' : 'Inactive'}</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">{student.isActive ? 'Active' : 'Inactive'}</span>
                 </div>
             </div>
-            <div className="mt-3 text-xs text-gray-600">
+            <div className="mt-3 text-xs text-gray-600 dark:text-gray-300">
                 Batches: {student.batches.join(', ') || 'None'}
             </div>
-            <div className="border-t mt-3 pt-3 flex justify-end space-x-2">
+            <div className="border-t dark:border-gray-700 mt-3 pt-3 flex justify-end space-x-2">
                 {canEdit && (
                     <button
                       onClick={() => onEditStudent(student.id)}
-                      className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                      className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-200 bg-gray-100 dark:bg-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
                       aria-label={`Edit details for ${student.name}`}
                     >
                       <PencilIcon className="w-4 h-4" />
@@ -129,14 +128,14 @@ export function ActiveStudentsPage({ onBack, students, batches, onToggleStudentS
                             placeholder="Search by name or roll no..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                         />
                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     </div>
                     <select
                         value={filter}
                         onChange={e => setFilter(e.target.value)}
-                        className="w-full sm:w-auto px-4 py-2 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full sm:w-auto px-4 py-2 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     >
                         <option value="all">All Batches</option>
                         {batches.map(batch => (
@@ -160,8 +159,8 @@ export function ActiveStudentsPage({ onBack, students, batches, onToggleStudentS
                         ))
                     ) : (
                         <div className="text-center py-20 px-4">
-                            <p className="text-lg text-gray-500">No active students found.</p>
-                            <p className="text-sm text-gray-400 mt-2">Try adjusting your filters or adding a new student.</p>
+                            <p className="text-lg text-gray-500 dark:text-gray-400">No active students found.</p>
+                            <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Try adjusting your filters or adding a new student.</p>
                         </div>
                     )}
                 </div>

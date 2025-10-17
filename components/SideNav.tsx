@@ -83,20 +83,20 @@ export function SideNav({ isOpen, onClose, onNavigate, onLogout }: SideNavProps)
 
       {/* SideNav */}
       <aside 
-        className={`fixed top-0 left-0 h-full w-72 bg-white shadow-xl z-40 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed top-0 left-0 h-full w-72 bg-white dark:bg-gray-800 shadow-xl z-40 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="sidenav-title"
       >
         <div className="flex flex-col h-full">
             {/* Header */}
-            <header className="flex items-center justify-between p-4 border-b">
+            <header className="flex items-center justify-between p-4 border-b dark:border-gray-700">
                 <div className="flex items-center gap-2">
-                    <LogoIcon className="w-8 h-8 text-indigo-600"/>
-                    <h2 id="sidenav-title" className="text-lg font-bold text-gray-800">Class Captain</h2>
+                    <LogoIcon className="w-8 h-8 text-indigo-600 dark:text-indigo-400"/>
+                    <h2 id="sidenav-title" className="text-lg font-bold text-gray-800 dark:text-gray-100">Class Captain</h2>
                 </div>
-                <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100" aria-label="Close menu">
-                    <XMarkIcon className="w-6 h-6 text-gray-600"/>
+                <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Close menu">
+                    <XMarkIcon className="w-6 h-6 text-gray-600 dark:text-gray-300"/>
                 </button>
             </header>
 
@@ -105,8 +105,8 @@ export function SideNav({ isOpen, onClose, onNavigate, onLogout }: SideNavProps)
                 <ul>
                     {features.map(({ name, Icon }) => (
                         <li key={name}>
-                            <button onClick={getClickHandler(name)} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
-                                <Icon className="w-6 h-6 mr-4 text-gray-400"/>
+                            <button onClick={getClickHandler(name)} className="w-full flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                                <Icon className="w-6 h-6 mr-4 text-gray-400 dark:text-gray-500"/>
                                 <span className="font-medium">{name}</span>
                             </button>
                         </li>
@@ -115,13 +115,13 @@ export function SideNav({ isOpen, onClose, onNavigate, onLogout }: SideNavProps)
             </nav>
 
             {/* Footer */}
-            <footer className="p-4 border-t">
-                 <button onClick={() => handleNavigate('my-account')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors rounded-lg">
-                    <AccountIcon className="w-6 h-6 mr-4 text-gray-400"/>
+            <footer className="p-4 border-t dark:border-gray-700">
+                 <button onClick={() => handleNavigate('my-account')} className="w-full flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors rounded-lg">
+                    <AccountIcon className="w-6 h-6 mr-4 text-gray-400 dark:text-gray-500"/>
                     <span className="font-medium">My Account</span>
                 </button>
-                 <button onClick={onLogout} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors rounded-lg mt-2">
-                    <LogoutIcon className="w-6 h-6 mr-4 text-gray-400"/>
+                 <button onClick={onLogout} className="w-full flex items-center px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/40 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg mt-2">
+                    <LogoutIcon className="w-6 h-6 mr-4 text-gray-400 dark:text-gray-500"/>
                     <span className="font-medium">Logout</span>
                 </button>
             </footer>

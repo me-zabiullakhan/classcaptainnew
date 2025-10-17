@@ -1,6 +1,4 @@
 
-
-
 import React from 'react';
 import type { FeatureItem, Academy } from '../types';
 import { FeatureIcon } from './FeatureIcon';
@@ -90,24 +88,24 @@ export function Dashboard({ onNavigate, academy }: DashboardProps): React.ReactN
       </div>
 
       {hasContactInfo && (
-        <div className="bg-white p-4 rounded-xl shadow-md mb-6 border border-gray-200">
-          <h3 className="text-base font-bold text-gray-800 mb-3">Academy Details</h3>
-          <div className="space-y-2 text-sm text-gray-600">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md mb-6 border border-gray-200 dark:border-gray-700">
+          <h3 className="text-base font-bold text-gray-800 dark:text-gray-100 mb-3">Academy Details</h3>
+          <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
             {academy.contactEmail && (
               <div className="flex items-center space-x-2">
-                <EmailIcon className="w-4 h-4 text-gray-400" />
+                <EmailIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                 <span>{academy.contactEmail}</span>
               </div>
             )}
             {academy.contactPhone && (
               <div className="flex items-center space-x-2">
-                <PhoneIcon className="w-4 h-4 text-gray-400" />
+                <PhoneIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                 <span>{academy.contactPhone}</span>
               </div>
             )}
             {academy.address && (
               <div className="flex items-start space-x-2">
-                <BuildingIcon className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                <BuildingIcon className="w-4 h-4 text-gray-400 dark:text-gray-500 mt-0.5 flex-shrink-0" />
                 <span>{academy.address}</span>
               </div>
             )}

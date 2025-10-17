@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import { GoogleGenAI, Chat, GenerateContentResponse } from '@google/genai';
 import { Header } from './components/Header';
@@ -124,7 +123,7 @@ function Chatbot(): React.ReactNode {
             </button>
 
             {isOpen && (
-                <div className="fixed bottom-4 right-4 w-full max-w-sm h-[60vh] bg-white rounded-2xl shadow-2xl flex flex-col z-50 animate-fade-in-up">
+                <div className="fixed bottom-4 right-4 w-full max-w-sm h-[60vh] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl flex flex-col z-50 animate-fade-in-up">
                     <header className="bg-indigo-700 text-white p-4 rounded-t-2xl flex justify-between items-center">
                         <h2 className="font-bold text-lg">CANDY</h2>
                         <button onClick={() => setIsOpen(false)} className="p-1 rounded-full hover:bg-indigo-800 transition-colors">
@@ -132,21 +131,21 @@ function Chatbot(): React.ReactNode {
                         </button>
                     </header>
 
-                    <main className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                    <main className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-700">
                         {messages.map((msg, index) => (
                             <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[80%] p-3 rounded-xl ${msg.sender === 'user' ? 'bg-indigo-500 text-white' : 'bg-gray-200 text-gray-800'}`}>
+                                <div className={`max-w-[80%] p-3 rounded-xl ${msg.sender === 'user' ? 'bg-indigo-500 text-white' : 'bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100'}`}>
                                     <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                                 </div>
                             </div>
                         ))}
                         {isLoading && (
                             <div className="flex justify-start">
-                                <div className="max-w-[80%] p-3 rounded-xl bg-gray-200 text-gray-800">
+                                <div className="max-w-[80%] p-3 rounded-xl bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100">
                                     <div className="flex items-center space-x-2">
-                                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+                                        <div className="w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                        <div className="w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                        <div className="w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce"></div>
                                     </div>
                                 </div>
                             </div>
@@ -154,7 +153,7 @@ function Chatbot(): React.ReactNode {
                         <div ref={messagesEndRef} />
                     </main>
 
-                    <footer className="p-4 border-t bg-white rounded-b-2xl">
+                    <footer className="p-4 border-t dark:border-gray-700 bg-white dark:bg-gray-800 rounded-b-2xl">
                         <div className="flex items-center space-x-2">
                             <input
                                 type="text"
@@ -162,7 +161,7 @@ function Chatbot(): React.ReactNode {
                                 onChange={(e) => setInputValue(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                                 placeholder="Ask CANDY anything..."
-                                className="w-full bg-gray-100 border border-gray-300 rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="w-full bg-gray-100 dark:bg-gray-600 border border-gray-300 dark:border-gray-500 text-gray-800 dark:text-gray-100 rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 disabled={isLoading}
                             />
                             <button
@@ -215,6 +214,38 @@ function App(): React.ReactNode {
   const [selectedStudentId, setSelectedStudentId] = React.useState<string | null>(null);
   const [selectedStaffId, setSelectedStaffId] = React.useState<string | null>(null);
   const [batchFilter, setBatchFilter] = React.useState<string | null>(null);
+  
+  const [theme, setTheme] = React.useState<'light' | 'dark'>(() => {
+    try {
+      const storedTheme = localStorage.getItem('theme');
+      if (storedTheme === 'dark' || storedTheme === 'light') {
+        return storedTheme;
+      }
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'dark';
+      }
+    } catch (e) {
+      // Ignore localStorage errors
+    }
+    return 'light';
+  });
+
+  React.useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    try {
+      localStorage.setItem('theme', theme);
+    } catch (e) {
+      console.error("Could not save theme to localStorage", e);
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  };
   
   const isUsingPlaceholderConfig = firebaseConfig.apiKey === "AIzaSyA_Nvv_zzZP-15Xaw0qsddKu5eahac-OvY";
   const academyId = currentUser?.role === 'admin' ? currentUser.data.id : currentUser?.academyId;
@@ -294,9 +325,8 @@ function App(): React.ReactNode {
         }, (err) => {
           handleFirestoreError(err, 'academy data');
           // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
-          // Safely access the 'code' property on the unknown error object.
-          const code = (err && typeof err === 'object' && 'code' in err) ? String((err as {code: unknown}).code) : undefined;
-          if (code !== 'unavailable' && code !== 'cancelled') {
+          // The error from onSnapshot is a FirestoreError, so we can access .code directly.
+          if (err.code !== 'unavailable' && err.code !== 'cancelled') {
               setCurrentUser(null);
               setCurrentAcademy(null);
           }
@@ -717,12 +747,12 @@ function App(): React.ReactNode {
   }
   
   if (isLoading) {
-    return <div className="bg-slate-50 min-h-screen"><SplashScreen /></div>;
+    return <div className="bg-slate-50 dark:bg-gray-900 min-h-screen"><SplashScreen /></div>;
   }
   
   if (currentUser?.role === 'student') {
       if (!currentAcademy) {
-          return <div className="bg-slate-50 min-h-screen"><SplashScreen /></div>;
+          return <div className="bg-slate-50 dark:bg-gray-900 min-h-screen"><SplashScreen /></div>;
       }
 
       const renderStudentPage = () => {
@@ -758,6 +788,8 @@ function App(): React.ReactNode {
                           academy={currentAcademy}
                           onNavigate={setStudentPage}
                           onToggleNav={() => setIsStudentNavOpen(true)}
+                          theme={theme}
+                          onToggleTheme={toggleTheme}
                       />
                   );
           }
@@ -779,7 +811,7 @@ function App(): React.ReactNode {
 
   if (currentUser?.role === 'staff') {
     if (!currentAcademy) {
-        return <div className="bg-slate-50 min-h-screen"><SplashScreen /></div>;
+        return <div className="bg-slate-50 dark:bg-gray-900 min-h-screen"><SplashScreen /></div>;
     }
     const staffData = currentUser.data;
 
@@ -835,7 +867,7 @@ function App(): React.ReactNode {
     };
 
     return (
-        <div className="bg-slate-100 min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl">
+        <div className="bg-slate-100 dark:bg-gray-900 h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl">
             <StaffSideNav 
                 isOpen={isStaffNavOpen} 
                 onClose={() => setIsStaffNavOpen(false)}
@@ -843,13 +875,17 @@ function App(): React.ReactNode {
                 onLogout={handleLogout}
                 staff={currentUser.data}
             />
-            <StaffHeader 
-                staffName={currentUser.data.name}
-                academyName={currentAcademy.name}
-                onToggleNav={() => setIsStaffNavOpen(true)}
-                onLogout={handleLogout}
-            />
-            <main className="flex-grow px-3 sm:px-4 py-4 relative">
+            {staffPage === 'dashboard' && (
+                <StaffHeader 
+                    staffName={currentUser.data.name}
+                    academyName={currentAcademy.name}
+                    onToggleNav={() => setIsStaffNavOpen(true)}
+                    onLogout={handleLogout}
+                    theme={theme}
+                    onToggleTheme={toggleTheme}
+                />
+            )}
+            <main className="flex-grow px-3 sm:px-4 py-4 relative overflow-y-auto">
                 {renderStaffPage()}
             </main>
             <Chatbot />
@@ -859,7 +895,7 @@ function App(): React.ReactNode {
 
   if (!currentUser) {
     return (
-        <div className="bg-gray-50 font-sans min-h-screen">
+        <div className="bg-gray-50 dark:bg-gray-900 font-sans min-h-screen">
             {!isUsingPlaceholderConfig && criticalError && <ConnectionErrorBanner message={criticalError} onClose={() => setCriticalError(null)} />}
             {!isUsingPlaceholderConfig && isOffline && <OfflineIndicator />}
             {authPage === 'login' && <LoginPage onLogin={handleLogin} onNavigateToRegister={() => setAuthPage('register')} externalError={loginError} clearExternalError={() => setLoginError(null)} />}
@@ -1007,25 +1043,29 @@ function App(): React.ReactNode {
   };
 
   return (
-    <div className="bg-slate-100 min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl">
+    <div className="bg-slate-100 dark:bg-gray-900 h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl">
       <SideNav 
           isOpen={isNavOpen} 
           onClose={() => setIsNavOpen(false)}
           onNavigate={setPage}
           onLogout={handleLogout}
       />
-      <Header
-        academyName={currentAcademy!.name}
-        academyId={currentAcademy!.academyId}
-        logoUrl={currentAcademy!.logoUrl}
-        onLogout={handleLogout}
-        onToggleNav={() => setIsNavOpen(true)}
-      />
+      {page === 'dashboard' && (
+          <Header
+            academyName={currentAcademy!.name}
+            academyId={currentAcademy!.academyId}
+            logoUrl={currentAcademy!.logoUrl}
+            onLogout={handleLogout}
+            onToggleNav={() => setIsNavOpen(true)}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+          />
+      )}
 
       {!isUsingPlaceholderConfig && criticalError && <ConnectionErrorBanner message={criticalError} onClose={() => setCriticalError(null)} />}
       {!isUsingPlaceholderConfig && isOffline && <OfflineIndicator />}
 
-      <main className="flex-grow px-3 sm:px-4 py-4 relative">
+      <main className="flex-grow px-3 sm:px-4 py-4 relative overflow-y-auto">
         {renderPage()}
       </main>
 

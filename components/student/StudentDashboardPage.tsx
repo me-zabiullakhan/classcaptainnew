@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import type { Student, Academy } from '../../types';
 import { StudentHeader } from './StudentHeader';
@@ -17,6 +16,8 @@ interface StudentDashboardPageProps {
     academy: Academy;
     onNavigate: (page: string) => void;
     onToggleNav: () => void;
+    theme: 'light' | 'dark';
+    onToggleTheme: () => void;
 }
 
 const studentFeatures = [
@@ -29,7 +30,7 @@ const studentFeatures = [
     { name: 'Study Material', Icon: StudyMaterialStudentIcon, color: 'bg-black' },
 ];
 
-export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav }: StudentDashboardPageProps): React.ReactNode {
+export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav, theme, onToggleTheme }: StudentDashboardPageProps): React.ReactNode {
     
     const placeholderPhoto = `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(student.name)}`;
 
@@ -47,19 +48,19 @@ export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav
     };
 
     return (
-        <div className="bg-gray-100 min-h-screen font-sans md:max-w-lg md:mx-auto md:shadow-2xl">
-            <StudentHeader studentName={student.name} academyLogoUrl={academy.logoUrl} onToggleNav={onToggleNav} />
-            <main className="p-4 space-y-4">
+        <div className="bg-gray-100 dark:bg-gray-900 h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl">
+            <StudentHeader studentName={student.name} academyLogoUrl={academy.logoUrl} onToggleNav={onToggleNav} theme={theme} onToggleTheme={onToggleTheme} />
+            <main className="flex-grow p-4 space-y-4 overflow-y-auto">
                 {/* Banner */}
-                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
                     <div className="p-4 bg-gradient-to-r from-blue-900 to-blue-700 text-white">
                         <p className="text-xs font-bold opacity-80">SM TUTORIALS</p>
                         <h2 className="text-lg font-bold">ADMISSIONS OPEN FOR</h2>
                         <h3 className="text-2xl font-extrabold text-yellow-300">II PUC COMMERCE</h3>
                         <p className="text-sm font-semibold">FOR YEAR 2025-26</p>
                     </div>
-                    <div className="p-4 text-sm text-gray-700">
-                        <p className="font-bold mb-2">WHAT'S SPECIAL?</p>
+                    <div className="p-4 text-sm text-gray-700 dark:text-gray-300">
+                        <p className="font-bold mb-2 text-gray-800 dark:text-gray-100">WHAT'S SPECIAL?</p>
                         <ul className="list-disc list-inside space-y-1 text-xs">
                             <li>Individual Attention</li>
                             <li>Experienced Faculty</li>
@@ -71,20 +72,20 @@ export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav
                 </div>
 
                 {/* Profile Card */}
-                <div className="bg-white rounded-lg shadow-sm p-4 flex items-center space-x-4">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 flex items-center space-x-4">
                     <img
                         src={student.photo || placeholderPhoto}
                         alt={student.name}
                         className="w-16 h-16 rounded-full object-cover border-2 border-cyan-500"
                     />
                     <div>
-                        <h3 className="text-lg font-bold text-gray-800">{student.name.toUpperCase()}</h3>
-                        <p className="text-sm text-gray-600">({student.batches.join(', ')})</p>
+                        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">{student.name.toUpperCase()}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">({student.batches.join(', ')})</p>
                     </div>
                 </div>
 
                 {/* Features Grid */}
-                <div className="bg-white rounded-lg shadow-sm p-4">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
                     <div className="grid grid-cols-3 gap-y-6 text-center">
                         {studentFeatures.map((feature) => (
                             <StudentFeatureIcon
