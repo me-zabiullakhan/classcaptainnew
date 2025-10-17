@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { NewAdmissionIcon } from './icons/NewAdmissionIcon';
@@ -11,6 +12,7 @@ import { InactiveStudentsIcon } from './icons/InactiveStudentsIcon';
 interface StudentOptionsPageProps {
   onBack: () => void;
   onNavigate: (page: string) => void;
+  isStaffView?: boolean;
 }
 
 const studentOptions = [
@@ -22,7 +24,7 @@ const studentOptions = [
   { name: 'Registration Forms', Icon: RegistrationFormIcon, key: 'reg-forms' },
 ];
 
-export function StudentOptionsPage({ onBack, onNavigate }: StudentOptionsPageProps): React.ReactNode {
+export function StudentOptionsPage({ onBack, onNavigate, isStaffView }: StudentOptionsPageProps): React.ReactNode {
   const handleClick = (key: string) => {
     switch (key) {
       case 'new-admission':
@@ -46,6 +48,10 @@ export function StudentOptionsPage({ onBack, onNavigate }: StudentOptionsPagePro
     }
   };
 
+  const visibleOptions = isStaffView
+    ? studentOptions.filter(option => option.key !== 'new-admission')
+    : studentOptions;
+
   return (
     <div className="animate-fade-in flex flex-col h-full">
       <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md w-full -mx-3 sm:-mx-4 mt-[-1rem]">
@@ -57,7 +63,7 @@ export function StudentOptionsPage({ onBack, onNavigate }: StudentOptionsPagePro
 
       <main className="flex-grow pt-6">
         <div className="space-y-4">
-          {studentOptions.map(({ name, Icon, key }) => (
+          {visibleOptions.map(({ name, Icon, key }) => (
             <button
               key={key}
               onClick={() => handleClick(key)}

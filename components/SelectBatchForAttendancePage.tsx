@@ -1,4 +1,6 @@
 
+
+
 import React from 'react';
 import type { Batch } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -10,7 +12,7 @@ interface SelectBatchForAttendancePageProps {
   onSelectBatch: (batchId: string) => void;
 }
 
-const BatchAttendanceCard = ({ batch, onSelect }: { batch: Batch; onSelect: () => void; }) => (
+const BatchAttendanceCard: React.FC<{ batch: Batch; onSelect: () => void; }> = ({ batch, onSelect }) => (
   <button onClick={onSelect} className="w-full bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 text-left">
     <div className="flex justify-between items-start mb-4">
       <h3 className="font-bold text-indigo-800 text-base">{batch.name}</h3>

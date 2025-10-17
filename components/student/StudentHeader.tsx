@@ -1,14 +1,14 @@
 
-
 import React from 'react';
 import { MenuIcon } from '../icons/MenuIcon';
 
 interface StudentHeaderProps {
-    academyName: string;
+    studentName: string;
+    academyLogoUrl?: string;
     onToggleNav: () => void;
 }
 
-export function StudentHeader({ academyName, onToggleNav }: StudentHeaderProps): React.ReactNode {
+export function StudentHeader({ studentName, academyLogoUrl, onToggleNav }: StudentHeaderProps): React.ReactNode {
     const [greeting, setGreeting] = React.useState('');
 
     React.useEffect(() => {
@@ -27,7 +27,10 @@ export function StudentHeader({ academyName, onToggleNav }: StudentHeaderProps):
             <button onClick={onToggleNav} className="p-2 -ml-1" aria-label="Open menu">
                 <MenuIcon className="w-6 h-6" />
             </button>
-            <h1 className="text-xl font-bold ml-3">{greeting}, {academyName}!</h1>
+            {academyLogoUrl && (
+                <img src={academyLogoUrl} alt="Academy Logo" className="w-8 h-8 rounded-full object-cover ml-3" />
+            )}
+            <h1 className="text-xl font-bold ml-3">{greeting}, {studentName}!</h1>
         </header>
     );
 }

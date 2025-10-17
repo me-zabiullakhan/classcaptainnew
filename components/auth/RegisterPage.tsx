@@ -1,5 +1,6 @@
 
 
+
 import React from 'react';
 import { LogoIcon } from '../icons/LogoIcon';
 import { BuildingIcon } from '../icons/BuildingIcon';
@@ -14,7 +15,7 @@ interface RegisterPageProps {
     onNavigateToLogin: () => void;
 }
 
-const AuthLayout = ({ title, subtitle, children }: { title: string, subtitle: string, children: React.ReactNode }) => (
+const AuthLayout: React.FC<{ title: string, subtitle: string }> = ({ title, subtitle, children }) => (
     <div className="min-h-screen flex flex-col justify-center items-center px-4 py-8" style={{background: 'linear-gradient(160deg, #f3e8ff 0%, #f4f5f7 100%)'}}>
         <div className="text-center mb-8">
             <div className="flex justify-center items-center gap-3 mb-4">
@@ -30,7 +31,7 @@ const AuthLayout = ({ title, subtitle, children }: { title: string, subtitle: st
     </div>
 );
 
-const AuthCard = ({ children }: { children: React.ReactNode }) => (
+const AuthCard: React.FC<{}> = ({ children }) => (
     <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
         {children}
     </div>
@@ -51,7 +52,7 @@ const FormInput = ({ icon, label, ...props }: { icon: React.ReactNode, label: st
     </div>
 );
 
-const InfoNote = ({ children }: { children: React.ReactNode }) => (
+const InfoNote: React.FC<{}> = ({ children }) => (
     <div className="bg-indigo-50 border-l-4 border-indigo-300 p-4 rounded-r-lg mt-6">
         <div className="flex">
             <div className="flex-shrink-0">

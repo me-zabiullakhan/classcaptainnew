@@ -48,7 +48,7 @@ export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav
 
     return (
         <div className="bg-gray-100 min-h-screen font-sans md:max-w-lg md:mx-auto md:shadow-2xl">
-            <StudentHeader academyName={academy.name} onToggleNav={onToggleNav} />
+            <StudentHeader studentName={student.name} academyLogoUrl={academy.logoUrl} onToggleNav={onToggleNav} />
             <main className="p-4 space-y-4">
                 {/* Banner */}
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">

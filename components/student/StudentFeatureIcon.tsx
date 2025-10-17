@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 
 interface StudentFeatureIconProps {
@@ -8,7 +9,7 @@ interface StudentFeatureIconProps {
   onClick?: () => void;
 }
 
-export function StudentFeatureIcon({ name, Icon, color, onClick }: StudentFeatureIconProps): React.ReactNode {
+export const StudentFeatureIcon: React.FC<StudentFeatureIconProps> = ({ name, Icon, color, onClick }) => {
   const isClickable = !!onClick;
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {

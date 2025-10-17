@@ -1,6 +1,6 @@
 
-
 import React from 'react';
+import { GoogleGenAI, Chat, GenerateContentResponse } from '@google/genai';
 import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
 import { BottomNav } from './components/BottomNav';
@@ -11,7 +11,7 @@ import { FeesOptionsPage } from './components/FeesOptionsPage';
 import { NewStudentPage } from './components/NewStudentPage';
 import { SelectBatchForAttendancePage } from './components/SelectBatchForAttendancePage';
 import { TakeAttendancePage } from './components/TakeAttendancePage';
-import type { Batch, Student, CurrentUser, Academy, FeeCollection } from './types';
+import type { Batch, Student, CurrentUser, Academy, FeeCollection, Staff, BatchAccessPermissions } from './types';
 import { ActiveStudentsPage } from './components/ActiveStudentsPage';
 import { InactiveStudentsPage } from './components/InactiveStudentsPage';
 import { BirthdayListPage } from './components/BirthdayListPage';
@@ -27,19 +27,159 @@ import { ConnectionErrorBanner } from './components/ConnectionErrorBanner';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { DataConsentModal } from './components/DataConsentModal';
 import { SideNav } from './components/SideNav';
-import { demoBatches, demoStudents } from './demoData';
+import { demoBatches, demoStudents, demoStaff } from './demoData';
 import { EditStudentPage } from './components/EditStudentPage';
 import { SelectBatchForFeesPage } from './components/SelectBatchForFeesPage';
 import { SelectStudentForFeesPage } from './components/SelectStudentForFeesPage';
 import { StudentFeeDetailsPage } from './components/StudentFeeDetailsPage';
 import { FeeDuesListPage } from './components/FeeDuesListPage';
 import { FeeCollectionReportPage } from './components/FeeCollectionReportPage';
-import { ContactUsPage } from './components/ContactUsPage';
 import { StudentDashboardPage } from './components/student/StudentDashboardPage';
 import { StudentFeeStatusPage } from './components/student/StudentFeeStatusPage';
 import { StudentSideNav } from './components/student/StudentSideNav';
 import { MyAcademyPage } from './components/student/MyAcademyPage';
 import { StudentAttendancePage } from './components/student/StudentAttendancePage';
+import { XMarkIcon } from './components/icons/XMarkIcon';
+import { ChatbotIcon, SendIcon } from './components/icons/CentralIcon';
+import { StaffManagerPage } from './components/StaffManagerPage';
+import { NewStaffPage } from './components/NewStaffPage';
+import { StaffDashboardPage } from './components/staff/StaffDashboardPage';
+import { StaffSideNav } from './components/staff/StaffSideNav';
+import { StaffHeader } from './components/staff/StaffHeader';
+import { StaffBatchAccessPage } from './components/StaffBatchAccessPage';
+
+type Message = {
+    text: string;
+    sender: 'user' | 'bot';
+};
+
+function Chatbot(): React.ReactNode {
+    const [isOpen, setIsOpen] = React.useState(false);
+    const [messages, setMessages] = React.useState<Message[]>([
+        { sender: 'bot', text: "Hi! I'm CANDY, your friendly assistant. How can I help you today?" }
+    ]);
+    const [inputValue, setInputValue] = React.useState('');
+    const [isLoading, setIsLoading] = React.useState(false);
+    const [chat, setChat] = React.useState<Chat | null>(null);
+
+    const messagesEndRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
+    React.useEffect(() => {
+        if (isOpen && !chat) {
+            try {
+                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+                const newChat = ai.chats.create({
+                    model: 'gemini-2.5-flash',
+                    config: {
+                        systemInstruction: "You are CANDY, a friendly and helpful assistant for the Class Captain institute management app. Keep your answers concise, cheerful, and relevant to managing a school or institute. Your name is CANDY.",
+                    },
+                });
+                setChat(newChat);
+            } catch (error) {
+                console.error("Failed to initialize Gemini AI:", error);
+                setMessages(prev => [...prev, { sender: 'bot', text: "Sorry, I'm having trouble connecting right now. Please configure the API Key or try again later." }]);
+            }
+        }
+    }, [isOpen, chat]);
+
+    const handleSendMessage = async () => {
+        if (!inputValue.trim() || isLoading) return;
+
+        const userMessage: Message = { sender: 'user', text: inputValue };
+        setMessages(prev => [...prev, userMessage]);
+        setInputValue('');
+        setIsLoading(true);
+        
+        if (!chat) {
+            setMessages(prev => [...prev, { sender: 'bot', text: "Chat session not initialized. This could be due to a missing API key. Please check the configuration and try again." }]);
+            setIsLoading(false);
+            return;
+        }
+
+        try {
+            const response: GenerateContentResponse = await chat.sendMessage({ message: userMessage.text });
+            const botMessage: Message = { sender: 'bot', text: response.text };
+            setMessages(prev => [...prev, botMessage]);
+        } catch (error) {
+            console.error("Gemini API error:", error);
+            setMessages(prev => [...prev, { sender: 'bot', text: "Oops! Something went wrong. Please try again." }]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <>
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className={`fixed bottom-20 right-4 bg-indigo-600 text-white w-16 h-16 rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 z-40 ${isOpen ? 'opacity-0 scale-0' : 'opacity-100 scale-100'}`}
+                aria-label="Open Chatbot"
+            >
+                <ChatbotIcon className="w-8 h-8" />
+            </button>
+
+            {isOpen && (
+                <div className="fixed bottom-4 right-4 w-full max-w-sm h-[60vh] bg-white rounded-2xl shadow-2xl flex flex-col z-50 animate-fade-in-up">
+                    <header className="bg-indigo-700 text-white p-4 rounded-t-2xl flex justify-between items-center">
+                        <h2 className="font-bold text-lg">CANDY</h2>
+                        <button onClick={() => setIsOpen(false)} className="p-1 rounded-full hover:bg-indigo-800 transition-colors">
+                            <XMarkIcon className="w-6 h-6" />
+                        </button>
+                    </header>
+
+                    <main className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                        {messages.map((msg, index) => (
+                            <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[80%] p-3 rounded-xl ${msg.sender === 'user' ? 'bg-indigo-500 text-white' : 'bg-gray-200 text-gray-800'}`}>
+                                    <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                                </div>
+                            </div>
+                        ))}
+                        {isLoading && (
+                            <div className="flex justify-start">
+                                <div className="max-w-[80%] p-3 rounded-xl bg-gray-200 text-gray-800">
+                                    <div className="flex items-center space-x-2">
+                                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        <div ref={messagesEndRef} />
+                    </main>
+
+                    <footer className="p-4 border-t bg-white rounded-b-2xl">
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="text"
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                                placeholder="Ask CANDY anything..."
+                                className="w-full bg-gray-100 border border-gray-300 rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                disabled={isLoading}
+                            />
+                            <button
+                                onClick={handleSendMessage}
+                                disabled={isLoading || !inputValue.trim()}
+                                className="bg-indigo-600 text-white rounded-full p-3 flex-shrink-0 hover:bg-indigo-700 disabled:bg-indigo-300 transition-colors"
+                                aria-label="Send message"
+                            >
+                                <SendIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </footer>
+                </div>
+            )}
+        </>
+    );
+}
+
 
 function App(): React.ReactNode {
   const [dataConsentGiven, setDataConsentGiven] = React.useState(() => {
@@ -61,19 +201,24 @@ function App(): React.ReactNode {
 
   const [page, setPage] = React.useState('dashboard');
   const [studentPage, setStudentPage] = React.useState('dashboard');
+  const [staffPage, setStaffPage] = React.useState('dashboard');
   const [isNavOpen, setIsNavOpen] = React.useState(false);
   const [isStudentNavOpen, setIsStudentNavOpen] = React.useState(false);
+  const [isStaffNavOpen, setIsStaffNavOpen] = React.useState(false);
   const [batches, setBatches] = React.useState<Batch[]>([]);
   const [students, setStudents] = React.useState<Student[]>([]);
+  const [staff, setStaff] = React.useState<Staff[]>([]);
   const [feeCollections, setFeeCollections] = React.useState<FeeCollection[]>([]);
   const [studentFeeCollections, setStudentFeeCollections] = React.useState<FeeCollection[]>([]);
   const [selectedBatchId, setSelectedBatchId] = React.useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = React.useState<string | null>(null);
+  const [selectedStaffId, setSelectedStaffId] = React.useState<string | null>(null);
   const [batchFilter, setBatchFilter] = React.useState<string | null>(null);
   
   const isUsingPlaceholderConfig = firebaseConfig.apiKey === "AIzaSyA_Nvv_zzZP-15Xaw0qsddKu5eahac-OvY";
   const academyId = currentUser?.role === 'admin' ? currentUser.data.id : currentUser?.academyId;
-  const isDemoMode = currentUser?.role === 'admin' && currentUser.data.academyId === 'ACDEMO';
+  const isDemoMode = (currentUser?.role === 'admin' && currentUser.data.academyId === 'ACDEMO') || (currentUser?.role === 'staff' && currentUser.academyId === 'ACDEMO');
+
 
   const handleAcceptDataConsent = () => {
     try {
@@ -85,11 +230,15 @@ function App(): React.ReactNode {
     }
   };
 
-  const handleFirestoreError = (err: any, context: string) => {
+  const handleFirestoreError = (err: unknown, context: string) => {
     console.error(`Firestore error fetching ${context}:`, err);
     if (isUsingPlaceholderConfig) return;
 
-    if (err.code === 'unavailable' || err.code === 'cancelled') {
+    // FIX: Safely access the error code property to avoid type errors with unknown error objects.
+    const code = (err && typeof err === 'object' && 'code' in err) ? String((err as {code: unknown}).code) : undefined;
+
+
+    if (code === 'unavailable' || code === 'cancelled') {
         setIsOffline(true);
         setCriticalError(null);
     } else {
@@ -100,14 +249,12 @@ function App(): React.ReactNode {
 
 
   React.useEffect(() => {
-    // Proactive network status monitoring
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Set initial status based on navigator.onLine
     if (typeof navigator.onLine === 'boolean' && !navigator.onLine) {
         handleOffline();
     }
@@ -138,17 +285,14 @@ function App(): React.ReactNode {
             setIsOffline(false); 
             setCriticalError(null);
           } else {
-            // This case handles a valid Firebase Auth user who has no corresponding academy document.
-            // This is an invalid state, so we provide feedback and sign them out.
             setLoginError("Your account was found, but it's not linked to any academy. Please register or contact support.");
-            auth.signOut(); // Log them out of Firebase Auth to clear the invalid state.
             setCurrentUser(null);
             setCurrentAcademy(null);
           }
           setIsLoading(false);
         }, (err) => {
           handleFirestoreError(err, 'academy data');
-          if (err.code !== 'unavailable' && err.code !== 'cancelled') {
+          if ((err as any).code !== 'unavailable' && (err as any).code !== 'cancelled') {
               setCurrentUser(null);
               setCurrentAcademy(null);
           }
@@ -173,13 +317,15 @@ function App(): React.ReactNode {
     if (isDemoMode) {
       setBatches(demoBatches);
       setStudents(demoStudents);
+      setStaff(demoStaff);
       return;
     }
 
-    if (!academyId || isUsingPlaceholderConfig || currentUser?.role !== 'admin') {
+    if (!academyId || isUsingPlaceholderConfig) {
         setBatches([]);
         setStudents([]);
         setFeeCollections([]);
+        setStaff([]);
         return;
     }
 
@@ -204,12 +350,20 @@ function App(): React.ReactNode {
       setCriticalError(null);
     }, (err) => handleFirestoreError(err, 'fee collections'));
 
+    const staffQuery = query(collection(db, `academies/${academyId}/staff`));
+    const unsubscribeStaff = onSnapshot(staffQuery, (snapshot) => {
+        setStaff(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Staff)));
+        setIsOffline(false);
+        setCriticalError(null);
+    }, (err) => handleFirestoreError(err, 'staff'));
+
     return () => {
       unsubscribeBatches();
       unsubscribeStudents();
       unsubscribeFeeCollections();
+      unsubscribeStaff();
     };
-  }, [academyId, isUsingPlaceholderConfig, isDemoMode, currentUser]);
+  }, [academyId, isUsingPlaceholderConfig, isDemoMode]);
 
   React.useEffect(() => {
     if (currentUser?.role !== 'student' || !academyId || isUsingPlaceholderConfig) {
@@ -234,7 +388,7 @@ function App(): React.ReactNode {
 
   const handleLogin = async (user: CurrentUser) => {
       setIsLoading(true);
-      if (user.role === 'student') {
+      if (user.role === 'student' || user.role === 'staff') {
           try {
               if (user.academyId === 'ACDEMO') {
                   setCurrentAcademy({
@@ -255,7 +409,7 @@ function App(): React.ReactNode {
                   }
               }
           } catch(e) {
-              console.error("Failed to fetch academy details for student:", e);
+              console.error("Failed to fetch academy details:", e);
               setLoginError("Could not fetch academy details. Please try again.");
               setIsLoading(false);
               return;
@@ -266,12 +420,11 @@ function App(): React.ReactNode {
       setCurrentUser(user);
       setPage('dashboard');
       setStudentPage('dashboard');
+      setStaffPage('dashboard');
       setIsLoading(false);
   };
 
   const handleLoginAfterRegister = (academy: Academy) => {
-    // The user is already authenticated in Firebase via createUserWithEmailAndPassword.
-    // We can directly set the state to log them in to the app and go to the dashboard.
     setCurrentUser({ role: 'admin', data: academy });
     setCurrentAcademy(academy);
     setPage('dashboard');
@@ -285,10 +438,12 @@ function App(): React.ReactNode {
     setCurrentAcademy(null);
     setPage('dashboard');
     setStudentPage('dashboard');
+    setStaffPage('dashboard');
     setAuthPage('login');
     setLoginError(null);
     setIsNavOpen(false);
     setIsStudentNavOpen(false);
+    setIsStaffNavOpen(false);
   };
 
   const addBatch = async (newBatchData: Omit<Batch, 'id' | 'currentStudents'>) => {
@@ -304,7 +459,7 @@ function App(): React.ReactNode {
         });
         setPage('batches');
     } catch (e) {
-        handleFirestoreError(e as any, 'adding batch');
+        handleFirestoreError(e, 'adding batch');
         alert("Failed to create the new batch. Please check your connection and try again.");
     }
   };
@@ -333,8 +488,39 @@ function App(): React.ReactNode {
         });
         setPage('student-options');
     } catch (e) {
-        handleFirestoreError(e as any, 'saving student data');
+        handleFirestoreError(e, 'saving student data');
         alert("Failed to save student. Please try again.");
+    }
+  };
+  
+  const addStaff = async (newStaffData: Omit<Staff, 'id'>) => {
+    if (isDemoMode) {
+      alert("Adding and editing data is disabled in demo mode.");
+      return;
+    }
+    if (!academyId) return;
+    try {
+        await addDoc(collection(db, `academies/${academyId}/staff`), newStaffData);
+        setPage('staff-manager');
+    } catch (e) {
+        handleFirestoreError(e, 'adding staff');
+        alert("Failed to create the new staff member. Please check your connection and try again.");
+    }
+  };
+
+  const updateStaffBatchAccess = async (staffId: string, batchAccess: { [batchId: string]: BatchAccessPermissions }) => {
+    if (isDemoMode) {
+      alert("Editing data is disabled in demo mode.");
+      return;
+    }
+    if (!academyId) return;
+    try {
+        const staffRef = doc(db, `academies/${academyId}/staff`, staffId);
+        await updateDoc(staffRef, { batchAccess });
+        setPage('staff-manager');
+    } catch (e) {
+        handleFirestoreError(e, 'updating staff access');
+        alert("Failed to update staff permissions. Please try again.");
     }
   };
 
@@ -385,7 +571,7 @@ function App(): React.ReactNode {
         setPage('active-students');
         setSelectedStudentId(null);
     } catch (e) {
-        handleFirestoreError(e as any, 'updating student data');
+        handleFirestoreError(e, 'updating student data');
         alert("Failed to update student. Please try again.");
     }
   };
@@ -433,7 +619,7 @@ function App(): React.ReactNode {
             }
         });
     } catch (e) {
-        handleFirestoreError(e as any, 'updating student status');
+        handleFirestoreError(e, 'updating student status');
         alert("Failed to update student status. Please try again.");
     }
   };
@@ -453,8 +639,8 @@ function App(): React.ReactNode {
             createdAt: Timestamp.now()
         });
     } catch (e) {
-        handleFirestoreError(e as any, 'saving fee payment');
-        throw e; // Re-throw to be caught by the calling component for UI feedback
+        handleFirestoreError(e, 'saving fee payment');
+        throw e;
     }
   };
   
@@ -467,17 +653,21 @@ function App(): React.ReactNode {
     try {
       const academyRef = doc(db, 'academies', academyId);
       await updateDoc(academyRef, details);
-    } catch (e) {
-      handleFirestoreError(e as any, 'updating academy contact details');
+    } catch (error) {
+      handleFirestoreError(error, 'updating academy contact details');
       alert("Failed to update contact details. Please try again.");
-      throw e;
+      throw error;
     }
   };
 
 
   const handleSelectBatchForAttendance = (batchId: string) => {
     setSelectedBatchId(batchId);
-    setPage('take-attendance');
+    if (currentUser?.role === 'staff') {
+        setStaffPage('take-attendance');
+    } else {
+        setPage('take-attendance');
+    }
   };
 
   const handleViewRegistrationForm = (studentId: string) => {
@@ -497,13 +687,26 @@ function App(): React.ReactNode {
 
   const handleSelectBatchForFees = (batchId: string) => {
     setSelectedBatchId(batchId);
-    setPage('select-student-for-fees');
+    if (currentUser?.role === 'staff') {
+        setStaffPage('select-student-for-fees');
+    } else {
+        setPage('select-student-for-fees');
+    }
   }
 
   const handleSelectStudentForFees = (studentId: string) => {
     setSelectedStudentId(studentId);
-    setPage('student-fee-details');
+    if (currentUser?.role === 'staff') {
+        setStaffPage('student-fee-details');
+    } else {
+        setPage('student-fee-details');
+    }
   }
+
+  const handleManageStaffAccess = (staffId: string) => {
+    setSelectedStaffId(staffId);
+    setPage('staff-batch-access');
+  };
   
   if (!dataConsentGiven && !isUsingPlaceholderConfig) {
     return <DataConsentModal onAccept={handleAcceptDataConsent} />;
@@ -565,9 +768,90 @@ function App(): React.ReactNode {
                   onLogout={handleLogout}
               />
               {renderStudentPage()}
+              <Chatbot />
           </div>
       );
   }
+
+  if (currentUser?.role === 'staff') {
+    if (!currentAcademy) {
+        return <div className="bg-slate-50 min-h-screen"><SplashScreen /></div>;
+    }
+    const staffData = currentUser.data;
+
+    const renderStaffPage = () => {
+        switch (staffPage) {
+            case 'select-batch-attendance':
+                const batchesWithAttendancePerm = batches.filter(b => staffData.batchAccess[b.id]?.attendance);
+                return <SelectBatchForAttendancePage onBack={() => setStaffPage('dashboard')} batches={batchesWithAttendancePerm.filter(b => b.currentStudents > 0)} onSelectBatch={handleSelectBatchForAttendance} />;
+            case 'take-attendance':
+                const selectedBatchForAttendance = batches.find(b => b.id === selectedBatchId);
+                if (!selectedBatchForAttendance || !staffData.batchAccess[selectedBatchForAttendance.id]?.attendance) {
+                    setStaffPage('select-batch-attendance');
+                    return null;
+                }
+                const batchStudents = students.filter(s => s.batches.includes(selectedBatchForAttendance.name) && s.isActive);
+                return <TakeAttendancePage onBack={() => setStaffPage('select-batch-attendance')} batch={selectedBatchForAttendance} students={batchStudents} academyId={academyId!} isDemoMode={isDemoMode} />;
+            case 'student-options':
+                const canAccessStudents = Object.keys(staffData.batchAccess || {}).length > 0;
+                if (!canAccessStudents) {
+                    setStaffPage('dashboard');
+                    return null;
+                }
+                return <StudentOptionsPage onBack={() => setStaffPage('dashboard')} onNavigate={setStaffPage} isStaffView={true} />;
+            case 'active-students':
+                const accessibleBatchIds = Object.keys(staffData.batchAccess || {});
+                const accessibleBatches = batches.filter(b => accessibleBatchIds.includes(b.id));
+                const accessibleBatchNames = new Set(accessibleBatches.map(b => b.name));
+
+                const visibleStudents = students.filter(student => 
+                    student.batches.some(batchName => accessibleBatchNames.has(batchName))
+                );
+
+                return <ActiveStudentsPage 
+                    onBack={() => setStaffPage('student-options')}
+                    students={visibleStudents}
+                    batches={accessibleBatches}
+                    onToggleStudentStatus={toggleStudentStatus}
+                    onEditStudent={handleEditStudent}
+                    onViewStudent={handleViewRegistrationForm}
+                    initialFilter={'all'}
+                    staffPermissions={staffData.batchAccess}
+                />;
+            case 'dashboard':
+            default:
+                return (
+                    <StaffDashboardPage
+                        staff={currentUser.data}
+                        academy={currentAcademy}
+                        onNavigate={setStaffPage}
+                    />
+                );
+        }
+    };
+
+    return (
+        <div className="bg-slate-100 min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl">
+            <StaffSideNav 
+                isOpen={isStaffNavOpen} 
+                onClose={() => setIsStaffNavOpen(false)}
+                onNavigate={setStaffPage}
+                onLogout={handleLogout}
+                staff={currentUser.data}
+            />
+            <StaffHeader 
+                staffName={currentUser.data.name}
+                academyName={currentAcademy.name}
+                onToggleNav={() => setIsStaffNavOpen(true)}
+                onLogout={handleLogout}
+            />
+            <main className="flex-grow px-3 sm:px-4 py-4 relative">
+                {renderStaffPage()}
+            </main>
+            <Chatbot />
+        </div>
+    );
+}
 
   if (!currentUser) {
     return (
@@ -584,17 +868,55 @@ function App(): React.ReactNode {
     switch (page) {
       case 'select-batch-attendance':
         return <SelectBatchForAttendancePage onBack={() => setPage('dashboard')} batches={batches.filter(b => b.currentStudents > 0)} onSelectBatch={handleSelectBatchForAttendance} />;
+      
+      case 'take-attendance': {
+        const selectedBatch = batches.find(b => b.id === selectedBatchId);
+        if (!selectedBatch) {
+            setPage('select-batch-attendance');
+            return null;
+        }
+        const batchStudents = students.filter(s => s.batches.includes(selectedBatch.name) && s.isActive);
+        return <TakeAttendancePage onBack={() => setPage('select-batch-attendance')} batch={selectedBatch} students={batchStudents} academyId={academyId!} isDemoMode={isDemoMode} />;
+      }
+      
       case 'fees-options':
         return <FeesOptionsPage onBack={() => setPage('dashboard')} onNavigate={setPage}/>;
+      
       case 'select-batch-for-fees':
         return <SelectBatchForFeesPage onBack={() => setPage('fees-options')} batches={batches} onSelectBatch={handleSelectBatchForFees} />;
+      
+      case 'select-student-for-fees': {
+        const selectedBatch = batches.find(b => b.id === selectedBatchId);
+        if (!selectedBatch) {
+            setPage('select-batch-for-fees');
+            return null;
+        }
+        const batchStudents = students.filter(s => s.batches.includes(selectedBatch.name) && s.isActive);
+        return <SelectStudentForFeesPage onBack={() => setPage('select-batch-for-fees')} batch={selectedBatch} students={batchStudents} onSelectStudent={handleSelectStudentForFees} />;
+      }
+
+      case 'student-fee-details': {
+        const selectedStudent = students.find(s => s.id === selectedStudentId);
+        if (!selectedStudent) {
+            setPage('select-batch-for-fees');
+            return null;
+        }
+        return <StudentFeeDetailsPage onBack={() => setPage('select-student-for-fees')} student={selectedStudent} feeCollections={feeCollections} onSavePayment={saveFeePayment} />;
+      }
+
       case 'fee-dues-list':
         return <FeeDuesListPage onBack={() => setPage('fees-options')} students={students} batches={batches} feeCollections={feeCollections} />;
+      
       case 'fee-collection-report':
         return <FeeCollectionReportPage onBack={() => setPage('fees-options')} feeCollections={feeCollections} />;
+      
       case 'student-options':
         if (batchFilter) setBatchFilter(null);
         return <StudentOptionsPage onBack={() => setPage('dashboard')} onNavigate={setPage} />;
+      
+      case 'new-student':
+        return <NewStudentPage onBack={() => setPage('student-options')} onSave={addStudent} batches={batches} />;
+
       case 'active-students':
         return <ActiveStudentsPage 
                   onBack={() => {
@@ -612,108 +934,102 @@ function App(): React.ReactNode {
                   onViewStudent={handleViewRegistrationForm}
                   initialFilter={batchFilter || 'all'}
                 />;
+      
+      case 'edit-student': {
+        const selectedStudent = students.find(s => s.id === selectedStudentId);
+        if (!selectedStudent) {
+            setPage('active-students');
+            return null;
+        }
+        return <EditStudentPage onBack={() => setPage('active-students')} onUpdate={updateStudent} student={selectedStudent} batches={batches} />;
+      }
+      
       case 'inactive-students':
         return <InactiveStudentsPage onBack={() => setPage('student-options')} students={students} batches={batches} onToggleStudentStatus={toggleStudentStatus} />;
+      
       case 'birthday-list':
         return <BirthdayListPage onBack={() => setPage('student-options')} students={students} />;
+      
       case 'registration-form-list':
         return <RegistrationFormListPage onBack={() => setPage('student-options')} students={students} onSelectStudent={handleViewRegistrationForm} />;
+      
+      case 'registration-form-view': {
+        const selectedStudent = students.find(s => s.id === selectedStudentId);
+        if (!selectedStudent) {
+            setPage('registration-form-list');
+            return null;
+        }
+        return <RegistrationFormViewPage onBack={() => setPage('registration-form-list')} student={selectedStudent} />;
+      }
+
       case 'my-account':
-        return <MyAccountPage onBack={() => setPage('dashboard')} onLogout={handleLogout} />;
-      case 'contact-us':
-        return <ContactUsPage onBack={() => setPage('dashboard')} onSave={updateAcademyContactDetails} academy={currentUser.data as Academy} />;
+        return <MyAccountPage 
+                  onBack={() => setPage('dashboard')} 
+                  onLogout={handleLogout} 
+                  onSave={updateAcademyContactDetails} 
+                  academy={currentUser.data as Academy} 
+                />;
+      
       case 'batches':
         return <BatchesPage onBack={() => setPage('dashboard')} onCreate={() => setPage('new-batch')} batches={batches} onViewStudents={handleViewBatchStudents} />;
+      
+      case 'new-batch':
+        return <NewBatchPage onBack={() => setPage('batches')} onSave={addBatch} />;
+      
+      case 'staff-manager':
+        return <StaffManagerPage onBack={() => setPage('dashboard')} staff={staff} onCreate={() => setPage('new-staff')} onManageAccess={handleManageStaffAccess} />;
+
+      case 'new-staff':
+        return <NewStaffPage onBack={() => setPage('staff-manager')} onSave={addStaff} />;
+
+      case 'staff-batch-access': {
+          const selectedStaff = staff.find(s => s.id === selectedStaffId);
+          if (!selectedStaff) {
+              setPage('staff-manager');
+              return null;
+          }
+          return <StaffBatchAccessPage onBack={() => setPage('staff-manager')} staff={selectedStaff} batches={batches} onSave={updateStaffBatchAccess} />;
+      }
+
       case 'dashboard':
       default:
-        return <Dashboard onNavigate={setPage} academy={currentUser.data as Academy} />;
+        return (
+          <Dashboard
+            onNavigate={setPage}
+            academy={currentUser.data as Academy}
+          />
+        );
     }
   };
-  
-  if (page === 'select-student-for-fees') {
-    const selectedBatch = batches.find(b => b.id === selectedBatchId);
-    if (!selectedBatch) {
-        setPage('select-batch-for-fees');
-        return null;
-    }
-    const batchStudents = students.filter(s => s.batches.includes(selectedBatch.name) && s.isActive);
-    return (
-        <div className="bg-white min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl">
-            <SelectStudentForFeesPage onBack={() => setPage('select-batch-for-fees')} batch={selectedBatch} students={batchStudents} onSelectStudent={handleSelectStudentForFees} />
-        </div>
-    );
-  }
-  
-  if (page === 'student-fee-details') {
-    const selectedStudent = students.find(s => s.id === selectedStudentId);
-    if (!selectedStudent) {
-        setPage('select-batch-for-fees');
-        return null;
-    }
-    return (
-        <div className="bg-white min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl">
-            <StudentFeeDetailsPage 
-                onBack={() => setPage('select-student-for-fees')} 
-                student={selectedStudent} 
-                feeCollections={feeCollections.filter(fc => fc.studentId === selectedStudent.id)}
-                onSavePayment={saveFeePayment}
-            />
-        </div>
-    );
-  }
-
-  if (page === 'new-batch') {
-    return <div className="bg-white min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl"><NewBatchPage onBack={() => setPage('batches')} onSave={addBatch} /></div>;
-  }
-
-  if (page === 'new-student') {
-    return <div className="bg-white min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl"><NewStudentPage onBack={() => setPage('student-options')} onSave={addStudent} batches={batches} /></div>;
-  }
-  
-  if (page === 'edit-student') {
-    const selectedStudent = students.find(s => s.id === selectedStudentId);
-    if (!selectedStudent) {
-        setPage('active-students');
-        return null;
-    }
-    return <div className="bg-white min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl"><EditStudentPage onBack={() => setPage('active-students')} onUpdate={updateStudent} student={selectedStudent} batches={batches} /></div>;
-  }
-
-  if (page === 'take-attendance') {
-    const selectedBatch = batches.find(b => b.id === selectedBatchId);
-    if (!selectedBatch || !academyId) {
-      setPage('select-batch-attendance');
-      return null; 
-    }
-    const batchStudents = students.filter(s => s.batches.includes(selectedBatch.name) && s.isActive);
-    
-    return <div className="bg-white min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl"><TakeAttendancePage onBack={() => setPage('select-batch-attendance')} batch={selectedBatch} students={batchStudents} academyId={academyId} isDemoMode={isDemoMode} /></div>;
-  }
-  
-  if (page === 'registration-form-view') {
-    const selectedStudent = students.find(s => s.id === selectedStudentId);
-    if (!selectedStudent) {
-        setPage('registration-form-list');
-        return null;
-    }
-    return <RegistrationFormViewPage onBack={() => setPage('active-students')} student={selectedStudent} />;
-  }
-  
-  const academyData = currentUser.role === 'admin' ? currentUser.data : null;
 
   return (
     <div className="bg-slate-100 min-h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl">
-      <SideNav isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} onNavigate={setPage} onLogout={handleLogout} />
+      <SideNav 
+          isOpen={isNavOpen} 
+          onClose={() => setIsNavOpen(false)}
+          onNavigate={setPage}
+          onLogout={handleLogout}
+      />
+      <Header
+        academyName={currentAcademy!.name}
+        academyId={currentAcademy!.academyId}
+        logoUrl={currentAcademy!.logoUrl}
+        onLogout={handleLogout}
+        onToggleNav={() => setIsNavOpen(true)}
+      />
+
       {!isUsingPlaceholderConfig && criticalError && <ConnectionErrorBanner message={criticalError} onClose={() => setCriticalError(null)} />}
       {!isUsingPlaceholderConfig && isOffline && <OfflineIndicator />}
-      {page === 'dashboard' && academyData && <Header academyName={academyData.name} academyId={academyData.academyId} onLogout={handleLogout} onToggleNav={() => setIsNavOpen(true)} />}
+
       <main className="flex-grow px-3 sm:px-4 py-4 relative">
         {renderPage()}
       </main>
-      
-      {page === 'dashboard' && <BottomNav onNavigate={setPage} activePage={page}/>}
+
+      <BottomNav onNavigate={setPage} activePage={page} />
+      <Chatbot />
     </div>
   );
 }
 
+// FIX: Export the App component as a default export.
 export default App;

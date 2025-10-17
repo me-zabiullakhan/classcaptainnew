@@ -1,4 +1,5 @@
 
+
 import type { FC } from 'react';
 import type { Timestamp } from 'firebase/firestore';
 
@@ -20,6 +21,7 @@ export interface Academy {
   contactPhoneAlt?: string;
   website?: string;
   address?: string;
+  logoUrl?: string;
 }
 
 export interface Batch {
@@ -59,12 +61,30 @@ export interface Student {
     isActive: boolean;
 }
 
-export interface Teacher {
+export interface BatchAccessPermissions {
+  attendance?: boolean;
+  editStudents?: boolean;
+  exams?: boolean;
+  fees?: boolean;
+  studyMaterial?: boolean;
+  homework?: boolean;
+  onlineExam?: boolean;
+}
+
+export interface Staff {
     id: string; // Firestore document ID
-    teacherId: string; // Separate, user-facing ID for login
+    staffId: string; // Separate, user-facing ID for login
     name: string;
     dob: string;
-    // ... other teacher properties
+    mobile: string;
+    email?: string;
+    gender: 'Male' | 'Female' | 'Other';
+    address: string;
+    joiningDate: string;
+    password?: string;
+    photo?: string; // a base64 string or URL
+    batchAccess: Record<string, BatchAccessPermissions>;
+    isActive: boolean;
 }
 
 export type CurrentUser = {
@@ -76,8 +96,8 @@ export type CurrentUser = {
   academyId: string;
   academyName: string;
 } | {
-  role: 'teacher';
-  data: Teacher;
+  role: 'staff';
+  data: Staff;
   academyId: string;
 }
 

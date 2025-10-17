@@ -7,7 +7,7 @@ interface FeatureIconProps {
   onClick?: () => void;
 }
 
-export function FeatureIcon({ name, Icon, color, onClick }: FeatureIconProps): React.ReactNode {
+export const FeatureIcon: React.FC<FeatureIconProps> = ({ name, Icon, color, onClick }) => {
   const isClickable = !!onClick;
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {

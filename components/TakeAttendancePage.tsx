@@ -1,5 +1,7 @@
 
 
+
+
 import React from 'react';
 import type { Batch, Student, AttendanceStatus } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -20,7 +22,7 @@ interface TakeAttendancePageProps {
 
 const attendanceStatuses: AttendanceStatus[] = ['Present', 'Absent', 'Leave', 'Holiday'];
 
-const StatusButton = ({ status, isActive, onClick }: { status: AttendanceStatus, isActive: boolean, onClick: () => void }) => {
+const StatusButton: React.FC<{ status: AttendanceStatus, isActive: boolean, onClick: () => void }> = ({ status, isActive, onClick }) => {
     const getButtonColors = (status: AttendanceStatus, active: boolean) => {
         const common = 'px-3 py-1 text-xs rounded-full font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 shadow-sm flex-grow text-center';
         switch (status) {
@@ -44,7 +46,7 @@ const StatusButton = ({ status, isActive, onClick }: { status: AttendanceStatus,
     );
 };
 
-const StudentAttendanceCard = ({ student, batch, status, onStatusChange }: { student: Student, batch: Batch, status: AttendanceStatus, onStatusChange: (studentId: string, status: AttendanceStatus) => void}) => {
+const StudentAttendanceCard: React.FC<{ student: Student, batch: Batch, status: AttendanceStatus, onStatusChange: (studentId: string, status: AttendanceStatus) => void}> = ({ student, batch, status, onStatusChange }) => {
     return (
         <div className="bg-white p-3 rounded-lg shadow-sm border">
             <div className="flex justify-between items-center mb-3">
@@ -235,8 +237,8 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
                 ) : students.length > 0 ? (
                     <div className="space-y-3 pb-4">
                         {students.map(student => (
-                            <StudentAttendanceCard 
-                                key={student.id} 
+                            <StudentAttendanceCard
+                                key={student.id}
                                 student={student}
                                 batch={batch}
                                 status={attendance[student.id] || 'Not Set'}

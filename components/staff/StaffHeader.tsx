@@ -1,18 +1,17 @@
 
 import React from 'react';
-import { LogoutIcon } from './icons/LogoutIcon';
-import { MoonIcon } from './icons/MoonIcon';
-import { MenuIcon } from './icons/MenuIcon';
+import { LogoutIcon } from '../icons/LogoutIcon';
+import { MoonIcon } from '../icons/MoonIcon';
+import { MenuIcon } from '../icons/MenuIcon';
 
-interface HeaderProps {
+interface StaffHeaderProps {
+    staffName: string;
     academyName: string;
-    academyId: string;
-    logoUrl?: string;
     onLogout: () => void;
     onToggleNav: () => void;
 }
 
-export function Header({ academyName, academyId, logoUrl, onLogout, onToggleNav }: HeaderProps): React.ReactNode {
+export function StaffHeader({ staffName, academyName, onLogout, onToggleNav }: StaffHeaderProps): React.ReactNode {
     const [greeting, setGreeting] = React.useState('');
 
     React.useEffect(() => {
@@ -33,12 +32,9 @@ export function Header({ academyName, academyId, logoUrl, onLogout, onToggleNav 
                     <button onClick={onToggleNav} className="text-indigo-200 hover:text-white transition-colors p-2 -ml-2 rounded-full" aria-label="Open navigation menu">
                         <MenuIcon className="w-6 h-6" />
                     </button>
-                    {logoUrl && (
-                        <img src={logoUrl} alt="Academy Logo" className="w-10 h-10 rounded-full object-cover" />
-                    )}
                     <div>
-                        <h1 className="text-lg sm:text-xl md:text-2xl font-bold">{greeting}, {academyName}!</h1>
-                        <p className="text-sm text-indigo-200 mt-1">Academy ID: {academyId}</p>
+                        <h1 className="text-lg sm:text-xl md:text-2xl font-bold">{greeting}, {staffName}!</h1>
+                        <p className="text-sm text-indigo-200 mt-1">{academyName}</p>
                     </div>
                 </div>
                 <div className="flex items-center space-x-4">

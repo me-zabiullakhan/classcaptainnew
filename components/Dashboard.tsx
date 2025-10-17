@@ -1,4 +1,6 @@
 
+
+
 import React from 'react';
 import type { FeatureItem, Academy } from '../types';
 import { FeatureIcon } from './FeatureIcon';
@@ -20,7 +22,6 @@ import { TodoIcon } from './icons/TodoIcon';
 import { NoticeIcon } from './icons/NoticeIcon';
 import { TransportIcon } from './icons/TransportIcon';
 import { SettingsIcon } from './icons/SettingsIcon';
-import { ContactIcon } from './icons/ContactIcon';
 import { GraduationCapIcon } from './icons/GraduationCapIcon';
 import { EmailIcon } from './icons/EmailIcon';
 import { PhoneIcon } from './icons/PhoneIcon';
@@ -44,7 +45,6 @@ const features: FeatureItem[] = [
   { name: 'Notice Board', Icon: NoticeIcon, color: 'bg-cyan-600' },
   { name: 'Transport', Icon: TransportIcon, color: 'bg-amber-500' },
   { name: 'Settings', Icon: SettingsIcon, color: 'bg-red-600' },
-  { name: 'Contact Us', Icon: ContactIcon, color: 'bg-lime-600' },
 ];
 
 interface DashboardProps {
@@ -63,8 +63,8 @@ export function Dashboard({ onNavigate, academy }: DashboardProps): React.ReactN
         return () => onNavigate('fees-options');
       case 'Attendance':
         return () => onNavigate('select-batch-attendance');
-      case 'Contact Us':
-        return () => onNavigate('contact-us');
+      case 'Staff Manager':
+        return () => onNavigate('staff-manager');
       default:
         return () => alert('This feature is under development.');
     }
@@ -76,7 +76,11 @@ export function Dashboard({ onNavigate, academy }: DashboardProps): React.ReactN
     <>
       <div className="bg-indigo-600 text-white p-4 rounded-xl shadow-lg mb-6 flex items-center space-x-4">
           <div className="bg-white/30 w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0">
-              <GraduationCapIcon className="w-9 h-9 text-white" />
+               {academy.logoUrl ? (
+                <img src={academy.logoUrl} alt="Academy Logo" className="w-full h-full rounded-full object-cover" />
+              ) : (
+                <GraduationCapIcon className="w-9 h-9 text-white" />
+              )}
           </div>
           <div>
               <h2 className="text-xl font-bold">{academy.name}</h2>
@@ -113,9 +117,9 @@ export function Dashboard({ onNavigate, academy }: DashboardProps): React.ReactN
 
       <div className="grid grid-cols-3 sm:grid-cols-4 gap-y-6 gap-x-3 sm:gap-x-4 text-center">
         {features.map((feature) => (
-          <FeatureIcon 
-              key={feature.name} 
-              {...feature} 
+          <FeatureIcon
+              key={feature.name}
+              {...feature}
               onClick={getClickHandler(feature.name)}
           />
         ))}

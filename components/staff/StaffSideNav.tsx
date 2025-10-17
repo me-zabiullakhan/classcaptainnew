@@ -1,87 +1,70 @@
 
 import React from 'react';
-import type { FeatureItem } from '../types';
-import { LogoIcon } from './icons/LogoIcon';
-import { XMarkIcon } from './icons/XMarkIcon';
-import { BatchesIcon } from './icons/BatchesIcon';
-import { StudentsIcon } from './icons/StudentsIcon';
-import { AttendanceIcon } from './icons/AttendanceIcon';
-import { FeesIcon } from './icons/FeesIcon';
-import { IncomeIcon } from './icons/IncomeIcon';
-import { ExamsIcon } from './icons/ExamsIcon';
-import { EnquiryIcon } from './icons/EnquiryIcon';
-import { StaffIcon } from './icons/StaffIcon';
-import { ReportsIcon } from './icons/ReportsIcon';
-import { StudyMaterialIcon } from './icons/StudyMaterialIcon';
-import { HomeworkIcon } from './icons/HomeworkIcon';
-import { QuizIcon } from './icons/QuizIcon';
-import { LeaveIcon } from './icons/LeaveIcon';
-import { TodoIcon } from './icons/TodoIcon';
-import { NoticeIcon } from './icons/NoticeIcon';
-import { TransportIcon } from './icons/TransportIcon';
-import { SettingsIcon } from './icons/SettingsIcon';
-import { AccountIcon } from './icons/AccountIcon';
-import { LogoutIcon } from './icons/LogoutIcon';
+import type { FeatureItem, Staff, BatchAccessPermissions } from '../../types';
+import { LogoIcon } from '../icons/LogoIcon';
+import { XMarkIcon } from '../icons/XMarkIcon';
+import { StudentsIcon } from '../icons/StudentsIcon';
+import { AttendanceIcon } from '../icons/AttendanceIcon';
+import { FeesIcon } from '../icons/FeesIcon';
+import { ExamsIcon } from '../icons/ExamsIcon';
+import { AccountIcon } from '../icons/AccountIcon';
+import { LogoutIcon } from '../icons/LogoutIcon';
 
-const features: Omit<FeatureItem, 'color'>[] = [
-  { name: 'Batches', Icon: BatchesIcon },
+const allFeatures: Omit<FeatureItem, 'color'>[] = [
   { name: 'Students', Icon: StudentsIcon },
   { name: 'Attendance', Icon: AttendanceIcon },
   { name: 'Tuition Fees', Icon: FeesIcon },
-  { name: 'Income/Expenses', Icon: IncomeIcon },
   { name: 'Manage Exams', Icon: ExamsIcon },
-  { name: 'Enquiry Manager', Icon: EnquiryIcon },
-  { name: 'Staff Manager', Icon: StaffIcon },
-  { name: 'Reports', Icon: ReportsIcon },
-  { name: 'Study Material', Icon: StudyMaterialIcon },
-  { name: 'Homework', Icon: HomeworkIcon },
-  { name: 'Online Quiz', Icon: QuizIcon },
-  { name: 'Leave Manager', Icon: LeaveIcon },
-  { name: 'To Do Task', Icon: TodoIcon },
-  { name: 'Notice Board', Icon: NoticeIcon },
-  { name: 'Transport', Icon: TransportIcon },
-  { name: 'Settings', Icon: SettingsIcon },
 ];
 
 
-interface SideNavProps {
+interface StaffSideNavProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigate: (page: string) => void;
   onLogout: () => void;
+  staff: Staff;
 }
 
-export function SideNav({ isOpen, onClose, onNavigate, onLogout }: SideNavProps): React.ReactNode {
+export function StaffSideNav({ isOpen, onClose, onNavigate, onLogout, staff }: StaffSideNavProps): React.ReactNode {
+  const { batchAccess } = staff;
+
+  const hasPermission = (perm: keyof BatchAccessPermissions) => {
+    return Object.values(batchAccess || {}).some(p => p[perm]);
+  }
+
   const handleNavigate = (page: string) => {
     onNavigate(page);
     onClose();
   };
-  
+
   const getClickHandler = (name: string) => {
     switch (name) {
-      case 'Batches':
-        return () => handleNavigate('batches');
-      case 'Students':
-        return () => handleNavigate('student-options');
-      case 'Tuition Fees':
-        return () => handleNavigate('fees-options');
-      case 'Attendance':
-        return () => handleNavigate('select-batch-attendance');
-      default:
-        return () => alert('This feature is under development.');
+      case 'Students': return () => handleNavigate('active-students');
+      case 'Tuition Fees': return () => handleNavigate('fees-options');
+      case 'Attendance': return () => handleNavigate('select-batch-attendance');
+      default: return () => alert('This feature is under development.');
     }
   }
+
+  const availableFeatures = allFeatures.filter(feature => {
+      switch (feature.name) {
+          case 'Students': return Object.keys(batchAccess || {}).length > 0;
+          case 'Attendance': return hasPermission('attendance');
+          case 'Tuition Fees': return hasPermission('fees');
+          case 'Manage Exams': return hasPermission('exams');
+          default: return false;
+      }
+  });
   
   return (
     <>
-      {/* Overlay */}
       <div 
         className={`fixed inset-0 bg-black bg-opacity-50 z-30 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
         aria-hidden="true"
       ></div>
 
-      {/* SideNav */}
       <aside 
         className={`fixed top-0 left-0 h-full w-72 bg-white shadow-xl z-40 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
         role="dialog"
@@ -89,7 +72,6 @@ export function SideNav({ isOpen, onClose, onNavigate, onLogout }: SideNavProps)
         aria-labelledby="sidenav-title"
       >
         <div className="flex flex-col h-full">
-            {/* Header */}
             <header className="flex items-center justify-between p-4 border-b">
                 <div className="flex items-center gap-2">
                     <LogoIcon className="w-8 h-8 text-indigo-600"/>
@@ -100,10 +82,9 @@ export function SideNav({ isOpen, onClose, onNavigate, onLogout }: SideNavProps)
                 </button>
             </header>
 
-            {/* Navigation Links */}
             <nav className="flex-grow overflow-y-auto py-4">
                 <ul>
-                    {features.map(({ name, Icon }) => (
+                    {availableFeatures.map(({ name, Icon }) => (
                         <li key={name}>
                             <button onClick={getClickHandler(name)} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
                                 <Icon className="w-6 h-6 mr-4 text-gray-400"/>
@@ -114,9 +95,8 @@ export function SideNav({ isOpen, onClose, onNavigate, onLogout }: SideNavProps)
                 </ul>
             </nav>
 
-            {/* Footer */}
             <footer className="p-4 border-t">
-                 <button onClick={() => handleNavigate('my-account')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors rounded-lg">
+                 <button onClick={() => alert('Feature under development.')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors rounded-lg">
                     <AccountIcon className="w-6 h-6 mr-4 text-gray-400"/>
                     <span className="font-medium">My Account</span>
                 </button>

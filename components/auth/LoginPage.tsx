@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import { LogoIcon } from '../icons/LogoIcon';
 import { BuildingIcon } from '../icons/BuildingIcon';
@@ -10,10 +9,10 @@ import { CalendarIcon } from '../icons/CalendarIcon';
 import { BookIcon } from '../icons/BookIcon';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebaseConfig';
-import type { CurrentUser, Student, Teacher, Academy } from '../../types';
-import { demoStudents } from '../../demoData';
+import type { CurrentUser, Student, Staff, Academy } from '../../types';
+import { demoStudents, demoStaff } from '../../demoData';
 
-type Role = 'academy' | 'student' | 'teacher';
+type Role = 'academy' | 'student' | 'staff';
 
 interface LoginPageProps {
     onLogin: (user: CurrentUser) => void;
@@ -22,7 +21,7 @@ interface LoginPageProps {
     clearExternalError: () => void;
 }
 
-const AuthLayout = ({ title, subtitle, children }: { title: string, subtitle: string, children: React.ReactNode }) => (
+const AuthLayout: React.FC<{ title: string, subtitle: string }> = ({ title, subtitle, children }) => (
     <div className="min-h-screen flex flex-col justify-center items-center px-4 py-8" style={{background: 'linear-gradient(160deg, #f3e8ff 0%, #f4f5f7 100%)'}}>
         <div className="text-center mb-8">
             <div className="flex justify-center items-center gap-3 mb-4">
@@ -38,7 +37,7 @@ const AuthLayout = ({ title, subtitle, children }: { title: string, subtitle: st
     </div>
 );
 
-const AuthCard = ({ children }: { children: React.ReactNode }) => (
+const AuthCard: React.FC<{}> = ({ children }) => (
     <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
         {children}
     </div>
@@ -65,7 +64,7 @@ const RoleSwitcher = ({ activeRole, onRoleChange }: { activeRole: Role, onRoleCh
     const roles: { id: Role; name: string; icon: React.ReactNode }[] = [
         { id: 'academy', name: 'Academy', icon: <BuildingIcon className="w-5 h-5" /> },
         { id: 'student', name: 'Student', icon: <UserIcon className="w-5 h-5" /> },
-        { id: 'teacher', name: 'Teacher', icon: <BookIcon className="w-5 h-5" /> },
+        { id: 'staff', name: 'Teacher/Staff', icon: <BookIcon className="w-5 h-5" /> },
     ];
 
     return (
@@ -225,22 +224,33 @@ const StudentLoginForm = ({ onLogin, onAcademyNotFound }: { onLogin: (u: Current
 };
 
 
-const TeacherLoginForm = ({ onLogin, onAcademyNotFound }: { onLogin: (u: CurrentUser) => void, onAcademyNotFound: ()=>void }) => {
+const StaffLoginForm = ({ onLogin, onAcademyNotFound }: { onLogin: (u: CurrentUser) => void, onAcademyNotFound: ()=>void }) => {
     const [error, setError] = React.useState('');
     const [isLoading, setIsLoading] = React.useState(false);
 
-    const handleTeacherLogin = async (e: React.FormEvent) => {
+    const handleStaffLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setIsLoading(true);
 
         const form = e.target as HTMLFormElement;
-        const academyId = (form.elements.namedItem('academyId') as HTMLInputElement).value.trim();
-        const teacherId = (form.elements.namedItem('teacherId') as HTMLInputElement).value.trim();
-        const dob = (form.elements.namedItem('dob') as HTMLInputElement).value;
+        const academyId = (form.elements.namedItem('academyId') as HTMLInputElement).value.trim().toUpperCase();
+        const staffId = (form.elements.namedItem('staffId') as HTMLInputElement).value.trim();
+        const password = (form.elements.namedItem('password') as HTMLInputElement).value;
         
-        if (!academyId || !teacherId || !dob) {
+        if (!academyId || !staffId || !password) {
             setError("All fields are required.");
+            setIsLoading(false);
+            return;
+        }
+
+        if (academyId === 'ACDEMO') {
+            const demoStaffMember = demoStaff.find(s => s.staffId === staffId && s.password === password);
+            if (demoStaffMember) {
+                onLogin({ role: 'staff', data: demoStaffMember, academyId: 'ACDEMO' });
+            } else {
+                setError("Invalid demo credentials. Please check your Staff ID and Password.");
+            }
             setIsLoading(false);
             return;
         }
@@ -254,16 +264,20 @@ const TeacherLoginForm = ({ onLogin, onAcademyNotFound }: { onLogin: (u: Current
                 return;
             }
 
-            const teachersRef = collection(db, `academies/${academyId}/teachers`);
-            const q = query(teachersRef, where("teacherId", "==", teacherId), where("dob", "==", dob));
+            const staffRef = collection(db, `academies/${academyId}/staff`);
+            const q = query(staffRef, where("staffId", "==", staffId), where("password", "==", password));
             const querySnapshot = await getDocs(q);
 
             if (querySnapshot.empty) {
-                setError("Invalid credentials. Please check your Teacher ID and Date of Birth.");
+                setError("Invalid credentials. Please check your Staff ID and Password.");
             } else {
-                const teacherDoc = querySnapshot.docs[0];
-                const teacherData = { id: teacherDoc.id, ...teacherDoc.data() } as Teacher;
-                onLogin({ role: 'teacher', data: teacherData, academyId });
+                const staffDoc = querySnapshot.docs[0];
+                const staffData = { id: staffDoc.id, ...staffDoc.data() } as Staff;
+                if (!staffData.isActive) {
+                    setError("Your account is inactive. Please contact the academy admin.");
+                } else {
+                    onLogin({ role: 'staff', data: staffData, academyId });
+                }
             }
         } catch (err: any) {
             setError(err.message || 'An error occurred.');
@@ -273,10 +287,10 @@ const TeacherLoginForm = ({ onLogin, onAcademyNotFound }: { onLogin: (u: Current
     };
     
     return (
-        <form onSubmit={handleTeacherLogin}>
+        <form onSubmit={handleStaffLogin}>
             <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Academy ID" type="text" name="academyId" placeholder="Enter your academy ID" required />
-            <FormInput icon={<UserIcon className="w-5 h-5" />} label="Teacher ID" type="text" name="teacherId" placeholder="Enter your teacher ID" required />
-            <FormInput icon={<CalendarIcon className="w-5 h-5" />} label="Date of Birth" type="date" name="dob" placeholder="dd/mm/yyyy" required />
+            <FormInput icon={<UserIcon className="w-5 h-5" />} label="Staff ID" type="text" name="staffId" placeholder="Enter your staff ID" required />
+            <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" name="password" placeholder="Enter your password" required />
             {error && <p className="text-red-500 text-sm text-center mb-4">{error}</p>}
             <button type="submit" disabled={isLoading} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4 disabled:bg-indigo-300">
                 {isLoading ? 'Signing In...' : 'Sign In'}
@@ -354,8 +368,28 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
                         </div>
                     </>
                 );
-            case 'teacher':
-                return <TeacherLoginForm onLogin={onLogin} onAcademyNotFound={() => setShowNotFoundPopup(true)} />;
+            case 'staff':
+                return (
+                    <>
+                        <StaffLoginForm onLogin={onLogin} onAcademyNotFound={() => setShowNotFoundPopup(true)} />
+                        <div className="text-center mt-6 text-xs text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <p className="font-bold text-gray-700 mb-2">Demo Teacher/Staff Logins</p>
+                            <div className="text-left space-y-2">
+                                <div>
+                                    <p className="font-semibold">Teacher (Dr. Reed):</p>
+                                    <p>Staff ID: <code className="font-mono bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded">T02</code></p>
+                                    <p>Password: <code className="font-mono bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded">demoteacher</code></p>
+                                </div>
+                                <div className="pt-2 border-t border-gray-200">
+                                    <p className="font-semibold">Staff (Mr. Grant):</p>
+                                    <p>Staff ID: <code className="font-mono bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded">T01</code></p>
+                                    <p>Password: <code className="font-mono bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded">demostaff</code></p>
+                                </div>
+                            </div>
+                            <p className="mt-2">Academy ID for both is <code className="font-mono bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded">ACDEMO</code></p>
+                        </div>
+                    </>
+                );
             default:
                 return null;
         }

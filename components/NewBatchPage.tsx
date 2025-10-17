@@ -1,4 +1,6 @@
 
+
+
 import React from 'react';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import type { Batch } from '../types';
@@ -21,7 +23,7 @@ const FormInput = ({ label, id, icon, ...props }: { label: string, id: string, i
   </div>
 );
 
-const DayButton = ({ day, isSelected, onClick }: { day: string, isSelected: boolean, onClick: () => void}) => (
+const DayButton: React.FC<{ day: string, isSelected: boolean, onClick: () => void}> = ({ day, isSelected, onClick }) => (
   <button
     type="button"
     onClick={onClick}

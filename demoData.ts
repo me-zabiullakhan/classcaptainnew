@@ -1,4 +1,4 @@
-import type { Batch, Student } from './types';
+import type { Batch, Student, Staff } from './types';
 
 export const demoBatches: Batch[] = [
     {
@@ -136,4 +136,42 @@ export const demoStudents: Student[] = [
         feeAmount: 400,
         feeType: 'Monthly',
     },
+];
+
+export const demoStaff: Staff[] = [
+    {
+        id: 'demo-staff-1',
+        staffId: 'T01',
+        name: 'Alan Grant',
+        dob: '1970-03-15',
+        mobile: '9876543219',
+        email: 'alangrant@example.com',
+        gender: 'Male',
+        address: 'Demo City, USA',
+        joiningDate: '2022-09-01',
+        password: 'demostaff',
+        photo: '',
+        batchAccess: {
+            'demo-batch-1': { attendance: true, editStudents: true },
+            'demo-batch-2': { attendance: true, fees: true },
+        },
+        isActive: true,
+    },
+    {
+        id: 'demo-staff-2',
+        staffId: 'T02',
+        name: 'Dr. Evelyn Reed',
+        dob: '1982-11-22',
+        mobile: '9876543221',
+        email: 'evelynreed@example.com',
+        gender: 'Female',
+        address: 'Demo City, USA',
+        joiningDate: '2021-08-15',
+        password: 'demoteacher',
+        photo: '',
+        batchAccess: {
+            'demo-batch-1': { attendance: true, exams: true },
+        },
+        isActive: true,
+    }
 ];

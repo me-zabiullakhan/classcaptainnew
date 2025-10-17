@@ -4,7 +4,7 @@ import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { SearchIcon } from './icons/SearchIcon';
 
 // A simple toggle switch component
-const ToggleSwitch = ({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
+const ToggleSwitch: React.FC<{ checked: boolean; onChange: () => void }> = ({ checked, onChange }) => (
     <button
         type="button"
         className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${checked ? 'bg-indigo-600' : 'bg-gray-300'}`}
@@ -18,7 +18,7 @@ const ToggleSwitch = ({ checked, onChange }: { checked: boolean; onChange: () =>
 );
 
 
-const StudentCard = ({ student, onToggleStatus }: { student: Student, onToggleStatus: (id: string) => void }) => (
+const StudentCard: React.FC<{ student: Student, onToggleStatus: (id: string) => void }> = ({ student, onToggleStatus }) => (
     <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-gray-400 flex flex-col">
         <div className="flex justify-between items-start">
             <div className="flex items-center space-x-3">
