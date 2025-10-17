@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { Student, Batch, BatchAccessPermissions } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -33,19 +34,11 @@ const StudentCard: React.FC<{
     const canEdit = React.useMemo(() => {
         if (!staffPermissions) return true; // Default to true for admin view
 
-        // Find batch IDs for the current student
-        const studentBatchIds = new Set(
-            batches.filter(b => student.batches.includes(b.name)).map(b => b.id)
-        );
+        // Get the Batch objects the student is enrolled in
+        const studentBatches = batches.filter(b => student.batches.includes(b.name));
 
-        // Check if any of those batch IDs have 'editStudents' permission
-        for (const batchId of studentBatchIds) {
-            if (staffPermissions[batchId]?.editStudents) {
-                return true;
-            }
-        }
-
-        return false;
+        // Check if the staff has 'editStudents' permission for at least one of those batches
+        return studentBatches.some(batch => staffPermissions[batch.id]?.editStudents);
     }, [student.batches, batches, staffPermissions]);
 
 

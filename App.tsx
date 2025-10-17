@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { GoogleGenAI, Chat, GenerateContentResponse } from '@google/genai';
 import { Header } from './components/Header';
@@ -292,7 +293,10 @@ function App(): React.ReactNode {
           setIsLoading(false);
         }, (err) => {
           handleFirestoreError(err, 'academy data');
-          if ((err as any).code !== 'unavailable' && (err as any).code !== 'cancelled') {
+          // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+          // Safely access the 'code' property on the unknown error object.
+          const code = (err && typeof err === 'object' && 'code' in err) ? String((err as {code: unknown}).code) : undefined;
+          if (code !== 'unavailable' && code !== 'cancelled') {
               setCurrentUser(null);
               setCurrentAcademy(null);
           }
