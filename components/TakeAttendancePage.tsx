@@ -1,7 +1,4 @@
 
-
-
-
 import React from 'react';
 import type { Batch, Student, AttendanceStatus } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -178,7 +175,7 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
     const formattedDate = currentDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
     return (
-        <div className="bg-slate-100 flex flex-col h-screen animate-fade-in">
+        <div className="bg-slate-100 flex flex-col h-full animate-fade-in">
             <header className="bg-indigo-700 text-white p-3 flex items-center justify-between shadow-md flex-shrink-0">
                 <div className="flex items-center">
                     <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800" aria-label="Go back">
@@ -194,7 +191,7 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
                 </div>
             </header>
 
-            <div className="bg-indigo-900 text-white p-2 flex items-center justify-between">
+            <div className="bg-indigo-900 text-white p-2 flex items-center justify-between flex-shrink-0">
                 <button onClick={() => handleDateChange('prev')} className="p-2 rounded-full hover:bg-indigo-800">
                     <ArrowLeftIcon className="w-5 h-5" />
                 </button>
@@ -204,7 +201,7 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
                 </button>
             </div>
             
-            <div className="p-2 text-center">
+            <div className="p-2 text-center flex-shrink-0">
                  <p className="text-xs text-gray-500 mb-1">Click to set all students</p>
                  <div className="flex space-x-1.5 justify-center">
                     {attendanceStatuses.map(s => (

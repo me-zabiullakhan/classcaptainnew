@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { NewAdmissionIcon } from './icons/NewAdmissionIcon';
@@ -13,6 +12,7 @@ interface StudentOptionsPageProps {
   onBack: () => void;
   onNavigate: (page: string) => void;
   isStaffView?: boolean;
+  onShowDevPopup: (featureName: string) => void;
 }
 
 const studentOptions = [
@@ -24,7 +24,7 @@ const studentOptions = [
   { name: 'Registration Forms', Icon: RegistrationFormIcon, key: 'reg-forms' },
 ];
 
-export function StudentOptionsPage({ onBack, onNavigate, isStaffView }: StudentOptionsPageProps): React.ReactNode {
+export function StudentOptionsPage({ onBack, onNavigate, isStaffView, onShowDevPopup }: StudentOptionsPageProps): React.ReactNode {
   const handleClick = (key: string) => {
     switch (key) {
       case 'new-admission':
@@ -43,7 +43,7 @@ export function StudentOptionsPage({ onBack, onNavigate, isStaffView }: StudentO
         onNavigate('registration-form-list');
         break;
       default:
-        alert('This feature is under development.');
+        onShowDevPopup("Student's ID Card");
         break;
     }
   };
@@ -54,14 +54,14 @@ export function StudentOptionsPage({ onBack, onNavigate, isStaffView }: StudentO
 
   return (
     <div className="animate-fade-in flex flex-col h-full">
-      <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md w-full -mx-3 sm:-mx-4 mt-[-1rem]">
+      <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md flex-shrink-0">
         <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back to dashboard">
           <ArrowLeftIcon className="w-6 h-6" />
         </button>
         <h1 className="text-xl font-bold ml-2">Student Options</h1>
       </header>
 
-      <main className="flex-grow pt-6">
+      <main className="flex-grow p-4 overflow-y-auto">
         <div className="space-y-4">
           {visibleOptions.map(({ name, Icon, key }) => (
             <button

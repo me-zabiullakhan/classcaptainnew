@@ -49,9 +49,10 @@ interface SideNavProps {
   onClose: () => void;
   onNavigate: (page: string) => void;
   onLogout: () => void;
+  onShowDevPopup: (featureName: string) => void;
 }
 
-export function SideNav({ isOpen, onClose, onNavigate, onLogout }: SideNavProps): React.ReactNode {
+export function SideNav({ isOpen, onClose, onNavigate, onLogout, onShowDevPopup }: SideNavProps): React.ReactNode {
   const handleNavigate = (page: string) => {
     onNavigate(page);
     onClose();
@@ -68,7 +69,10 @@ export function SideNav({ isOpen, onClose, onNavigate, onLogout }: SideNavProps)
       case 'Attendance':
         return () => handleNavigate('select-batch-attendance');
       default:
-        return () => alert('This feature is under development.');
+        return () => {
+            onShowDevPopup(name);
+            onClose();
+        };
     }
   }
   

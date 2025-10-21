@@ -5,9 +5,8 @@ import { BuildingIcon } from '../icons/BuildingIcon';
 import { EmailIcon } from '../icons/EmailIcon';
 import { LockIcon } from '../icons/LockIcon';
 import { UserIcon } from '../icons/UserIcon';
-import { CalendarIcon } from '../icons/CalendarIcon';
 import { BookIcon } from '../icons/BookIcon';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../../firebaseConfig';
 import type { CurrentUser, Student, Staff, Academy } from '../../types';
 import { demoStudents, demoStaff } from '../../demoData';
@@ -21,7 +20,7 @@ interface LoginPageProps {
     clearExternalError: () => void;
 }
 
-const AuthLayout: React.FC<{ title: string, subtitle: string }> = ({ title, subtitle, children }) => (
+const AuthLayout: React.FC<{ title: string, subtitle: string, children: React.ReactNode }> = ({ title, subtitle, children }) => (
     <div className="min-h-screen flex flex-col justify-center items-center px-4 py-8 bg-gradient-to-br from-purple-50 to-slate-100 dark:from-indigo-900 dark:to-gray-900">
         <div className="text-center mb-8">
             <div className="flex justify-center items-center gap-3 mb-4">
@@ -37,7 +36,7 @@ const AuthLayout: React.FC<{ title: string, subtitle: string }> = ({ title, subt
     </div>
 );
 
-const AuthCard: React.FC<{}> = ({ children }) => (
+const AuthCard: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-lg">
         {children}
     </div>
@@ -58,7 +57,6 @@ const FormInput = ({ icon, label, ...props }: { icon: React.ReactNode, label: st
         </div>
     </div>
 );
-
 
 const RoleSwitcher = ({ activeRole, onRoleChange }: { activeRole: Role, onRoleChange: (role: Role) => void }) => {
     const roles: { id: Role; name: string; icon: React.ReactNode }[] = [
@@ -135,7 +133,6 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { 
             if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
                 onLoginFailed();
             } else {
-                // General error for Firebase or other issues.
                 console.error("Login Error:", err);
                 setError(err.message || 'Failed to login.');
             }
@@ -145,301 +142,231 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { 
     }}>
         <FormInput icon={<EmailIcon className="w-5 h-5" />} label="Email Address" type="email" name="email" placeholder="Enter your email" required />
         <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" name="password" placeholder="Enter your password" required />
+        
         <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4">
-            Sign In
+            Sign in
         </button>
     </form>
 );
 
-const StudentLoginForm = ({ onLogin, onAcademyNotFound }: { onLogin: (u: CurrentUser) => void, onAcademyNotFound: ()=>void }) => {
-    const [error, setError] = React.useState('');
-    const [isLoading, setIsLoading] = React.useState(false);
-
+const StudentLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (l:boolean)=>void, setError: (e:string)=>void, onLogin: (user: CurrentUser) => void }) => {
     const handleStudentLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setIsLoading(true);
-
         const form = e.target as HTMLFormElement;
-        const academyId = (form.elements.namedItem('academyId') as HTMLInputElement).value.trim().toUpperCase();
+        const academyId = (form.elements.namedItem('academyId') as HTMLInputElement).value.toUpperCase();
+        const rollNumber = (form.elements.namedItem('rollNumber') as HTMLInputElement).value;
         const password = (form.elements.namedItem('password') as HTMLInputElement).value;
-        const dob = (form.elements.namedItem('dob') as HTMLInputElement).value;
-
-        if (!academyId || !password || !dob) {
-            setError("All fields are required.");
-            setIsLoading(false);
-            return;
-        }
 
         if (academyId === 'ACDEMO') {
-            const demoStudent = demoStudents.find(s => s.password === password && s.dob === dob);
+            const demoStudent = demoStudents.find(s => s.rollNumber === rollNumber && s.password === password);
             if (demoStudent) {
-                onLogin({ role: 'student', data: demoStudent, academyId: 'ACDEMO', academyName: 'SM TUTORIALS' });
+                onLogin({ role: 'student', data: demoStudent, academyId, academyName: 'Demo Academy' });
+                setIsLoading(false);
+                return;
             } else {
-                setError("Invalid demo credentials. Please check your Password and Date of Birth.");
-            }
-            setIsLoading(false);
-            return;
-        }
-
-        try {
-            const academyDocRef = doc(db, 'academies', academyId);
-            const academyDoc = await getDoc(academyDocRef);
-            if (!academyDoc.exists() || academyDoc.data().status === 'paused') {
-                onAcademyNotFound();
+                setError("Invalid demo credentials.");
                 setIsLoading(false);
                 return;
             }
-            const academyData = academyDoc.data() as Academy;
+        }
 
-            const studentsRef = collection(db, `academies/${academyId}/students`);
-            const q = query(studentsRef, where("password", "==", password), where("dob", "==", dob));
-            const querySnapshot = await getDocs(q);
+        try {
+            const q = query(
+                collection(db, 'academies'),
+                where('academyId', '==', academyId)
+            );
+            const academySnapshot = await getDocs(q);
 
-            if (querySnapshot.empty) {
-                setError("Invalid credentials. Please check your Password and Date of Birth.");
-            } else {
-                const studentDoc = querySnapshot.docs[0];
-                const studentData = { id: studentDoc.id, ...studentDoc.data() } as Student;
-                onLogin({ role: 'student', data: studentData, academyId, academyName: academyData.name });
+            if (academySnapshot.empty) {
+                setError(`Academy with ID ${academyId} not found.`);
+                setIsLoading(false);
+                return;
             }
-        } catch (err: any) {
-            setError(err.message || 'An error occurred.');
+            const academyDoc = academySnapshot.docs[0];
+            const firestoreAcademyId = academyDoc.id;
+            const academyName = academyDoc.data().name;
+
+            const studentQuery = query(
+                collection(db, `academies/${firestoreAcademyId}/students`),
+                where('rollNumber', '==', rollNumber)
+            );
+            const studentSnapshot = await getDocs(studentQuery);
+
+            if (studentSnapshot.empty) {
+                setError('Student not found with that Roll Number.');
+                setIsLoading(false);
+                return;
+            }
+
+            const studentDoc = studentSnapshot.docs[0];
+            const studentData = { id: studentDoc.id, ...studentDoc.data() } as Student;
+
+            if (studentData.password === password) {
+                onLogin({ role: 'student', data: studentData, academyId: firestoreAcademyId, academyName: academyName });
+            } else {
+                setError('Incorrect password.');
+            }
+        } catch (error) {
+            console.error(error);
+            setError('An error occurred during login. Please try again.');
         } finally {
             setIsLoading(false);
         }
     };
-    
+
     return (
         <form onSubmit={handleStudentLogin}>
-            <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Academy ID" type="text" name="academyId" placeholder="Enter your academy ID" required />
+            <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Academy ID" type="text" name="academyId" placeholder="e.g. AC0001" required />
+            <FormInput icon={<UserIcon className="w-5 h-5" />} label="Roll Number" type="text" name="rollNumber" placeholder="Your student ID" required />
             <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" name="password" placeholder="Enter your password" required />
-            <FormInput icon={<CalendarIcon className="w-5 h-5" />} label="Date of Birth" type="date" name="dob" placeholder="dd/mm/yyyy" required />
-            {error && <p className="text-red-500 text-sm text-center mb-4">{error}</p>}
-            <button type="submit" disabled={isLoading} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4 disabled:bg-indigo-300">
-                {isLoading ? 'Signing In...' : 'Sign In'}
+            <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4">
+                Sign in
             </button>
         </form>
     );
 };
 
-
-const StaffLoginForm = ({ onLogin, onAcademyNotFound }: { onLogin: (u: CurrentUser) => void, onAcademyNotFound: ()=>void }) => {
-    const [error, setError] = React.useState('');
-    const [isLoading, setIsLoading] = React.useState(false);
-
+const StaffLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (l:boolean)=>void, setError: (e:string)=>void, onLogin: (user: CurrentUser) => void }) => {
     const handleStaffLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setIsLoading(true);
-
         const form = e.target as HTMLFormElement;
-        const academyId = (form.elements.namedItem('academyId') as HTMLInputElement).value.trim().toUpperCase();
-        const staffId = (form.elements.namedItem('staffId') as HTMLInputElement).value.trim();
+        const academyId = (form.elements.namedItem('academyId') as HTMLInputElement).value.toUpperCase();
+        const staffId = (form.elements.namedItem('staffId') as HTMLInputElement).value;
         const password = (form.elements.namedItem('password') as HTMLInputElement).value;
-        
-        if (!academyId || !staffId || !password) {
-            setError("All fields are required.");
-            setIsLoading(false);
-            return;
-        }
 
         if (academyId === 'ACDEMO') {
             const demoStaffMember = demoStaff.find(s => s.staffId === staffId && s.password === password);
             if (demoStaffMember) {
-                onLogin({ role: 'staff', data: demoStaffMember, academyId: 'ACDEMO' });
+                onLogin({ role: 'staff', data: demoStaffMember, academyId });
+                setIsLoading(false);
+                return;
             } else {
-                setError("Invalid demo credentials. Please check your Staff ID and Password.");
+                setError("Invalid demo credentials for staff.");
+                setIsLoading(false);
+                return;
             }
-            setIsLoading(false);
-            return;
         }
 
         try {
-            const academyDocRef = doc(db, 'academies', academyId);
-            const academyDoc = await getDoc(academyDocRef);
-            if (!academyDoc.exists() || academyDoc.data().status === 'paused') {
-                onAcademyNotFound();
+            const q = query(
+                collection(db, 'academies'),
+                where('academyId', '==', academyId)
+            );
+            const academySnapshot = await getDocs(q);
+
+            if (academySnapshot.empty) {
+                setError(`Academy with ID ${academyId} not found.`);
+                setIsLoading(false);
+                return;
+            }
+            const academyDoc = academySnapshot.docs[0];
+            const firestoreAcademyId = academyDoc.id;
+
+            const staffQuery = query(
+                collection(db, `academies/${firestoreAcademyId}/staff`),
+                where('staffId', '==', staffId)
+            );
+            const staffSnapshot = await getDocs(staffQuery);
+
+            if (staffSnapshot.empty) {
+                setError('Staff member not found with that ID.');
                 setIsLoading(false);
                 return;
             }
 
-            const staffRef = collection(db, `academies/${academyId}/staff`);
-            const q = query(staffRef, where("staffId", "==", staffId), where("password", "==", password));
-            const querySnapshot = await getDocs(q);
+            const staffDoc = staffSnapshot.docs[0];
+            const staffData = { id: staffDoc.id, ...staffDoc.data() } as Staff;
 
-            if (querySnapshot.empty) {
-                setError("Invalid credentials. Please check your Staff ID and Password.");
+            if (staffData.password === password) {
+                onLogin({ role: 'staff', data: staffData, academyId: firestoreAcademyId });
             } else {
-                const staffDoc = querySnapshot.docs[0];
-                const staffData = { id: staffDoc.id, ...staffDoc.data() } as Staff;
-                if (!staffData.isActive) {
-                    setError("Your account is inactive. Please contact the academy admin.");
-                } else {
-                    onLogin({ role: 'staff', data: staffData, academyId });
-                }
+                setError('Incorrect password.');
             }
-        } catch (err: any) {
-            setError(err.message || 'An error occurred.');
+        } catch (error) {
+            console.error(error);
+            setError('An error occurred during login. Please try again.');
         } finally {
             setIsLoading(false);
         }
     };
-    
+
     return (
         <form onSubmit={handleStaffLogin}>
-            <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Academy ID" type="text" name="academyId" placeholder="Enter your academy ID" required />
-            <FormInput icon={<UserIcon className="w-5 h-5" />} label="Staff ID" type="text" name="staffId" placeholder="Enter your staff ID" required />
+            <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Academy ID" type="text" name="academyId" placeholder="e.g. AC0001" required />
+            <FormInput icon={<BookIcon className="w-5 h-5" />} label="Staff ID" type="text" name="staffId" placeholder="Your staff ID" required />
             <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" name="password" placeholder="Enter your password" required />
-            {error && <p className="text-red-500 text-sm text-center mb-4">{error}</p>}
-            <button type="submit" disabled={isLoading} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4 disabled:bg-indigo-300">
-                {isLoading ? 'Signing In...' : 'Sign In'}
+            <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4">
+                Sign in
             </button>
         </form>
     );
 };
 
-const AcademyNotFoundPopup = ({ onCancel, onRegister }: { onCancel: () => void, onRegister: () => void }) => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-2xl shadow-lg max-w-sm mx-4 text-center">
-            <h3 className="text-lg font-bold text-gray-800">Academy Not Found</h3>
-            <p className="text-gray-600 mt-2 mb-6">The Academy ID you entered is not registered or has been suspended. Please check the ID or register the academy.</p>
-            <div className="flex flex-col gap-3">
-                <button onClick={onRegister} className="w-full bg-indigo-600 text-white font-bold py-2.5 rounded-lg hover:bg-indigo-700 transition-colors">
-                    Register Now
-                </button>
-                <button onClick={onCancel} className="w-full bg-gray-200 text-gray-800 font-bold py-2.5 rounded-lg hover:bg-gray-300 transition-colors">
-                    Cancel
-                </button>
-            </div>
-        </div>
-    </div>
-);
-
-
-export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearExternalError }: LoginPageProps) {
-    const [activeRole, setActiveRole] = React.useState<Role>('academy');
-    const [error, setError] = React.useState('');
+export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearExternalError }: LoginPageProps): React.ReactNode {
+    const [role, setRole] = React.useState<Role>('academy');
     const [isLoading, setIsLoading] = React.useState(false);
-    const [showNotFoundPopup, setShowNotFoundPopup] = React.useState(false);
-    const [showAcademyLoginFailedPopup, setShowAcademyLoginFailedPopup] = React.useState(false);
+    const [error, setError] = React.useState('');
+    const [showAcademyNotFound, setShowAcademyNotFound] = React.useState(false);
 
     React.useEffect(() => {
         if (externalError) {
             setError(externalError);
         }
     }, [externalError]);
-
-    const handleRoleChange = (role: Role) => {
-        setActiveRole(role);
-        setError('');
-        if (externalError) {
-            clearExternalError();
-        }
-    };
-
-    const renderForm = () => {
-        switch (activeRole) {
-            case 'academy':
-                return (
-                    <>
-                        <AcademyLoginForm
-                            setIsLoading={setIsLoading}
-                            setError={setError}
-                            onLoginFailed={() => setShowAcademyLoginFailedPopup(true)}
-                            onLogin={onLogin}
-                        />
-                         <div className="text-center mt-6 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
-                            <p className="font-bold text-gray-700 dark:text-gray-200 mb-1">Demo Login</p>
-                            <p>Email: <code className="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-1.5 py-0.5 rounded">demo@classcaptain.com</code></p>
-                            <p className="mt-1">Password: <code className="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-1.5 py-0.5 rounded">demo123</code></p>
-                        </div>
-                    </>
-                );
-            case 'student':
-                 return (
-                    <>
-                        <StudentLoginForm onLogin={onLogin} onAcademyNotFound={() => setShowNotFoundPopup(true)} />
-                        <div className="text-center mt-6 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
-                            <p className="font-bold text-gray-700 dark:text-gray-200 mb-1">Demo Student Login</p>
-                            <p>Academy ID: <code className="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-1.5 py-0.5 rounded">ACDEMO</code></p>
-                            <p className="mt-1">Password: <code className="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-1.5 py-0.5 rounded">alice123</code></p>
-                            <p className="mt-1">Date of Birth: <code className="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-1.5 py-0.5 rounded">2006-05-15</code></p>
-                        </div>
-                    </>
-                );
-            case 'staff':
-                return (
-                    <>
-                        <StaffLoginForm onLogin={onLogin} onAcademyNotFound={() => setShowNotFoundPopup(true)} />
-                        <div className="text-center mt-6 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
-                            <p className="font-bold text-gray-700 dark:text-gray-200 mb-2">Demo Teacher/Staff Logins</p>
-                            <div className="text-left space-y-2">
-                                <div>
-                                    <p className="font-semibold dark:text-gray-300">Teacher (Dr. Reed):</p>
-                                    <p>Staff ID: <code className="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-1.5 py-0.5 rounded">T02</code></p>
-                                    <p>Password: <code className="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-1.5 py-0.5 rounded">demoteacher</code></p>
-                                </div>
-                                <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
-                                    <p className="font-semibold dark:text-gray-300">Staff (Mr. Grant):</p>
-                                    <p>Staff ID: <code className="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-1.5 py-0.5 rounded">T01</code></p>
-                                    <p>Password: <code className="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-1.5 py-0.5 rounded">demostaff</code></p>
-                                </div>
-                            </div>
-                            <p className="mt-2">Academy ID for both is <code className="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-1.5 py-0.5 rounded">ACDEMO</code></p>
-                        </div>
-                    </>
-                );
-            default:
-                return null;
-        }
-    };
     
-    return (
-        <AuthLayout title="Welcome Back" subtitle="Sign in to your account to continue">
-            {showNotFoundPopup && (
-                <AcademyNotFoundPopup 
-                    onCancel={() => setShowNotFoundPopup(false)}
-                    onRegister={() => {
-                        setShowNotFoundPopup(false);
-                        onNavigateToRegister();
-                    }}
-                />
-            )}
-            {showAcademyLoginFailedPopup && (
-                 <AcademyLoginFailedPopup 
-                    onCancel={() => setShowAcademyLoginFailedPopup(false)}
-                    onRegister={() => {
-                        setShowAcademyLoginFailedPopup(false);
-                        onNavigateToRegister();
-                    }}
-                />
-            )}
-            <AuthCard>
-                <RoleSwitcher activeRole={activeRole} onRoleChange={handleRoleChange} />
-                <div className="relative">
-                    {isLoading && <div className="absolute inset-0 bg-white bg-opacity-50 flex items-center justify-center rounded-b-2xl z-10"><p>Loading...</p></div>}
-                    {error && <p className="text-red-500 text-sm text-center mb-4">{error}</p>}
-                    {renderForm()}
-                </div>
-            </AuthCard>
-            
-            <div className="text-center mt-6">
-                 {activeRole === 'academy' && (
-                    <a href="#" className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
-                        Forgot your password?
-                    </a>
-                )}
-            </div>
+    const handleSetError = (msg: string) => {
+        clearExternalError();
+        setError(msg);
+    };
 
-            <div className="text-center mt-4">
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Don't have an account?{' '}
-                    <button onClick={onNavigateToRegister} className="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
-                        Register here
-                    </button>
-                </p>
-            </div>
+    const handleRoleChange = (newRole: Role) => {
+        setRole(newRole);
+        setError('');
+        clearExternalError();
+    };
+
+    return (
+        <AuthLayout title="Welcome Back!" subtitle="Please sign in to continue">
+            <AuthCard>
+                <RoleSwitcher activeRole={role} onRoleChange={handleRoleChange} />
+                
+                {role === 'academy' && <AcademyLoginForm setIsLoading={setIsLoading} setError={handleSetError} onLoginFailed={() => setShowAcademyNotFound(true)} onLogin={onLogin} />}
+                {role === 'student' && <StudentLoginForm setIsLoading={setIsLoading} setError={handleSetError} onLogin={onLogin} />}
+                {role === 'staff' && <StaffLoginForm setIsLoading={setIsLoading} setError={handleSetError} onLogin={onLogin} />}
+
+                {error && <p className="text-red-500 text-sm text-center mt-4">{error}</p>}
+                
+                {isLoading && (
+                    <div className="absolute inset-0 bg-white/50 dark:bg-gray-800/50 flex justify-center items-center rounded-2xl">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+                    </div>
+                )}
+            </AuthCard>
+
+            {role === 'academy' && (
+                <div className="text-center mt-6">
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Don't have an account?{' '}
+                        <button onClick={onNavigateToRegister} className="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                            Register here
+                        </button>
+                    </p>
+                </div>
+            )}
+            
+            {showAcademyNotFound && (
+                <AcademyLoginFailedPopup 
+                    onCancel={() => setShowAcademyNotFound(false)}
+                    onRegister={() => {
+                        setShowAcademyNotFound(false);
+                        onNavigateToRegister();
+                    }}
+                />
+            )}
         </AuthLayout>
     );
 }

@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { GoogleGenAI, Chat, GenerateContentResponse } from '@google/genai';
 import { Header } from './components/Header';
@@ -21,7 +22,8 @@ import { LoginPage } from './components/auth/LoginPage';
 import { RegisterPage } from './components/auth/RegisterPage';
 import { MyAccountPage } from './components/MyAccountPage';
 import { auth, db, firebaseConfig } from './firebaseConfig';
-import { collection, addDoc, onSnapshot, query, where, doc, runTransaction, increment, Timestamp, updateDoc, getDoc } from 'firebase/firestore';
+// FIX: Import FirestoreError to explicitly type the error object from onSnapshot.
+import { collection, addDoc, onSnapshot, query, where, doc, runTransaction, increment, Timestamp, updateDoc, getDoc, FirestoreError } from 'firebase/firestore';
 import { SplashScreen } from './components/SplashScreen';
 import { ConnectionErrorBanner } from './components/ConnectionErrorBanner';
 import { OfflineIndicator } from './components/OfflineIndicator';
@@ -47,6 +49,7 @@ import { StaffDashboardPage } from './components/staff/StaffDashboardPage';
 import { StaffSideNav } from './components/staff/StaffSideNav';
 import { StaffHeader } from './components/staff/StaffHeader';
 import { StaffBatchAccessPage } from './components/StaffBatchAccessPage';
+import { WrenchIcon } from './components/icons/WrenchIcon';
 
 type Message = {
     text: string;
@@ -180,6 +183,27 @@ function Chatbot(): React.ReactNode {
     );
 }
 
+function DevelopmentPopup({ featureName, onClose }: { featureName: string; onClose: () => void; }) {
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in p-4" role="dialog" aria-modal="true" aria-labelledby="dev-popup-title">
+            <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-lg max-w-sm mx-auto text-center">
+                <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-amber-100 dark:bg-amber-900/40 mb-5">
+                    <WrenchIcon className="h-9 w-9 text-amber-600 dark:text-amber-400" />
+                </div>
+                <h2 id="dev-popup-title" className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100 mb-3">Feature Under Development</h2>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6">
+                    The "<b>{featureName}</b>" feature is currently being built and will be available soon. Thank you for your patience!
+                </p>
+                <button 
+                    onClick={onClose}
+                    className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                    Got it!
+                </button>
+            </div>
+        </div>
+    );
+}
 
 function App(): React.ReactNode {
   const [dataConsentGiven, setDataConsentGiven] = React.useState(() => {
@@ -198,6 +222,7 @@ function App(): React.ReactNode {
   const [loginError, setLoginError] = React.useState<string | null>(null);
   const [isOffline, setIsOffline] = React.useState(false);
   const [criticalError, setCriticalError] = React.useState<string | null>(null);
+  const [showDevPopup, setShowDevPopup] = React.useState<string | null>(null);
 
   const [page, setPage] = React.useState('dashboard');
   const [studentPage, setStudentPage] = React.useState('dashboard');
@@ -246,6 +271,8 @@ function App(): React.ReactNode {
   const toggleTheme = () => {
     setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
   };
+
+  const handleShowDevPopup = (featureName: string) => setShowDevPopup(featureName);
   
   const isUsingPlaceholderConfig = firebaseConfig.apiKey === "AIzaSyA_Nvv_zzZP-15Xaw0qsddKu5eahac-OvY";
   const academyId = currentUser?.role === 'admin' ? currentUser.data.id : currentUser?.academyId;
@@ -322,7 +349,7 @@ function App(): React.ReactNode {
             setCurrentAcademy(null);
           }
           setIsLoading(false);
-        }, (err) => {
+        }, (err: FirestoreError) => {
           handleFirestoreError(err, 'academy data');
           // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
           // The error from onSnapshot is a FirestoreError, so we can access .code directly.
@@ -368,28 +395,29 @@ function App(): React.ReactNode {
       setBatches(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Batch)));
       setIsOffline(false);
       setCriticalError(null);
-    }, (err) => handleFirestoreError(err, 'batches'));
+    }, (err: FirestoreError) => handleFirestoreError(err, 'batches'));
 
     const studentsQuery = query(collection(db, `academies/${academyId}/students`));
     const unsubscribeStudents = onSnapshot(studentsQuery, (snapshot) => {
       setStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Student)));
       setIsOffline(false);
       setCriticalError(null);
-    }, (err) => handleFirestoreError(err, 'students'));
+    }, (err: FirestoreError) => handleFirestoreError(err, 'students'));
     
     const feeCollectionsQuery = query(collection(db, `academies/${academyId}/feeCollections`));
+    // FIX: Explicitly type `err` as FirestoreError to resolve potential type inference issues.
     const unsubscribeFeeCollections = onSnapshot(feeCollectionsQuery, (snapshot) => {
       setFeeCollections(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FeeCollection)));
       setIsOffline(false);
       setCriticalError(null);
-    }, (err) => handleFirestoreError(err, 'fee collections'));
+    }, (err: FirestoreError) => handleFirestoreError(err, 'fee collections'));
 
     const staffQuery = query(collection(db, `academies/${academyId}/staff`));
     const unsubscribeStaff = onSnapshot(staffQuery, (snapshot) => {
         setStaff(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Staff)));
         setIsOffline(false);
         setCriticalError(null);
-    }, (err) => handleFirestoreError(err, 'staff'));
+    }, (err: FirestoreError) => handleFirestoreError(err, 'staff'));
 
     return () => {
       unsubscribeBatches();
@@ -414,7 +442,7 @@ function App(): React.ReactNode {
       setStudentFeeCollections(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FeeCollection)));
       setIsOffline(false);
       setCriticalError(null);
-    }, (err) => handleFirestoreError(err, 'student fee collections'));
+    }, (err: FirestoreError) => handleFirestoreError(err, 'student fee collections'));
 
     return () => unsubscribe();
   }, [currentUser, academyId, isUsingPlaceholderConfig]);
@@ -482,7 +510,7 @@ function App(): React.ReactNode {
 
   const addBatch = async (newBatchData: Omit<Batch, 'id' | 'currentStudents'>) => {
     if (isDemoMode) {
-      alert("Adding and editing data is disabled in demo mode.");
+      setShowDevPopup("Adding and editing data is disabled in demo mode.");
       return;
     }
     if (!academyId) return;
@@ -500,7 +528,7 @@ function App(): React.ReactNode {
   
   const addStudent = async (newStudentData: Omit<Student, 'id' | 'isActive'>) => {
     if (isDemoMode) {
-      alert("Adding and editing data is disabled in demo mode.");
+      setShowDevPopup("Adding and editing data is disabled in demo mode.");
       return;
     }
      if (!academyId) return;
@@ -529,7 +557,7 @@ function App(): React.ReactNode {
   
   const addStaff = async (newStaffData: Omit<Staff, 'id'>) => {
     if (isDemoMode) {
-      alert("Adding and editing data is disabled in demo mode.");
+      setShowDevPopup("Adding and editing data is disabled in demo mode.");
       return;
     }
     if (!academyId) return;
@@ -544,7 +572,7 @@ function App(): React.ReactNode {
 
   const updateStaffBatchAccess = async (staffId: string, batchAccess: { [batchId: string]: BatchAccessPermissions }) => {
     if (isDemoMode) {
-      alert("Editing data is disabled in demo mode.");
+      setShowDevPopup("Editing data is disabled in demo mode.");
       return;
     }
     if (!academyId) return;
@@ -560,7 +588,7 @@ function App(): React.ReactNode {
 
   const updateStudent = async (updatedStudentData: Omit<Student, 'id' | 'isActive'>) => {
     if (isDemoMode) {
-      alert("Editing data is disabled in demo mode.");
+      setShowDevPopup("Editing data is disabled in demo mode.");
       return;
     }
     if (!academyId || !selectedStudentId) return;
@@ -680,7 +708,7 @@ function App(): React.ReactNode {
   
   const updateAcademyContactDetails = async (details: Partial<Academy>) => {
     if (isDemoMode) {
-      alert("Editing data is disabled in demo mode.");
+      setShowDevPopup("Editing data is disabled in demo mode.");
       return;
     }
     if (!academyId) return;
@@ -790,6 +818,7 @@ function App(): React.ReactNode {
                           onToggleNav={() => setIsStudentNavOpen(true)}
                           theme={theme}
                           onToggleTheme={toggleTheme}
+                          onShowDevPopup={handleShowDevPopup}
                       />
                   );
           }
@@ -834,7 +863,7 @@ function App(): React.ReactNode {
                     setStaffPage('dashboard');
                     return null;
                 }
-                return <StudentOptionsPage onBack={() => setStaffPage('dashboard')} onNavigate={setStaffPage} isStaffView={true} />;
+                return <StudentOptionsPage onBack={() => setStaffPage('dashboard')} onNavigate={setStaffPage} isStaffView={true} onShowDevPopup={handleShowDevPopup} />;
             case 'active-students':
                 const accessibleBatchIds = Object.keys(staffData.batchAccess || {});
                 const accessibleBatches = batches.filter(b => accessibleBatchIds.includes(b.id));
@@ -861,6 +890,7 @@ function App(): React.ReactNode {
                         staff={currentUser.data}
                         academy={currentAcademy}
                         onNavigate={setStaffPage}
+                        onShowDevPopup={handleShowDevPopup}
                     />
                 );
         }
@@ -874,6 +904,7 @@ function App(): React.ReactNode {
                 onNavigate={setStaffPage}
                 onLogout={handleLogout}
                 staff={currentUser.data}
+                onShowDevPopup={handleShowDevPopup}
             />
             {staffPage === 'dashboard' && (
                 <StaffHeader 
@@ -885,7 +916,7 @@ function App(): React.ReactNode {
                     onToggleTheme={toggleTheme}
                 />
             )}
-            <main className="flex-grow px-3 sm:px-4 py-4 relative overflow-y-auto">
+            <main className="flex-grow relative flex flex-col">
                 {renderStaffPage()}
             </main>
             <Chatbot />
@@ -952,7 +983,7 @@ function App(): React.ReactNode {
       
       case 'student-options':
         if (batchFilter) setBatchFilter(null);
-        return <StudentOptionsPage onBack={() => setPage('dashboard')} onNavigate={setPage} />;
+        return <StudentOptionsPage onBack={() => setPage('dashboard')} onNavigate={setPage} onShowDevPopup={handleShowDevPopup} />;
       
       case 'new-student':
         return <NewStudentPage onBack={() => setPage('student-options')} onSave={addStudent} batches={batches} />;
@@ -1011,13 +1042,13 @@ function App(): React.ReactNode {
                 />;
       
       case 'batches':
-        return <BatchesPage onBack={() => setPage('dashboard')} onCreate={() => setPage('new-batch')} batches={batches} onViewStudents={handleViewBatchStudents} />;
+        return <BatchesPage onBack={() => setPage('dashboard')} onCreate={() => setPage('new-batch')} batches={batches} onViewStudents={handleViewBatchStudents} onShowDevPopup={handleShowDevPopup} />;
       
       case 'new-batch':
         return <NewBatchPage onBack={() => setPage('batches')} onSave={addBatch} />;
       
       case 'staff-manager':
-        return <StaffManagerPage onBack={() => setPage('dashboard')} staff={staff} onCreate={() => setPage('new-staff')} onManageAccess={handleManageStaffAccess} />;
+        return <StaffManagerPage onBack={() => setPage('dashboard')} staff={staff} onCreate={() => setPage('new-staff')} onManageAccess={handleManageStaffAccess} onShowDevPopup={handleShowDevPopup} />;
 
       case 'new-staff':
         return <NewStaffPage onBack={() => setPage('staff-manager')} onSave={addStaff} />;
@@ -1037,6 +1068,7 @@ function App(): React.ReactNode {
           <Dashboard
             onNavigate={setPage}
             academy={currentUser.data as Academy}
+            onShowDevPopup={handleShowDevPopup}
           />
         );
     }
@@ -1049,6 +1081,7 @@ function App(): React.ReactNode {
           onClose={() => setIsNavOpen(false)}
           onNavigate={setPage}
           onLogout={handleLogout}
+          onShowDevPopup={handleShowDevPopup}
       />
       {page === 'dashboard' && (
           <Header
@@ -1065,11 +1098,12 @@ function App(): React.ReactNode {
       {!isUsingPlaceholderConfig && criticalError && <ConnectionErrorBanner message={criticalError} onClose={() => setCriticalError(null)} />}
       {!isUsingPlaceholderConfig && isOffline && <OfflineIndicator />}
 
-      <main className="flex-grow px-3 sm:px-4 py-4 relative overflow-y-auto">
+      <main className="flex-grow relative flex flex-col">
         {renderPage()}
       </main>
 
       <BottomNav onNavigate={setPage} activePage={page} />
+      {showDevPopup && <DevelopmentPopup featureName={showDevPopup} onClose={() => setShowDevPopup(null)} />}
       <Chatbot />
     </div>
   );

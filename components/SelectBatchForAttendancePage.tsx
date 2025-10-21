@@ -1,6 +1,4 @@
 
-
-
 import React from 'react';
 import type { Batch } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -38,7 +36,7 @@ const BatchAttendanceCard: React.FC<{ batch: Batch; onSelect: () => void; }> = (
 export function SelectBatchForAttendancePage({ onBack, batches, onSelectBatch }: SelectBatchForAttendancePageProps): React.ReactNode {
   return (
     <div className="animate-fade-in flex flex-col h-full">
-      <header className="bg-indigo-700 text-white p-3 flex items-center justify-between shadow-md w-full -mx-3 sm:-mx-4 mt-[-1rem]">
+      <header className="bg-indigo-700 text-white p-3 flex items-center justify-between shadow-md flex-shrink-0">
         <div className="flex items-center">
           <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back to dashboard">
             <ArrowLeftIcon className="w-6 h-6" />
@@ -50,7 +48,7 @@ export function SelectBatchForAttendancePage({ onBack, batches, onSelectBatch }:
         </button>
       </header>
 
-      <main className="flex-grow pt-4 pb-4">
+      <main className="flex-grow p-4 overflow-y-auto">
         {batches.length > 0 ? (
           <div className="space-y-3">
             {batches.map(batch => (

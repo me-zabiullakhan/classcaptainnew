@@ -27,9 +27,10 @@ interface StaffDashboardPageProps {
     onNavigate: (page: string) => void;
     academy: Academy;
     staff: Staff;
+    onShowDevPopup: (featureName: string) => void;
 }
 
-export function StaffDashboardPage({ onNavigate, academy, staff }: StaffDashboardPageProps): React.ReactNode {
+export function StaffDashboardPage({ onNavigate, academy, staff, onShowDevPopup }: StaffDashboardPageProps): React.ReactNode {
   const { batchAccess } = staff;
 
   const placeholderPhoto = `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(staff.name)}`;
@@ -60,12 +61,12 @@ export function StaffDashboardPage({ onNavigate, academy, staff }: StaffDashboar
       case 'Students': return () => onNavigate('active-students');
       case 'Tuition Fees': return () => onNavigate('select-batch-for-fees');
       case 'Attendance': return () => onNavigate('select-batch-attendance');
-      default: return () => alert('This feature is under development.');
+      default: return () => onShowDevPopup(name);
     }
   }
 
   return (
-    <main className="space-y-4">
+    <main className="flex-grow p-4 space-y-4 overflow-y-auto">
         {/* Profile Card */}
         <div className="bg-white rounded-lg shadow-sm p-4 flex items-center space-x-4">
             <img

@@ -18,6 +18,7 @@ interface StudentDashboardPageProps {
     onToggleNav: () => void;
     theme: 'light' | 'dark';
     onToggleTheme: () => void;
+    onShowDevPopup: (featureName: string) => void;
 }
 
 const studentFeatures = [
@@ -30,7 +31,7 @@ const studentFeatures = [
     { name: 'Study Material', Icon: StudyMaterialStudentIcon, color: 'bg-black' },
 ];
 
-export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav, theme, onToggleTheme }: StudentDashboardPageProps): React.ReactNode {
+export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav, theme, onToggleTheme, onShowDevPopup }: StudentDashboardPageProps): React.ReactNode {
     
     const placeholderPhoto = `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(student.name)}`;
 
@@ -43,7 +44,7 @@ export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav
             case 'Attendance':
                 return () => onNavigate('attendance');
             default:
-                return () => alert(`${name} feature is under development.`);
+                return () => onShowDevPopup(name);
         }
     };
 

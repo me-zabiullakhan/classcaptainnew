@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { PlusIcon } from './icons/PlusIcon';
@@ -10,18 +11,19 @@ interface BatchesPageProps {
   onCreate: () => void;
   batches: Batch[];
   onViewStudents: (batchName: string) => void;
+  onShowDevPopup: (featureName: string) => void;
 }
 
-export function BatchesPage({ onBack, onCreate, batches, onViewStudents }: BatchesPageProps): React.ReactNode {
+export function BatchesPage({ onBack, onCreate, batches, onViewStudents, onShowDevPopup }: BatchesPageProps): React.ReactNode {
   return (
     <div className="animate-fade-in flex flex-col h-full">
-      <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md w-full -mx-3 sm:-mx-4 mt-[-1rem]">
+      <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md flex-shrink-0">
         <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go to dashboard">
           <ArrowLeftIcon className="w-6 h-6" />
         </button>
         <h1 className="text-xl font-bold ml-2">Batches</h1>
       </header>
-      <main className="flex-grow pt-6">
+      <main className="flex-grow p-4 overflow-y-auto">
         {batches.length === 0 ? (
           <div className="text-center py-20 px-4">
             <p className="text-lg text-gray-500 dark:text-gray-400 mb-4">No batches have been created yet.</p>
@@ -49,7 +51,7 @@ export function BatchesPage({ onBack, onCreate, batches, onViewStudents }: Batch
 
                 <div className="border-t dark:border-gray-700 mt-4 pt-3 flex justify-end space-x-2">
                     <button
-                      onClick={() => alert('Edit feature is under development.')}
+                      onClick={() => onShowDevPopup('Edit Batch')}
                       className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-200 bg-gray-100 dark:bg-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
                       aria-label={`Edit batch ${batch.name}`}
                     >
@@ -73,7 +75,7 @@ export function BatchesPage({ onBack, onCreate, batches, onViewStudents }: Batch
 
       <button
         onClick={onCreate}
-        className="absolute bottom-4 right-4 bg-indigo-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        className="absolute bottom-20 right-4 bg-indigo-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         aria-label="Create New Batch"
       >
         <PlusIcon className="w-8 h-8" />

@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import type { Student, FeeCollection } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -170,7 +169,7 @@ export function StudentFeeDetailsPage({ onBack, student, feeCollections, onSaveP
                     <h1 className="text-xl font-bold ml-2">Student Fee Details</h1>
                 </header>
 
-                <div className="p-4 bg-white border-b">
+                <div className="p-4 bg-white border-b flex-shrink-0">
                     <h2 className="text-lg font-bold text-gray-800">{student.name}</h2>
                     <p className="text-sm text-gray-500">{student.rollNumber}</p>
                     <p className="text-sm text-indigo-600 font-semibold mt-1">{student.feeType} Fee: ₹{student.feeAmount || 0}</p>

@@ -55,7 +55,7 @@ export function StudentFeeStatusPage({ student, feeCollections, onBack }: { stud
                 <h1 className="text-xl font-bold ml-2">Tuition Fee Status</h1>
             </header>
             
-            <div className="p-4 bg-white border-b">
+            <div className="p-4 bg-white border-b flex-shrink-0">
                 <h2 className="text-lg font-bold text-gray-800">{student.name}</h2>
                 <p className="text-sm text-gray-500">{student.rollNumber}</p>
                 <p className="text-sm text-indigo-600 font-semibold mt-1">{student.feeType} Fee: ₹{student.feeAmount || 0}</p>

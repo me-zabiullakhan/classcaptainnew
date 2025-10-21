@@ -13,7 +13,8 @@ interface RegisterPageProps {
     onNavigateToLogin: () => void;
 }
 
-const AuthLayout: React.FC<{ title: string, subtitle: string }> = ({ title, subtitle, children }) => (
+// FIX: Property 'children' does not exist on type '{ title: string; subtitle: string; }'.
+const AuthLayout: React.FC<{ title: string, subtitle: string, children: React.ReactNode }> = ({ title, subtitle, children }) => (
     <div className="min-h-screen flex flex-col justify-center items-center px-4 py-8 bg-gradient-to-br from-purple-50 to-slate-100 dark:from-indigo-900 dark:to-gray-900">
         <div className="text-center mb-8">
             <div className="flex justify-center items-center gap-3 mb-4">
@@ -29,7 +30,8 @@ const AuthLayout: React.FC<{ title: string, subtitle: string }> = ({ title, subt
     </div>
 );
 
-const AuthCard: React.FC<{}> = ({ children }) => (
+// FIX: Property 'children' does not exist on type '{}'.
+const AuthCard: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-lg">
         {children}
     </div>
@@ -50,7 +52,8 @@ const FormInput = ({ icon, label, ...props }: { icon: React.ReactNode, label: st
     </div>
 );
 
-const InfoNote: React.FC<{}> = ({ children }) => (
+// FIX: Property 'children' does not exist on type '{}'.
+const InfoNote: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <div className="bg-indigo-50 dark:bg-indigo-900/40 border-l-4 border-indigo-300 dark:border-indigo-600 p-4 rounded-r-lg mt-6">
         <div className="flex">
             <div className="flex-shrink-0">

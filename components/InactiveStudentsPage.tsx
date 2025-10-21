@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { Student, Batch } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -66,13 +67,13 @@ export function InactiveStudentsPage({ onBack, students, batches, onToggleStuden
 
     return (
         <div className="animate-fade-in flex flex-col h-full">
-            <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md w-full -mx-3 sm:-mx-4 mt-[-1rem]">
+            <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md flex-shrink-0">
                 <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back">
                     <ArrowLeftIcon className="w-6 h-6" />
                 </button>
                 <h1 className="text-xl font-bold ml-2">Inactive Students</h1>
             </header>
-            <main className="flex-grow pt-4">
+            <main className="flex-grow p-4 overflow-y-auto">
                 <div className="flex flex-col sm:flex-row gap-4 mb-4">
                     <div className="relative flex-grow">
                         <input

@@ -21,7 +21,7 @@ export function FeeCollectionReportPage({ onBack, feeCollections }: FeeCollectio
 
   return (
     <div className="animate-fade-in flex flex-col h-full">
-      <header className="bg-indigo-700 text-white p-3 flex items-center justify-between shadow-md w-full -mx-3 sm:-mx-4 mt-[-1rem]">
+      <header className="bg-indigo-700 text-white p-3 flex items-center justify-between shadow-md flex-shrink-0">
         <div className="flex items-center">
           <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back to fee options">
             <ArrowLeftIcon className="w-6 h-6" />
@@ -30,7 +30,7 @@ export function FeeCollectionReportPage({ onBack, feeCollections }: FeeCollectio
         </div>
       </header>
 
-      <main className="flex-grow p-4">
+      <main className="flex-grow p-4 overflow-y-auto">
         <div className="relative mb-4">
             <input
                 type="text"

@@ -12,18 +12,19 @@ interface StaffManagerPageProps {
   onCreate: () => void;
   staff: Staff[];
   onManageAccess: (staffId: string) => void;
+  onShowDevPopup: (featureName: string) => void;
 }
 
-export function StaffManagerPage({ onBack, onCreate, staff, onManageAccess }: StaffManagerPageProps): React.ReactNode {
+export function StaffManagerPage({ onBack, onCreate, staff, onManageAccess, onShowDevPopup }: StaffManagerPageProps): React.ReactNode {
   return (
     <div className="animate-fade-in flex flex-col h-full">
-      <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md w-full -mx-3 sm:-mx-4 mt-[-1rem]">
+      <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md flex-shrink-0">
         <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go to dashboard">
           <ArrowLeftIcon className="w-6 h-6" />
         </button>
         <h1 className="text-xl font-bold ml-2">Staff Manager</h1>
       </header>
-      <main className="flex-grow pt-6">
+      <main className="flex-grow p-4 overflow-y-auto">
         {staff.length === 0 ? (
           <div className="text-center py-20 px-4">
             <p className="text-lg text-gray-500 mb-4">No staff members have been added yet.</p>
@@ -52,7 +53,7 @@ export function StaffManagerPage({ onBack, onCreate, staff, onManageAccess }: St
 
                 <div className="border-t mt-4 pt-3 flex justify-end space-x-2">
                     <button
-                      onClick={() => alert('Edit feature is under development.')}
+                      onClick={() => onShowDevPopup('Edit Staff')}
                       className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
                       aria-label={`Edit staff ${member.name}`}
                     >
@@ -68,7 +69,7 @@ export function StaffManagerPage({ onBack, onCreate, staff, onManageAccess }: St
                       <span>Manage Access</span>
                     </button>
                     <button
-                      onClick={() => alert('Delete feature is under development.')}
+                      onClick={() => onShowDevPopup('Delete Staff')}
                       className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors"
                       aria-label={`Delete staff ${member.name}`}
                     >
@@ -84,7 +85,7 @@ export function StaffManagerPage({ onBack, onCreate, staff, onManageAccess }: St
 
       <button
         onClick={onCreate}
-        className="absolute bottom-4 right-4 bg-indigo-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        className="absolute bottom-20 right-4 bg-indigo-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         aria-label="Add New Staff"
       >
         <PlusIcon className="w-8 h-8" />

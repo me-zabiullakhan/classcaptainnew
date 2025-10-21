@@ -24,9 +24,10 @@ interface StaffSideNavProps {
   onNavigate: (page: string) => void;
   onLogout: () => void;
   staff: Staff;
+  onShowDevPopup: (featureName: string) => void;
 }
 
-export function StaffSideNav({ isOpen, onClose, onNavigate, onLogout, staff }: StaffSideNavProps): React.ReactNode {
+export function StaffSideNav({ isOpen, onClose, onNavigate, onLogout, staff, onShowDevPopup }: StaffSideNavProps): React.ReactNode {
   const { batchAccess } = staff;
 
   const hasPermission = (perm: keyof BatchAccessPermissions) => {
@@ -43,7 +44,7 @@ export function StaffSideNav({ isOpen, onClose, onNavigate, onLogout, staff }: S
       case 'Students': return () => handleNavigate('active-students');
       case 'Tuition Fees': return () => handleNavigate('fees-options');
       case 'Attendance': return () => handleNavigate('select-batch-attendance');
-      default: return () => alert('This feature is under development.');
+      default: return () => onShowDevPopup(name);
     }
   }
 
@@ -96,7 +97,7 @@ export function StaffSideNav({ isOpen, onClose, onNavigate, onLogout, staff }: S
             </nav>
 
             <footer className="p-4 border-t">
-                 <button onClick={() => alert('Feature under development.')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors rounded-lg">
+                 <button onClick={() => onShowDevPopup('My Account')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors rounded-lg">
                     <AccountIcon className="w-6 h-6 mr-4 text-gray-400"/>
                     <span className="font-medium">My Account</span>
                 </button>

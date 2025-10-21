@@ -48,9 +48,10 @@ const features: FeatureItem[] = [
 interface DashboardProps {
     onNavigate: (page: string) => void;
     academy: Academy;
+    onShowDevPopup: (featureName: string) => void;
 }
 
-export function Dashboard({ onNavigate, academy }: DashboardProps): React.ReactNode {
+export function Dashboard({ onNavigate, academy, onShowDevPopup }: DashboardProps): React.ReactNode {
   const getClickHandler = (name: string) => {
     switch (name) {
       case 'Batches':
@@ -64,15 +65,15 @@ export function Dashboard({ onNavigate, academy }: DashboardProps): React.ReactN
       case 'Staff Manager':
         return () => onNavigate('staff-manager');
       default:
-        return () => alert('This feature is under development.');
+        return () => onShowDevPopup(name);
     }
   }
 
   const hasContactInfo = academy.contactEmail || academy.contactPhone || academy.address;
 
   return (
-    <>
-      <div className="bg-indigo-600 text-white p-4 rounded-xl shadow-lg mb-6 flex items-center space-x-4">
+    <div className="p-6 overflow-y-auto flex-grow">
+      <div className="bg-indigo-600 text-white p-4 rounded-xl shadow-lg mb-8 flex items-center space-x-4">
           <div className="bg-white/30 w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0">
                {academy.logoUrl ? (
                 <img src={academy.logoUrl} alt="Academy Logo" className="w-full h-full rounded-full object-cover" />
@@ -88,7 +89,7 @@ export function Dashboard({ onNavigate, academy }: DashboardProps): React.ReactN
       </div>
 
       {hasContactInfo && (
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md mb-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md mb-8 border border-gray-200 dark:border-gray-700">
           <h3 className="text-base font-bold text-gray-800 dark:text-gray-100 mb-3">Academy Details</h3>
           <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
             {academy.contactEmail && (
@@ -122,6 +123,6 @@ export function Dashboard({ onNavigate, academy }: DashboardProps): React.ReactN
           />
         ))}
       </div>
-    </>
+    </div>
   );
 }

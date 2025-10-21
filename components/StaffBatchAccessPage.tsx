@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { Staff, Batch, BatchAccessPermissions } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -41,7 +42,7 @@ export function StaffBatchAccessPage({ onBack, staff, batches, onSave }: StaffBa
   };
 
   return (
-    <div className="bg-slate-100 flex flex-col h-screen animate-fade-in">
+    <div className="bg-slate-100 flex flex-col h-full animate-fade-in">
       <header className="bg-sky-600 text-white p-3 flex items-center shadow-md flex-shrink-0">
         <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-sky-700 transition-colors" aria-label="Go back">
           <ArrowLeftIcon className="w-6 h-6" />
@@ -52,7 +53,7 @@ export function StaffBatchAccessPage({ onBack, staff, batches, onSave }: StaffBa
         </div>
       </header>
 
-      <main className="flex-grow p-4 overflow-y-auto pb-24">
+      <main className="flex-grow p-4 overflow-y-auto">
         {batches.length > 0 ? (
           <div className="space-y-4">
             {batches.map(batch => (
@@ -82,7 +83,7 @@ export function StaffBatchAccessPage({ onBack, staff, batches, onSave }: StaffBa
         )}
       </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 w-full md:max-w-lg md:mx-auto p-4 bg-white border-t">
+      <footer className="p-4 bg-white border-t flex-shrink-0">
         <button
           onClick={handleSave}
           className="w-full bg-sky-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-sky-700 transition-colors shadow-md"
