@@ -65,23 +65,25 @@ export function FeeDuesListPage({ onBack, students, batches, feeCollections }: F
 
     return (
         <div className="animate-fade-in flex flex-col h-full">
-            <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md flex-shrink-0">
-                <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back">
-                    <ArrowLeftIcon className="w-6 h-6" />
-                </button>
-                <h1 className="text-xl font-bold ml-2">Fee Dues List</h1>
-            </header>
-            <div className="p-4 flex-shrink-0">
-                <select
-                    value={filter}
-                    onChange={e => setFilter(e.target.value)}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                    <option value="all">All Batches</option>
-                    {batches.map(batch => (
-                        <option key={batch.id} value={batch.name}>{batch.name}</option>
-                    ))}
-                </select>
+            <div className="flex-shrink-0 sticky top-0 z-10 bg-slate-100 dark:bg-gray-900 shadow-md">
+                <header className="bg-indigo-700 text-white p-3 flex items-center">
+                    <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back">
+                        <ArrowLeftIcon className="w-6 h-6" />
+                    </button>
+                    <h1 className="text-xl font-bold ml-2">Fee Dues List</h1>
+                </header>
+                <div className="p-4">
+                    <select
+                        value={filter}
+                        onChange={e => setFilter(e.target.value)}
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                        <option value="all">All Batches</option>
+                        {batches.map(batch => (
+                            <option key={batch.id} value={batch.name}>{batch.name}</option>
+                        ))}
+                    </select>
+                </div>
             </div>
             <main className="flex-grow overflow-y-auto px-4">
                 {filteredDues.length > 0 ? (

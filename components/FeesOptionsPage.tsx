@@ -19,7 +19,7 @@ const feeOptions = [
 export function FeesOptionsPage({ onBack, onNavigate }: FeesOptionsPageProps): React.ReactNode {
   return (
     <div className="animate-fade-in flex flex-col h-full">
-      <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md flex-shrink-0">
+      <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md flex-shrink-0 sticky top-0 z-10">
         <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back to dashboard">
           <ArrowLeftIcon className="w-6 h-6" />
         </button>

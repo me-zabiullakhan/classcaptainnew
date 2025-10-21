@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { Academy } from '../../types';
 import { ArrowLeftIcon } from '../icons/ArrowLeftIcon';
@@ -28,7 +29,7 @@ const DetailRow = ({ icon, label, value }: { icon: React.ReactNode, label: strin
 export function MyAcademyPage({ academy, onBack }: MyAcademyPageProps): React.ReactNode {
   return (
     <div className="bg-slate-100 flex flex-col h-screen animate-fade-in md:max-w-lg md:mx-auto md:shadow-2xl">
-        <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md flex-shrink-0">
+        <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md flex-shrink-0 sticky top-0 z-10">
             <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back to dashboard">
                 <ArrowLeftIcon className="w-6 h-6" />
             </button>

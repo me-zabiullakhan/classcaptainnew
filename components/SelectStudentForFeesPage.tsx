@@ -21,14 +21,16 @@ export function SelectStudentForFeesPage({ onBack, batch, students, onSelectStud
 
   return (
     <div className="animate-fade-in flex flex-col h-full">
-      <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md flex-shrink-0">
-        <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back to batch selection">
-          <ArrowLeftIcon className="w-6 h-6" />
-        </button>
-        <h1 className="text-xl font-bold ml-2">Select Student</h1>
-      </header>
-      <div className="p-4 bg-indigo-50 border-b flex-shrink-0">
-        <h2 className="font-semibold text-indigo-800">{batch.name}</h2>
+      <div className="flex-shrink-0 sticky top-0 z-10">
+          <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md">
+            <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back to batch selection">
+              <ArrowLeftIcon className="w-6 h-6" />
+            </button>
+            <h1 className="text-xl font-bold ml-2">Select Student</h1>
+          </header>
+          <div className="p-4 bg-indigo-50 dark:bg-indigo-900/50 border-b dark:border-gray-700">
+            <h2 className="font-semibold text-indigo-800 dark:text-indigo-200">{batch.name}</h2>
+          </div>
       </div>
 
       <main className="flex-grow p-4 overflow-y-auto">

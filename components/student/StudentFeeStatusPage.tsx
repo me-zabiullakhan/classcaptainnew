@@ -48,17 +48,19 @@ export function StudentFeeStatusPage({ student, feeCollections, onBack }: { stud
 
     return (
         <div className="bg-slate-100 flex flex-col h-screen animate-fade-in md:max-w-lg md:mx-auto md:shadow-2xl">
-            <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md flex-shrink-0">
-                <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back to dashboard">
-                    <ArrowLeftIcon className="w-6 h-6" />
-                </button>
-                <h1 className="text-xl font-bold ml-2">Tuition Fee Status</h1>
-            </header>
-            
-            <div className="p-4 bg-white border-b flex-shrink-0">
-                <h2 className="text-lg font-bold text-gray-800">{student.name}</h2>
-                <p className="text-sm text-gray-500">{student.rollNumber}</p>
-                <p className="text-sm text-indigo-600 font-semibold mt-1">{student.feeType} Fee: ₹{student.feeAmount || 0}</p>
+            <div className="flex-shrink-0 sticky top-0 z-10">
+                <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md">
+                    <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back to dashboard">
+                        <ArrowLeftIcon className="w-6 h-6" />
+                    </button>
+                    <h1 className="text-xl font-bold ml-2">Tuition Fee Status</h1>
+                </header>
+                
+                <div className="p-4 bg-white dark:bg-gray-800 border-b dark:border-gray-700">
+                    <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">{student.name}</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{student.rollNumber}</p>
+                    <p className="text-sm text-indigo-600 dark:text-indigo-400 font-semibold mt-1">{student.feeType} Fee: ₹{student.feeAmount || 0}</p>
+                </div>
             </div>
             
             <main className="flex-grow p-4 overflow-y-auto">

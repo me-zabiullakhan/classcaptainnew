@@ -43,7 +43,7 @@ export function StaffBatchAccessPage({ onBack, staff, batches, onSave }: StaffBa
 
   return (
     <div className="bg-slate-100 flex flex-col h-full animate-fade-in">
-      <header className="bg-sky-600 text-white p-3 flex items-center shadow-md flex-shrink-0">
+      <header className="bg-sky-600 text-white p-3 flex items-center shadow-md flex-shrink-0 sticky top-0 z-10">
         <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-sky-700 transition-colors" aria-label="Go back">
           <ArrowLeftIcon className="w-6 h-6" />
         </button>

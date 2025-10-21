@@ -176,29 +176,31 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
 
     return (
         <div className="bg-slate-100 flex flex-col h-full animate-fade-in">
-            <header className="bg-indigo-700 text-white p-3 flex items-center justify-between shadow-md flex-shrink-0">
-                <div className="flex items-center">
-                    <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800" aria-label="Go back">
-                        <ArrowLeftIcon className="w-6 h-6" />
-                    </button>
-                    <h1 className="text-xl font-bold ml-2">Take Attendance</h1>
-                </div>
-                <div className="flex items-center space-x-2">
-                    <button className="text-sm font-medium">SMS</button>
-                    <button className="p-1 rounded-full hover:bg-indigo-800">
-                        <MoreVertIcon className="w-6 h-6" />
-                    </button>
-                </div>
-            </header>
+            <div className="flex-shrink-0 sticky top-0 z-10">
+                <header className="bg-indigo-700 text-white p-3 flex items-center justify-between shadow-md">
+                    <div className="flex items-center">
+                        <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800" aria-label="Go back">
+                            <ArrowLeftIcon className="w-6 h-6" />
+                        </button>
+                        <h1 className="text-xl font-bold ml-2">Take Attendance</h1>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <button className="text-sm font-medium">SMS</button>
+                        <button className="p-1 rounded-full hover:bg-indigo-800">
+                            <MoreVertIcon className="w-6 h-6" />
+                        </button>
+                    </div>
+                </header>
 
-            <div className="bg-indigo-900 text-white p-2 flex items-center justify-between flex-shrink-0">
-                <button onClick={() => handleDateChange('prev')} className="p-2 rounded-full hover:bg-indigo-800">
-                    <ArrowLeftIcon className="w-5 h-5" />
-                </button>
-                <span className="font-bold text-lg">{formattedDate}</span>
-                <button onClick={() => handleDateChange('next')} className="p-2 rounded-full hover:bg-indigo-800">
-                    <ArrowRightIcon className="w-5 h-5" />
-                </button>
+                <div className="bg-indigo-900 text-white p-2 flex items-center justify-between">
+                    <button onClick={() => handleDateChange('prev')} className="p-2 rounded-full hover:bg-indigo-800">
+                        <ArrowLeftIcon className="w-5 h-5" />
+                    </button>
+                    <span className="font-bold text-lg">{formattedDate}</span>
+                    <button onClick={() => handleDateChange('next')} className="p-2 rounded-full hover:bg-indigo-800">
+                        <ArrowRightIcon className="w-5 h-5" />
+                    </button>
+                </div>
             </div>
             
             <div className="p-2 text-center flex-shrink-0">

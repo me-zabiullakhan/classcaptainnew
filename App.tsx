@@ -349,11 +349,13 @@ function App(): React.ReactNode {
             setCurrentAcademy(null);
           }
           setIsLoading(false);
-        }, (err: FirestoreError) => {
+        }, (err: unknown) => {
           handleFirestoreError(err, 'academy data');
           // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
           // The error from onSnapshot is a FirestoreError, so we can access .code directly.
-          if (err.code !== 'unavailable' && err.code !== 'cancelled') {
+          // Safely access the error code to prevent type errors.
+          const code = (err && typeof err === 'object' && 'code' in err) ? String((err as {code: unknown}).code) : undefined;
+          if (code !== 'unavailable' && code !== 'cancelled') {
               setCurrentUser(null);
               setCurrentAcademy(null);
           }
