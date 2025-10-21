@@ -1,12 +1,17 @@
 
+
+
 import React from 'react';
 import { LogoIcon } from '../icons/LogoIcon';
 import { BuildingIcon } from '../icons/BuildingIcon';
 import { EmailIcon } from '../icons/EmailIcon';
 import { LockIcon } from '../icons/LockIcon';
-import { collection, doc, runTransaction } from 'firebase/firestore';
+import { collection, doc, runTransaction, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../../firebaseConfig';
 import type { Academy } from '../../types';
+import { GoogleIcon } from '../icons/GoogleIcon';
+import firebase from 'firebase/compat/app';
+
 
 interface RegisterPageProps {
     onRegisterSuccess: (academy: Academy) => void;
@@ -37,7 +42,9 @@ const AuthCard: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     </div>
 );
 
-const FormInput = ({ icon, label, ...props }: { icon: React.ReactNode, label: string } & React.InputHTMLAttributes<HTMLInputElement>) => (
+// FIX: Update FormInput to forward refs, resolving an error when passing a ref to it.
+const FormInput = React.forwardRef<HTMLInputElement, { icon: React.ReactNode, label: string } & React.InputHTMLAttributes<HTMLInputElement>>(
+    ({ icon, label, ...props }, ref) => (
     <div className="mb-4">
         <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">{label}</label>
         <div className="relative">
@@ -47,10 +54,13 @@ const FormInput = ({ icon, label, ...props }: { icon: React.ReactNode, label: st
             <input 
                 className="w-full bg-white dark:bg-gray-700 text-black dark:text-white pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition"
                 {...props}
+                ref={ref}
             />
         </div>
     </div>
-);
+));
+FormInput.displayName = 'FormInput';
+
 
 // FIX: Property 'children' does not exist on type '{}'.
 const InfoNote: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -71,6 +81,62 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
     const [error, setError] = React.useState('');
     const [isLoading, setIsLoading] = React.useState(false);
     const [newAcademy, setNewAcademy] = React.useState<Academy | null>(null);
+    const instituteNameRef = React.useRef<HTMLInputElement>(null);
+
+    const createAcademyInFirestore = async (user: firebase.User, instituteName: string): Promise<Academy> => {
+        return await runTransaction(db, async (transaction) => {
+            const counterRef = doc(db, 'counters', 'academyCounter');
+            const counterDoc = await transaction.get(counterRef);
+            
+            const lastId = counterDoc.exists() ? counterDoc.data().lastId : 0;
+            const newIdNumber = lastId + 1;
+            const formattedId = `AC${String(newIdNumber).padStart(4, '0')}`;
+            
+            const newAcademyRef = doc(collection(db, 'academies'));
+            
+            const academyDataForFirestore = {
+                name: instituteName,
+                adminEmail: user.email!,
+                adminUid: user.uid,
+                createdAt: new Date(),
+                status: 'active' as const,
+                academyId: formattedId,
+            };
+            transaction.set(newAcademyRef, academyDataForFirestore);
+            
+            transaction.set(counterRef, { lastId: newIdNumber }, { merge: !counterDoc.exists() });
+
+            return {
+                id: newAcademyRef.id,
+                academyId: formattedId,
+                name: instituteName,
+                adminEmail: user.email!,
+                adminUid: user.uid,
+                status: 'active' as const,
+            };
+        });
+    };
+
+    const handleGoogleRegister = async () => {
+        setError('');
+        const instituteName = instituteNameRef.current?.value;
+        if (!instituteName || instituteName.trim() === '') {
+            setError("Please enter your institute's name before signing up.");
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            sessionStorage.setItem('google_reg_flow', 'true');
+            sessionStorage.setItem('google_reg_institute_name', instituteName);
+            const provider = new firebase.auth.GoogleAuthProvider();
+            await auth.signInWithRedirect(provider);
+        } catch (error: any) {
+            console.error("Google Registration Redirect Error:", error);
+            setError(error.message || 'Failed to start sign up with Google.');
+            setIsLoading(false);
+        }
+    };
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -92,44 +158,9 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
         try {
             const userCredential = await auth.createUserWithEmailAndPassword(email, password);
             const user = userCredential.user;
+            if (!user) throw new Error("User creation failed.");
 
-            if (!user) {
-                throw new Error("User creation failed.");
-            }
-
-            const createdAcademy: Academy = await runTransaction(db, async (transaction) => {
-                const counterRef = doc(db, 'counters', 'academyCounter');
-                const counterDoc = await transaction.get(counterRef);
-                
-                const lastId = counterDoc.exists() ? counterDoc.data().lastId : 0;
-                const newIdNumber = lastId + 1;
-                const formattedId = `AC${String(newIdNumber).padStart(4, '0')}`;
-                
-                const newAcademyRef = doc(collection(db, 'academies'));
-                
-                const academyDataForFirestore = {
-                    name: instituteName,
-                    adminEmail: user.email!,
-                    adminUid: user.uid,
-                    createdAt: new Date(),
-                    status: 'active' as const,
-                    academyId: formattedId,
-                };
-                transaction.set(newAcademyRef, academyDataForFirestore);
-                
-                transaction.set(counterRef, { lastId: newIdNumber }, { merge: !counterDoc.exists() });
-
-                // Return an object that matches the Academy type for client-side state
-                return {
-                    id: newAcademyRef.id,
-                    academyId: formattedId,
-                    name: instituteName,
-                    adminEmail: user.email!,
-                    adminUid: user.uid,
-                    status: 'active' as const,
-                };
-            });
-            
+            const createdAcademy = await createAcademyInFirestore(user, instituteName);
             setNewAcademy(createdAcademy);
 
         } catch (err: any) {
@@ -172,18 +203,32 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
     return (
         <AuthLayout title="Create Your Account" subtitle="Register your coaching institute with Class Captain">
             <AuthCard>
-                <form onSubmit={handleRegister}>
-                    <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Institute Name" type="text" name="instituteName" placeholder="Enter institute name" required />
+                <form onSubmit={handleRegister} className="space-y-4">
+                    <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Institute Name" type="text" name="instituteName" placeholder="Enter institute name" required ref={instituteNameRef} />
                     <FormInput icon={<EmailIcon className="w-5 h-5" />} label="Email Address" type="email" name="email" placeholder="Enter your email" required />
                     <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" name="password" placeholder="Create a password" required />
                     <FormInput icon={<LockIcon className="w-5 h-5" />} label="Confirm Password" type="password" name="confirmPassword" placeholder="Confirm your password" required />
                     
-                    {error && <p className="text-red-500 text-sm text-center mb-4">{error}</p>}
+                    {error && <p className="text-red-500 text-sm text-center !-mt-2">{error}</p>}
 
-                    <button type="submit" disabled={isLoading} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4 disabled:bg-indigo-300">
+                    <button type="submit" disabled={isLoading} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md disabled:bg-indigo-300">
                         {isLoading ? 'Creating Account...' : 'Create Account'}
                     </button>
                 </form>
+
+                 <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                        <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">OR</span>
+                    </div>
+                </div>
+
+                <button type="button" onClick={handleGoogleRegister} disabled={isLoading} className="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors shadow-sm disabled:opacity-50">
+                    <GoogleIcon className="w-5 h-5" />
+                    Sign up with Google
+                </button>
 
                 <div className="text-center mt-6">
                     <p className="text-sm text-gray-600 dark:text-gray-300">

@@ -25,6 +25,14 @@ firebase.initializeApp(firebaseConfig);
 export const db = getFirestore();
 export const auth = firebase.auth();
 
+// Set auth persistence to 'session' to better support sandboxed/iframe environments
+// where localStorage (the default) might be restricted. This helps resolve
+// 'auth/operation-not-supported-in-this-environment' errors.
+auth.setPersistence(firebase.auth.Auth.Persistence.SESSION)
+  .catch((error) => {
+      console.error("Firebase Auth: Could not set session persistence.", error);
+  });
+
 // Enable Firestore offline persistence to improve resilience to network issues.
 // This helps the app function even when the connection to the backend is temporarily unavailable.
 enableIndexedDbPersistence(db)

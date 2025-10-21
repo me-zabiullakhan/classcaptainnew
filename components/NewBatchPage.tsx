@@ -96,8 +96,8 @@ export function NewBatchPage({ onBack, onSave }: NewBatchPageProps): React.React
         <h1 className="text-xl font-bold ml-2">New Batch</h1>
       </header>
       
-      <main className="flex-grow p-4 overflow-y-auto">
-        <form id="new-batch-form" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+      <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="flex-grow flex flex-col">
+        <main className="flex-grow p-4 overflow-y-auto">
           <FormInput id="batchName" label="Batch Name" value={name} onChange={e => setName(e.target.value)} required />
           <FormInput id="batchLocation" label="Batch Location" value={location} onChange={e => setLocation(e.target.value)} />
           <FormInput id="batchTeacher" label="Batch Teacher" value={teacher} onChange={e => setTeacher(e.target.value)} />
@@ -151,18 +151,17 @@ export function NewBatchPage({ onBack, onSave }: NewBatchPageProps): React.React
           </div>
           
           <FormInput id="maxSlots" label="Batch Maximum Slots" type="number" inputMode="numeric" pattern="[0-9]*" value={maxSlots} onChange={e => setMaxSlots(e.target.value)} required />
-        </form>
-      </main>
-      
-      <footer className="p-4 flex-shrink-0 bg-slate-100 dark:bg-gray-900">
-        <button
-          type="submit"
-          form="new-batch-form"
-          className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          SAVE BATCH
-        </button>
-      </footer>
+        </main>
+        
+        <footer className="p-4 flex-shrink-0 bg-slate-100 dark:bg-gray-900">
+          <button
+            type="submit"
+            className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            SAVE BATCH
+          </button>
+        </footer>
+      </form>
     </div>
   );
 }

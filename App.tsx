@@ -1,9 +1,5 @@
 
 
-
-
-
-
 import React from 'react';
 import { GoogleGenAI, Chat, GenerateContentResponse } from '@google/genai';
 import { Header } from './components/Header';
@@ -27,7 +23,8 @@ import { RegisterPage } from './components/auth/RegisterPage';
 import { MyAccountPage } from './components/MyAccountPage';
 import { auth, db, firebaseConfig } from './firebaseConfig';
 // FIX: Import FirestoreError to explicitly type the error object from onSnapshot.
-import { collection, addDoc, onSnapshot, query, where, doc, runTransaction, increment, Timestamp, updateDoc, getDoc, getDocs, FirestoreError } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, where, doc, runTransaction, increment, Timestamp, updateDoc, getDoc, getDocs, FirestoreError, documentId } from 'firebase/firestore';
+import type firebase from 'firebase/compat/app';
 import { SplashScreen } from './components/SplashScreen';
 import { ConnectionErrorBanner } from './components/ConnectionErrorBanner';
 import { OfflineIndicator } from './components/OfflineIndicator';
@@ -56,6 +53,7 @@ import { StaffBatchAccessPage } from './components/StaffBatchAccessPage';
 import { WrenchIcon } from './components/icons/WrenchIcon';
 import { SettingsPage } from './components/SettingsPage';
 import { CustomSmsSettingsPage } from './components/CustomSmsSettingsPage';
+import { SuperAdminPanel } from './components/SuperAdminPanel';
 
 type Message = {
     text: string;
@@ -212,54 +210,31 @@ function DevelopmentPopup({ featureName, onClose }: { featureName: string; onClo
 }
 
 function App(): React.ReactNode {
-  const [dataConsentGiven, setDataConsentGiven] = React.useState(() => {
-    try {
-      return localStorage.getItem('dataConsentAccepted') === 'true';
-    } catch (e) {
-      console.error("Could not access localStorage. Proceeding without consent check.", e);
-      return true;
-    }
-  });
-
+  const [dataLoaded, setDataLoaded] = React.useState(false);
   const [currentUser, setCurrentUser] = React.useState<CurrentUser | null>(null);
-  const [currentAcademy, setCurrentAcademy] = React.useState<Academy | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [authPage, setAuthPage] = React.useState('login'); // 'login' or 'register'
-  const [loginError, setLoginError] = React.useState<string | null>(null);
-  const [isOffline, setIsOffline] = React.useState(false);
-  const [criticalError, setCriticalError] = React.useState<string | null>(null);
-  const [showDevPopup, setShowDevPopup] = React.useState<string | null>(null);
-
-  const [page, setPage] = React.useState('dashboard');
-  const [studentPage, setStudentPage] = React.useState('dashboard');
-  const [staffPage, setStaffPage] = React.useState('dashboard');
-  const [isNavOpen, setIsNavOpen] = React.useState(false);
-  const [isStudentNavOpen, setIsStudentNavOpen] = React.useState(false);
-  const [isStaffNavOpen, setIsStaffNavOpen] = React.useState(false);
+  const [currentPage, setCurrentPage] = React.useState('dashboard');
   const [batches, setBatches] = React.useState<Batch[]>([]);
   const [students, setStudents] = React.useState<Student[]>([]);
   const [staff, setStaff] = React.useState<Staff[]>([]);
   const [feeCollections, setFeeCollections] = React.useState<FeeCollection[]>([]);
-  const [studentFeeCollections, setStudentFeeCollections] = React.useState<FeeCollection[]>([]);
   const [selectedBatchId, setSelectedBatchId] = React.useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = React.useState<string | null>(null);
   const [selectedStaffId, setSelectedStaffId] = React.useState<string | null>(null);
-  const [batchFilter, setBatchFilter] = React.useState<string | null>(null);
-  
+  const [initialStudentFilter, setInitialStudentFilter] = React.useState('all');
+  const [authError, setAuthError] = React.useState<string | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [connectionError, setConnectionError] = React.useState<string | null>(null);
+  const [isOffline, setIsOffline] = React.useState(!navigator.onLine);
+  const [showConsent, setShowConsent] = React.useState(() => !localStorage.getItem('dataConsentGiven'));
+  const [isSideNavOpen, setIsSideNavOpen] = React.useState(false);
   const [theme, setTheme] = React.useState<'light' | 'dark'>(() => {
-    try {
-      const storedTheme = localStorage.getItem('theme');
-      if (storedTheme === 'dark' || storedTheme === 'light') {
-        return storedTheme;
-      }
-      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        return 'dark';
-      }
-    } catch (e) {
-      // Ignore localStorage errors
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
     }
     return 'light';
   });
+  const [isDemoMode, setIsDemoMode] = React.useState(false);
+  const [showDevPopup, setShowDevPopup] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (theme === 'dark') {
@@ -267,860 +242,629 @@ function App(): React.ReactNode {
     } else {
       document.documentElement.classList.remove('dark');
     }
-    try {
-      localStorage.setItem('theme', theme);
-    } catch (e) {
-      console.error("Could not save theme to localStorage", e);
-    }
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
   };
-
-  const handleShowDevPopup = (featureName: string) => setShowDevPopup(featureName);
-  
-  const isUsingPlaceholderConfig = firebaseConfig.apiKey === "AIzaSyA_Nvv_zzZP-15Xaw0qsddKu5eahac-OvY";
-  const academyId = currentUser?.role === 'admin' ? currentUser.data.id : currentUser?.academyId;
-  const isDemoMode = (currentUser?.role === 'admin' && currentUser.data.academyId === 'ACDEMO') || (currentUser?.role === 'staff' && currentUser.academyId === 'ACDEMO');
-
-
-  const handleAcceptDataConsent = () => {
-    try {
-      localStorage.setItem('dataConsentAccepted', 'true');
-      setDataConsentGiven(true);
-    } catch (e) {
-      console.error("Could not save data consent to localStorage. Proceeding anyway.", e);
-      setDataConsentGiven(true);
-    }
-  };
-
-  const handleFirestoreError = (err: unknown, context: string) => {
-    console.error(`Firestore error fetching ${context}:`, err);
-    if (isUsingPlaceholderConfig) return;
-
-    // FIX: Safely access the error code property to avoid type errors with unknown error objects.
-    const code = (err && typeof err === 'object' && 'code' in err) ? String((err as any).code) : undefined;
-
-
-    if (code === 'unavailable' || code === 'cancelled') {
-        setIsOffline(true);
-        setCriticalError(null);
-    } else {
-        setCriticalError(`A critical error occurred while loading ${context}. Please refresh.`);
-        setIsOffline(false);
-    }
-  };
-
 
   React.useEffect(() => {
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
-
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
-    if (typeof navigator.onLine === 'boolean' && !navigator.onLine) {
-        handleOffline();
-    }
-
-    if (isUsingPlaceholderConfig) {
-      setIsLoading(false);
-      return;
-    }
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        const academiesRef = collection(db, 'academies');
-        const q = query(academiesRef, where('adminUid', '==', user.uid));
-        
-        getDocs(q).then((snapshot) => {
-          if (!snapshot.empty) {
-            const academyDoc = snapshot.docs[0];
-            const academyData = { id: academyDoc.id, ...academyDoc.data() } as Academy;
-            
-            if (academyData.status === 'paused') {
-                setCurrentUser(null);
-                setCurrentAcademy(null);
-                setLoginError("This academy account has been suspended. Please contact support.");
-                auth.signOut();
-            } else {
-                setCurrentUser({ role: 'admin', data: academyData });
-                setCurrentAcademy(academyData);
-                setLoginError(null);
-            }
-            setIsOffline(false); 
-            setCriticalError(null);
-          } else {
-            setLoginError("Your account was found, but it's not linked to any academy. Please register or contact support.");
-            setCurrentUser(null);
-            setCurrentAcademy(null);
-          }
-          setIsLoading(false);
-        }).catch((err: FirestoreError) => {
-          handleFirestoreError(err, 'academy data');
-          if (err.code !== 'unavailable' && err.code !== 'cancelled') {
-              setCurrentUser(null);
-              setCurrentAcademy(null);
-          }
-          setIsLoading(false);
-        });
-      } else {
-        setCurrentUser(null);
-        setCurrentAcademy(null);
-        setIsLoading(false);
-      }
-    });
-
     return () => {
-        unsubscribe();
-        window.removeEventListener('online', handleOnline);
-        window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
-  }, [isUsingPlaceholderConfig]);
+  }, []);
+
+  const createAcademyInFirestore = async (user: firebase.User, instituteName: string): Promise<Academy> => {
+        return await runTransaction(db, async (transaction) => {
+            const counterRef = doc(db, 'counters', 'academyCounter');
+            const counterDoc = await transaction.get(counterRef);
+            
+            const lastId = counterDoc.exists() ? counterDoc.data().lastId : 0;
+            const newIdNumber = lastId + 1;
+            const formattedId = `AC${String(newIdNumber).padStart(4, '0')}`;
+            
+            const newAcademyRef = doc(collection(db, 'academies'));
+            
+            const academyDataForFirestore = {
+                name: instituteName,
+                adminEmail: user.email!,
+                adminUid: user.uid,
+                createdAt: new Date(),
+                status: 'active' as const,
+                academyId: formattedId,
+            };
+            transaction.set(newAcademyRef, academyDataForFirestore);
+            
+            transaction.set(counterRef, { lastId: newIdNumber }, { merge: !counterDoc.exists() });
+
+            return {
+                id: newAcademyRef.id,
+                academyId: formattedId,
+                name: instituteName,
+                adminEmail: user.email!,
+                adminUid: user.uid,
+                status: 'active' as const,
+            };
+        });
+    };
 
   React.useEffect(() => {
-    if (isDemoMode) {
-      setBatches(demoBatches);
-      setStudents(demoStudents);
-      setStaff(demoStaff);
-      return;
-    }
+        const unsubscribe = auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                try {
+                    const isGoogleRegFlow = sessionStorage.getItem('google_reg_flow') === 'true';
+                    let academyData: Academy | null = null;
+                    
+                    const q = query(collection(db, "academies"), where("adminUid", "==", user.uid));
+                    const querySnapshot = await getDocs(q);
 
-    if (!academyId || isUsingPlaceholderConfig) {
+                    if (!querySnapshot.empty) {
+                        const academyDoc = querySnapshot.docs[0];
+                        academyData = { id: academyDoc.id, ...academyDoc.data() } as Academy;
+                    } else if (isGoogleRegFlow && user.email) {
+                        const instituteName = sessionStorage.getItem('google_reg_institute_name');
+                        if (instituteName) {
+                            console.log("Creating new academy via Google flow...");
+                            academyData = await createAcademyInFirestore(user, instituteName);
+                        } else {
+                            throw new Error("Institute name not found during Google registration flow.");
+                        }
+                    }
+
+                    if (academyData) {
+                        setCurrentUser({
+                            role: 'admin',
+                            data: academyData,
+                        });
+                    } else {
+                        // User is authenticated but has no academy record and is not in reg flow
+                        setAuthError("No academy found for this account. Please register your academy.");
+                        auth.signOut();
+                        setCurrentUser(null);
+                    }
+                } catch (error) {
+                    console.error("Auth State Change Error:", error);
+                    setAuthError("An error occurred. Please try logging in again.");
+                    auth.signOut();
+                    setCurrentUser(null);
+                } finally {
+                    sessionStorage.removeItem('google_reg_flow');
+                    sessionStorage.removeItem('google_reg_institute_name');
+                    setIsLoading(false);
+                }
+            } else {
+                setCurrentUser(null);
+                setIsLoading(false);
+            }
+        });
+
+        // Handle Google sign-in redirect result
+        auth.getRedirectResult().catch(error => {
+            console.error("Google Redirect Result Error:", error);
+            setAuthError(error.message || "Failed to sign in with Google.");
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const handleLogin = (user: CurrentUser) => {
+        if (user.role === 'admin' && user.data.id === 'demo-academy-id') {
+            setIsDemoMode(true);
+        }
+        if (user.role === 'student' && user.academyId === 'ACDEMO') {
+            setIsDemoMode(true);
+        }
+        if (user.role === 'staff' && user.academyId === 'ACDEMO') {
+             setIsDemoMode(true);
+        }
+        setCurrentUser(user);
+    };
+
+    const handleRegisterSuccess = (academy: Academy) => {
+        handleLogin({
+            role: 'admin',
+            data: academy,
+        });
+    };
+
+    const handleLogout = () => {
+        if (currentUser?.role === 'superadmin') {
+            setCurrentUser(null);
+        } else {
+            auth.signOut();
+            setCurrentUser(null);
+        }
         setBatches([]);
         setStudents([]);
-        setFeeCollections([]);
         setStaff([]);
-        return;
-    }
-
-    const batchesQuery = query(collection(db, `academies/${academyId}/batches`));
-    const unsubscribeBatches = onSnapshot(batchesQuery, (snapshot) => {
-      setBatches(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Batch)));
-      setIsOffline(false);
-      setCriticalError(null);
-    }, (err: FirestoreError) => handleFirestoreError(err, 'batches'));
-
-    const studentsQuery = query(collection(db, `academies/${academyId}/students`));
-    const unsubscribeStudents = onSnapshot(studentsQuery, (snapshot) => {
-      setStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Student)));
-      setIsOffline(false);
-      setCriticalError(null);
-    }, (err: FirestoreError) => handleFirestoreError(err, 'students'));
-    
-    const feeCollectionsQuery = query(collection(db, `academies/${academyId}/feeCollections`));
-    // FIX: Explicitly type `err` as FirestoreError to resolve potential type inference issues.
-    const unsubscribeFeeCollections = onSnapshot(feeCollectionsQuery, (snapshot) => {
-      setFeeCollections(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FeeCollection)));
-      setIsOffline(false);
-      setCriticalError(null);
-    }, (err: FirestoreError) => handleFirestoreError(err, 'fee collections'));
-
-    const staffQuery = query(collection(db, `academies/${academyId}/staff`));
-    const unsubscribeStaff = onSnapshot(staffQuery, (snapshot) => {
-        setStaff(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Staff)));
-        setIsOffline(false);
-        setCriticalError(null);
-    }, (err: FirestoreError) => handleFirestoreError(err, 'staff'));
-
-    return () => {
-      unsubscribeBatches();
-      unsubscribeStudents();
-      unsubscribeFeeCollections();
-      unsubscribeStaff();
+        setFeeCollections([]);
+        setCurrentPage('dashboard');
+        setIsDemoMode(false);
     };
-  }, [academyId, isUsingPlaceholderConfig, isDemoMode]);
 
-  React.useEffect(() => {
-    if (currentUser?.role !== 'student' || !academyId || isUsingPlaceholderConfig) {
-      setStudentFeeCollections([]);
-      return;
-    }
+    const academyId = currentUser?.role === 'admin' ? currentUser.data.id :
+                      currentUser?.role === 'student' ? currentUser.academyId :
+                      currentUser?.role === 'staff' ? currentUser.academyId : null;
+    
+    // Data fetching effect
+    React.useEffect(() => {
+        if (!academyId) {
+            setDataLoaded(true);
+            return;
+        }
 
-    const feeCollectionsQuery = query(
-      collection(db, `academies/${academyId}/feeCollections`),
-      where('studentId', '==', currentUser.data.id)
-    );
+        if (isDemoMode) {
+            setBatches(demoBatches);
+            setStudents(demoStudents);
+            setStaff(demoStaff);
+            setDataLoaded(true);
+            return;
+        }
 
-    const unsubscribe = onSnapshot(feeCollectionsQuery, (snapshot) => {
-      setStudentFeeCollections(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FeeCollection)));
-      setIsOffline(false);
-      setCriticalError(null);
-    }, (err: FirestoreError) => handleFirestoreError(err, 'student fee collections'));
+        setDataLoaded(false);
+        const unsubscribers: (() => void)[] = [];
+        const commonErrorHandler = (name: string) => (error: FirestoreError) => {
+            console.error(`Error fetching ${name}:`, error);
+            if (error.code === 'unavailable') {
+                setConnectionError("Data sync failed. You seem to be offline.");
+            } else if (error.code === 'permission-denied') {
+                setConnectionError(`Permission denied to fetch ${name}. Check your app's security rules.`);
+            } else {
+                setConnectionError(`Failed to load ${name}. Please try again.`);
+            }
+        };
 
-    return () => unsubscribe();
-  }, [currentUser, academyId, isUsingPlaceholderConfig]);
+        if (currentUser?.role === 'admin') {
+            const collectionsToFetch = [
+                { name: 'batches', setter: setBatches },
+                { name: 'students', setter: setStudents },
+                { name: 'staff', setter: setStaff },
+                { name: 'feeCollections', setter: setFeeCollections },
+            ];
+            collectionsToFetch.forEach(({ name, setter }) => {
+                const q = query(collection(db, `academies/${academyId}/${name}`));
+                const unsub = onSnapshot(q, 
+                    (snapshot) => {
+                        const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        setter(items as any);
+                        setConnectionError(null);
+                    },
+                    commonErrorHandler(name)
+                );
+                unsubscribers.push(unsub);
+            });
+        } else if (currentUser?.role === 'student') {
+            setStudents([currentUser.data]); // Only this student is relevant
+            
+            // Fetch only this student's fee collections
+            const feeQuery = query(
+                collection(db, `academies/${academyId}/feeCollections`),
+                where('studentId', '==', currentUser.data.id)
+            );
+            const feeUnsub = onSnapshot(feeQuery, (snapshot) => {
+                const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setFeeCollections(items as FeeCollection[]);
+                setConnectionError(null);
+            }, commonErrorHandler('your fee data'));
+            unsubscribers.push(feeUnsub);
 
+        } else if (currentUser?.role === 'staff') {
+            const accessibleBatchIds = Object.keys(currentUser.data.batchAccess || {});
+            if (accessibleBatchIds.length > 0) {
+                // Fetch accessible batches
+                const batchQuery = query(
+                    collection(db, `academies/${academyId}/batches`),
+                    where(documentId(), 'in', accessibleBatchIds)
+                );
+                const batchUnsub = onSnapshot(batchQuery, (snapshot) => {
+                    const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    setBatches(items as Batch[]);
+                    setConnectionError(null);
 
-  const handleLogin = async (user: CurrentUser) => {
-      setIsLoading(true);
-      if (user.role === 'student' || user.role === 'staff') {
-          try {
-              if (user.academyId === 'ACDEMO') {
-                  setCurrentAcademy({
-                      id: 'demo-academy-id',
-                      academyId: 'ACDEMO',
-                      name: 'SM TUTORIALS',
-                      adminUid: 'demo-admin-uid',
-                      adminEmail: 'demo@classcaptain.com',
-                  });
-              } else {
-                  const academyDoc = await getDoc(doc(db, 'academies', user.academyId));
-                  if (academyDoc.exists()) {
-                      setCurrentAcademy({ id: academyDoc.id, ...academyDoc.data() } as Academy);
-                  } else {
-                      setLoginError(`Academy with ID ${user.academyId} not found.`);
-                      setIsLoading(false);
-                      return;
-                  }
-              }
-          } catch(e) {
-              console.error("Failed to fetch academy details:", e);
-              setLoginError("Could not fetch academy details. Please try again.");
-              setIsLoading(false);
-              return;
-          }
-      } else if (user.role === 'admin') {
-          setCurrentAcademy(user.data);
-      }
-      setCurrentUser(user);
-      setPage('dashboard');
-      setStudentPage('dashboard');
-      setStaffPage('dashboard');
-      setIsLoading(false);
+                    // Then, fetch students from these batches
+                    const accessibleBatchNames = (items as Batch[]).map(b => b.name);
+                    if (accessibleBatchNames.length > 0) {
+                        const studentQuery = query(
+                            collection(db, `academies/${academyId}/students`),
+                            where('batches', 'array-contains-any', accessibleBatchNames)
+                        );
+                        const studentUnsub = onSnapshot(studentQuery, (studentSnapshot) => {
+                            const studentItems = studentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                            setStudents(studentItems as Student[]);
+                        }, commonErrorHandler('students'));
+                        unsubscribers.push(studentUnsub);
+                    } else {
+                        setStudents([]);
+                    }
+                }, commonErrorHandler('batches'));
+                unsubscribers.push(batchUnsub);
+            } else {
+                setBatches([]);
+                setStudents([]);
+            }
+        }
+
+        setDataLoaded(true);
+        return () => {
+            unsubscribers.forEach(unsub => unsub());
+        };
+    }, [currentUser, academyId, isDemoMode]);
+
+  const handleNavigate = (page: string) => {
+    setCurrentPage(page);
+    setIsSideNavOpen(false);
   };
-
-  const handleLoginAfterRegister = (academy: Academy) => {
-    setCurrentUser({ role: 'admin', data: academy });
-    setCurrentAcademy(academy);
-    setPage('dashboard');
-  };
-
-  const handleLogout = async () => {
-    if (currentUser?.role !== 'student') {
-        await auth.signOut();
-    }
-    setCurrentUser(null);
-    setCurrentAcademy(null);
-    setPage('dashboard');
-    setStudentPage('dashboard');
-    setStaffPage('dashboard');
-    setAuthPage('login');
-    setLoginError(null);
-    setIsNavOpen(false);
-    setIsStudentNavOpen(false);
-    setIsStaffNavOpen(false);
-  };
-
-  const addBatch = async (newBatchData: Omit<Batch, 'id' | 'currentStudents'>) => {
+  
+  // Handlers
+  const handleCreateBatch = async (batchData: Omit<Batch, 'id' | 'currentStudents'>) => {
     if (isDemoMode) {
-      setShowDevPopup("Adding and editing data is disabled in demo mode.");
-      return;
+        const newBatch = { ...batchData, id: `demo-batch-${Date.now()}`, currentStudents: 0 };
+        setBatches(prev => [...prev, newBatch]);
+        setCurrentPage('batches');
+        return;
     }
     if (!academyId) return;
     try {
         await addDoc(collection(db, `academies/${academyId}/batches`), {
-          ...newBatchData,
-          currentStudents: 0,
+            ...batchData,
+            currentStudents: 0
         });
-        setPage('batches');
-    } catch (e) {
-        handleFirestoreError(e, 'adding batch');
-        alert("Failed to create the new batch. Please check your connection and try again.");
+        setCurrentPage('batches');
+    } catch (error) {
+        console.error("Error adding batch: ", error);
+        alert("Failed to create batch. Please check your connection and try again.");
     }
   };
-  
-  const addStudent = async (newStudentData: Omit<Student, 'id' | 'isActive'>) => {
-    if (isDemoMode) {
-      setShowDevPopup("Adding and editing data is disabled in demo mode.");
-      return;
-    }
-     if (!academyId) return;
 
-    try {
-        await runTransaction(db, async (transaction) => {
-            const batchRefsQuery = query(
-                collection(db, `academies/${academyId}/batches`), 
-                where("name", "in", newStudentData.batches)
-            );
-            const batchDocsSnapshot = await transaction.get(batchRefsQuery);
-            const newStudentRef = doc(collection(db, `academies/${academyId}/students`));
-            
-            transaction.set(newStudentRef, { ...newStudentData, isActive: true });
-
-            batchDocsSnapshot.forEach(batchDoc => {
-                transaction.update(batchDoc.ref, { currentStudents: increment(1) });
-            });
-        });
-        setPage('student-options');
-    } catch (e) {
-        handleFirestoreError(e, 'saving student data');
-        alert("Failed to save student. Please try again.");
-    }
-  };
-  
-  const addStaff = async (newStaffData: Omit<Staff, 'id'>) => {
+  const handleCreateStudent = async (studentData: Omit<Student, 'id' | 'isActive' | 'rollNumber'>) => {
     if (isDemoMode) {
-      setShowDevPopup("Adding and editing data is disabled in demo mode.");
-      return;
+        const nextId = students.length + 1;
+        const newRollNumber = `STU${String(nextId).padStart(4, '0')}`;
+        const newStudent = { ...studentData, rollNumber: newRollNumber, id: `demo-student-${Date.now()}`, isActive: true };
+        setStudents(prev => [...prev, newStudent as Student]);
+        setCurrentPage('student-options');
+        return;
     }
     if (!academyId) return;
     try {
-        await addDoc(collection(db, `academies/${academyId}/staff`), newStaffData);
-        setPage('staff-manager');
-    } catch (e) {
-        handleFirestoreError(e, 'adding staff');
-        alert("Failed to create the new staff member. Please check your connection and try again.");
+        await runTransaction(db, async (transaction) => {
+            const counterRef = doc(db, `academies/${academyId}/counters`, 'studentCounter');
+            const counterDoc = await transaction.get(counterRef);
+
+            const lastId = counterDoc.exists() ? counterDoc.data().lastId : 0;
+            const newIdNumber = lastId + 1;
+            const formattedId = `STU${String(newIdNumber).padStart(4, '0')}`;
+
+            const newStudentRef = doc(collection(db, `academies/${academyId}/students`));
+
+            transaction.set(newStudentRef, {
+                ...studentData,
+                rollNumber: formattedId,
+                isActive: true
+            });
+            
+            transaction.set(counterRef, { lastId: newIdNumber }, { merge: !counterDoc.exists() });
+        });
+        setCurrentPage('student-options');
+    } catch (error) {
+        console.error("Error adding student: ", error);
+        alert("Failed to create student. Please check your connection and try again.");
+    }
+  };
+  
+  const handleUpdateStudent = async (studentData: Omit<Student, 'id' | 'isActive'>) => {
+    if (isDemoMode) {
+        setStudents(prev => prev.map(s => s.id === selectedStudentId ? { ...s, ...studentData, id: s.id, isActive: s.isActive } : s));
+        setCurrentPage('active-students');
+        return;
+    }
+    if (!academyId || !selectedStudentId) return;
+    try {
+        const studentRef = doc(db, `academies/${academyId}/students`, selectedStudentId);
+        await updateDoc(studentRef, studentData);
+        setCurrentPage('active-students');
+    } catch (error) {
+        console.error("Error updating student: ", error);
+        alert("Failed to update student. Please check your connection and try again.");
+    }
+  }
+
+  const handleCreateStaff = async (staffData: Omit<Staff, 'id'>) => {
+    if (isDemoMode) {
+        const newStaff = { ...staffData, id: `demo-staff-${Date.now()}` };
+        setStaff(prev => [...prev, newStaff]);
+        setCurrentPage('staff-manager');
+        return;
+    }
+    if (!academyId) return;
+    try {
+        await addDoc(collection(db, `academies/${academyId}/staff`), staffData);
+        setCurrentPage('staff-manager');
+    } catch (error) {
+        console.error("Error adding staff: ", error);
+        alert("Failed to add staff member. Please try again.");
     }
   };
 
-  const updateStaffBatchAccess = async (staffId: string, batchAccess: { [batchId: string]: BatchAccessPermissions }) => {
+  const handleSavePayment = async (paymentData: Omit<FeeCollection, 'id'>) => {
     if (isDemoMode) {
-      setShowDevPopup("Editing data is disabled in demo mode.");
-      return;
+        alert("DEMO MODE: Payment would be saved here.");
+        const newPayment = {
+            ...paymentData,
+            id: `demo-fee-${Date.now()}`,
+            paymentDate: Timestamp.fromDate(new Date(paymentData.paymentDate as unknown as string)),
+            createdAt: Timestamp.now()
+        };
+        setFeeCollections(prev => [...prev, newPayment]);
+        return;
+    }
+    if (!academyId) return;
+    try {
+        const dataToSave = {
+            ...paymentData,
+            paymentDate: Timestamp.fromDate(new Date(paymentData.paymentDate as unknown as string)),
+            createdAt: Timestamp.now()
+        };
+        await addDoc(collection(db, `academies/${academyId}/feeCollections`), dataToSave);
+    } catch (error) {
+        console.error("Error saving payment: ", error);
+        alert("Failed to save payment. Please check your connection.");
+        throw error;
+    }
+  };
+
+  const handleToggleStudentStatus = async (studentId: string) => {
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
+
+    if (isDemoMode) {
+        setStudents(prev => prev.map(s => s.id === studentId ? {...s, isActive: !s.isActive} : s));
+        return;
+    }
+
+    if (!academyId) return;
+    const studentRef = doc(db, `academies/${academyId}/students`, studentId);
+    try {
+        await updateDoc(studentRef, { isActive: !student.isActive });
+    } catch (error) {
+        console.error("Error toggling student status: ", error);
+        alert("Failed to update student status.");
+    }
+  };
+
+  const handleUpdateAcademyDetails = async (details: Partial<Academy>) => {
+    if (isDemoMode) {
+        alert("DEMO MODE: Details would be saved here.");
+        if (currentUser?.role === 'admin') {
+            const updatedAcademy = { ...currentUser.data, ...details };
+            setCurrentUser({ ...currentUser, data: updatedAcademy });
+        }
+        return;
+    }
+    if (!academyId) return;
+    try {
+        const academyRef = doc(db, 'academies', academyId);
+        await updateDoc(academyRef, details);
+    } catch (error) {
+        console.error("Error updating academy details:", error);
+        alert("Failed to save details. Please check your connection.");
+        throw error;
+    }
+  };
+
+  const handleSaveStaffAccess = async (staffId: string, batchAccess: { [batchId: string]: BatchAccessPermissions }) => {
+    if (isDemoMode) {
+        setStaff(prev => prev.map(s => s.id === staffId ? { ...s, batchAccess } : s));
+        setCurrentPage('staff-manager');
+        return;
     }
     if (!academyId) return;
     try {
         const staffRef = doc(db, `academies/${academyId}/staff`, staffId);
         await updateDoc(staffRef, { batchAccess });
-        setPage('staff-manager');
-    } catch (e) {
-        handleFirestoreError(e, 'updating staff access');
-        alert("Failed to update staff permissions. Please try again.");
-    }
-  };
-
-  const updateStudent = async (updatedStudentData: Omit<Student, 'id' | 'isActive'>) => {
-    if (isDemoMode) {
-      setShowDevPopup("Editing data is disabled in demo mode.");
-      return;
-    }
-    if (!academyId || !selectedStudentId) return;
-
-    const originalStudent = students.find(s => s.id === selectedStudentId);
-    if (!originalStudent) {
-        alert("Could not find the original student data to update.");
-        return;
-    }
-
-    try {
-        await runTransaction(db, async (transaction) => {
-            const studentRef = doc(db, `academies/${academyId}/students`, selectedStudentId);
-            
-            const oldBatches = new Set(originalStudent.batches);
-            const newBatches = new Set(updatedStudentData.batches);
-
-            const batchesToAdd = [...newBatches].filter(b => !oldBatches.has(b));
-            const batchesToRemove = [...oldBatches].filter(b => !newBatches.has(b));
-            const allAffectedBatches = [...new Set([...batchesToAdd, ...batchesToRemove])];
-            
-            if (allAffectedBatches.length > 0) {
-                 const batchRefsQuery = query(
-                    collection(db, `academies/${academyId}/batches`), 
-                    where("name", "in", allAffectedBatches)
-                );
-                const batchDocsSnapshot = await transaction.get(batchRefsQuery);
-
-                batchDocsSnapshot.forEach(batchDoc => {
-                    const batchName = batchDoc.data().name;
-                    if (batchesToAdd.includes(batchName)) {
-                        transaction.update(batchDoc.ref, { currentStudents: increment(1) });
-                    }
-                    if (batchesToRemove.includes(batchName)) {
-                        transaction.update(batchDoc.ref, { currentStudents: increment(-1) });
-                    }
-                });
-            }
-
-            transaction.update(studentRef, { ...updatedStudentData, isActive: originalStudent.isActive });
-        });
-        setPage('active-students');
-        setSelectedStudentId(null);
-    } catch (e) {
-        handleFirestoreError(e, 'updating student data');
-        alert("Failed to update student. Please try again.");
-    }
-  };
-
-  const toggleStudentStatus = async (studentId: string) => {
-    if (isDemoMode) {
-      const studentToToggle = students.find(s => s.id === studentId);
-      if (!studentToToggle) return;
-      setStudents(prevStudents => prevStudents.map(student => student.id === studentId ? { ...student, isActive: !student.isActive } : student));
-      const studentCountChange = studentToToggle.isActive ? -1 : 1;
-      setBatches(prevBatches => prevBatches.map(batch => {
-          if (studentToToggle.batches.includes(batch.name)) {
-            return { ...batch, currentStudents: batch.currentStudents + studentCountChange };
-          }
-          return batch;
-        })
-      );
-      return;
-    }
-
-    if (!academyId) return;
-    
-    try {
-        await runTransaction(db, async (transaction) => {
-            const studentRef = doc(db, `academies/${academyId}/students`, studentId);
-            const studentDoc = await transaction.get(studentRef);
-            if (!studentDoc.exists()) throw new Error("Student document not found!");
-
-            const studentData = studentDoc.data() as Student;
-            let batchDocsSnapshot: Awaited<ReturnType<typeof transaction.get>> | null = null;
-            
-            if (studentData.batches && studentData.batches.length > 0) {
-                 const batchRefsQuery = query(collection(db, `academies/${academyId}/batches`), where("name", "in", studentData.batches));
-                 batchDocsSnapshot = await transaction.get(batchRefsQuery);
-            }
-
-            const newIsActive = !studentData.isActive;
-            const studentCountChange = newIsActive ? 1 : -1;
-            transaction.update(studentRef, { isActive: newIsActive });
-
-            if (batchDocsSnapshot) {
-                 batchDocsSnapshot.forEach(batchDoc => {
-                     transaction.update(batchDoc.ref, { currentStudents: increment(studentCountChange) });
-                 });
-            }
-        });
-    } catch (e) {
-        handleFirestoreError(e, 'updating student status');
-        alert("Failed to update student status. Please try again.");
-    }
-  };
-  
-  const saveFeePayment = async (paymentData: Omit<FeeCollection, 'id'>) => {
-    if (isDemoMode) {
-        const error = new Error("Saving data is disabled in demo mode.");
-        (error as any).code = 'demo-mode';
-        throw error;
-    }
-    if (!academyId) throw new Error("Academy ID is not available.");
-
-    try {
-        await addDoc(collection(db, `academies/${academyId}/feeCollections`), {
-            ...paymentData,
-            paymentDate: Timestamp.fromDate(new Date(paymentData.paymentDate as any)),
-            createdAt: Timestamp.now()
-        });
-    } catch (e) {
-        handleFirestoreError(e, 'saving fee payment');
-        throw e;
-    }
-  };
-  
-  const updateAcademyContactDetails = async (details: Partial<Academy>) => {
-    if (isDemoMode) {
-      setShowDevPopup("Editing data is disabled in demo mode.");
-      return;
-    }
-    if (!academyId) return;
-    try {
-      const academyRef = doc(db, 'academies', academyId);
-      await updateDoc(academyRef, details);
+        setCurrentPage('staff-manager');
     } catch (error) {
-      handleFirestoreError(error, 'updating academy contact details');
-      alert("Failed to update contact details. Please try again.");
-      throw error;
+        console.error("Error updating staff access: ", error);
+        alert("Failed to save permissions. Please try again.");
     }
   };
 
+  // Navigation helpers
+  const navigateToNewBatch = () => setCurrentPage('new-batch');
+  const navigateToNewStudent = () => setCurrentPage('new-student');
+  const navigateToNewStaff = () => setCurrentPage('new-staff');
+  const navigateToDashboard = () => setCurrentPage('dashboard');
+  const navigateToBatches = () => setCurrentPage('batches');
+  const navigateToStudentOptions = () => setCurrentPage('student-options');
+  const navigateToFeesOptions = () => setCurrentPage('fees-options');
+  const navigateToSelectBatchForAttendance = () => setCurrentPage('select-batch-attendance');
+  const navigateToStaffManager = () => setCurrentPage('staff-manager');
+  const navigateToSettings = () => setCurrentPage('settings');
 
-  const handleSelectBatchForAttendance = (batchId: string) => {
+  const navigateToTakeAttendance = (batchId: string) => {
     setSelectedBatchId(batchId);
-    if (currentUser?.role === 'staff') {
-        setStaffPage('take-attendance');
-    } else {
-        setPage('take-attendance');
-    }
-  };
-
-  const handleViewRegistrationForm = (studentId: string) => {
-    setSelectedStudentId(studentId);
-    setPage('registration-form-view');
-  };
-
-  const handleEditStudent = (studentId: string) => {
-    setSelectedStudentId(studentId);
-    setPage('edit-student');
-  };
-
-  const handleViewBatchStudents = (batchName: string) => {
-    setBatchFilter(batchName);
-    setPage('active-students');
-  };
-
-  const handleSelectBatchForFees = (batchId: string) => {
-    setSelectedBatchId(batchId);
-    if (currentUser?.role === 'staff') {
-        setStaffPage('select-student-for-fees');
-    } else {
-        setPage('select-student-for-fees');
-    }
-  }
-
-  const handleSelectStudentForFees = (studentId: string) => {
-    setSelectedStudentId(studentId);
-    if (currentUser?.role === 'staff') {
-        setStaffPage('student-fee-details');
-    } else {
-        setPage('student-fee-details');
-    }
-  }
-
-  const handleManageStaffAccess = (staffId: string) => {
-    setSelectedStaffId(staffId);
-    setPage('staff-batch-access');
+    setCurrentPage('take-attendance');
   };
   
-  if (!dataConsentGiven && !isUsingPlaceholderConfig) {
-    return <DataConsentModal onAccept={handleAcceptDataConsent} />;
-  }
+  const navigateToActiveStudentsFromBatch = (batchName: string) => {
+    setInitialStudentFilter(batchName);
+    setCurrentPage('active-students');
+  };
   
-  if (isLoading) {
-    return <div className="bg-slate-50 dark:bg-gray-900 min-h-screen"><SplashScreen /></div>;
-  }
+  const navigateToEditStudent = (studentId: string) => {
+      setSelectedStudentId(studentId);
+      setCurrentPage('edit-student');
+  };
   
-  if (currentUser?.role === 'student') {
-      if (!currentAcademy) {
-          return <div className="bg-slate-50 dark:bg-gray-900 min-h-screen"><SplashScreen /></div>;
-      }
+  const navigateToSelectBatchForFees = () => {
+      setCurrentPage('select-batch-for-fees');
+  };
+  
+  const navigateToSelectStudentForFees = (batchId: string) => {
+      setSelectedBatchId(batchId);
+      setCurrentPage('select-student-for-fees');
+  };
+  
+  const navigateToStudentFeeDetails = (studentId: string) => {
+      setSelectedStudentId(studentId);
+      setCurrentPage('student-fee-details');
+  };
+  
+  const navigateToViewStudentForm = (studentId: string) => {
+      setSelectedStudentId(studentId);
+      setCurrentPage('registration-form-view');
+  };
 
-      const renderStudentPage = () => {
-          switch (studentPage) {
-              case 'fee-status':
-                  return (
-                      <StudentFeeStatusPage
-                          student={currentUser.data}
-                          feeCollections={studentFeeCollections}
-                          onBack={() => setStudentPage('dashboard')}
-                      />
-                  );
-              case 'my-academy':
-                  return (
-                      <MyAcademyPage
-                          academy={currentAcademy}
-                          onBack={() => setStudentPage('dashboard')}
-                      />
-                  );
-              case 'attendance':
-                  return (
-                      <StudentAttendancePage
-                          student={currentUser.data}
-                          academyId={academyId!}
-                          onBack={() => setStudentPage('dashboard')}
-                      />
-                  );
-              case 'dashboard':
-              default:
-                  return (
-                      <StudentDashboardPage
-                          student={currentUser.data}
-                          academy={currentAcademy}
-                          onNavigate={setStudentPage}
-                          onToggleNav={() => setIsStudentNavOpen(true)}
-                          theme={theme}
-                          onToggleTheme={toggleTheme}
-                          onShowDevPopup={handleShowDevPopup}
-                      />
-                  );
-          }
-      };
+  const navigateToStaffAccess = (staffId: string) => {
+      setSelectedStaffId(staffId);
+      setCurrentPage('staff-batch-access');
+  };
 
-      return (
-          <div>
-              <StudentSideNav 
-                  isOpen={isStudentNavOpen} 
-                  onClose={() => setIsStudentNavOpen(false)}
-                  onNavigate={setStudentPage}
-                  onLogout={handleLogout}
-              />
-              {renderStudentPage()}
-              <Chatbot />
-          </div>
-      );
-  }
-
-  if (currentUser?.role === 'staff') {
-    if (!currentAcademy) {
-        return <div className="bg-slate-50 dark:bg-gray-900 min-h-screen"><SplashScreen /></div>;
+  const renderContent = () => {
+    if (showConsent) {
+      return <DataConsentModal onAccept={() => {
+        localStorage.setItem('dataConsentGiven', 'true');
+        setShowConsent(false);
+      }} />;
     }
-    const staffData = currentUser.data;
+    
+    if (isLoading || !dataLoaded) {
+      return <SplashScreen />;
+    }
 
-    const renderStaffPage = () => {
-        switch (staffPage) {
-            case 'select-batch-attendance':
-                const batchesWithAttendancePerm = batches.filter(b => staffData.batchAccess[b.id]?.attendance);
-                return <SelectBatchForAttendancePage onBack={() => setStaffPage('dashboard')} batches={batchesWithAttendancePerm.filter(b => b.currentStudents > 0)} onSelectBatch={handleSelectBatchForAttendance} />;
-            case 'take-attendance':
-                const selectedBatchForAttendance = batches.find(b => b.id === selectedBatchId);
-                if (!selectedBatchForAttendance || !staffData.batchAccess[selectedBatchForAttendance.id]?.attendance) {
-                    setStaffPage('select-batch-attendance');
-                    return null;
-                }
-                const batchStudents = students.filter(s => s.batches.includes(selectedBatchForAttendance.name) && s.isActive);
-                return <TakeAttendancePage onBack={() => setStaffPage('select-batch-attendance')} batch={selectedBatchForAttendance} students={batchStudents} academyId={academyId!} isDemoMode={isDemoMode} />;
-            case 'student-options':
-                const canAccessStudents = Object.keys(staffData.batchAccess || {}).length > 0;
-                if (!canAccessStudents) {
-                    setStaffPage('dashboard');
-                    return null;
-                }
-                return <StudentOptionsPage onBack={() => setStaffPage('dashboard')} onNavigate={setStaffPage} isStaffView={true} onShowDevPopup={handleShowDevPopup} />;
-            case 'active-students':
-                const accessibleBatchIds = Object.keys(staffData.batchAccess || {});
-                const accessibleBatches = batches.filter(b => accessibleBatchIds.includes(b.id));
-                const accessibleBatchNames = new Set(accessibleBatches.map(b => b.name));
-
-                const visibleStudents = students.filter(student => 
-                    student.batches.some(batchName => accessibleBatchNames.has(batchName))
-                );
-
-                return <ActiveStudentsPage 
-                    onBack={() => setStaffPage('student-options')}
-                    students={visibleStudents}
-                    batches={accessibleBatches}
-                    onToggleStudentStatus={toggleStudentStatus}
-                    onEditStudent={handleEditStudent}
-                    onViewStudent={handleViewRegistrationForm}
-                    initialFilter={'all'}
-                    staffPermissions={staffData.batchAccess}
-                />;
-            case 'dashboard':
-            default:
-                return (
-                    <StaffDashboardPage
-                        staff={currentUser.data}
-                        academy={currentAcademy}
-                        onNavigate={setStaffPage}
-                        onShowDevPopup={handleShowDevPopup}
-                    />
-                );
+    if (!currentUser) {
+        if (currentPage === 'register') {
+            return <RegisterPage onRegisterSuccess={handleRegisterSuccess} onNavigateToLogin={() => setCurrentPage('login')} />;
         }
+        return <LoginPage onLogin={handleLogin} onNavigateToRegister={() => setCurrentPage('register')} externalError={authError} clearExternalError={() => setAuthError(null)} />;
+    }
+
+    if (currentUser.role === 'superadmin') {
+      return <SuperAdminPanel onLogout={handleLogout} />;
+    }
+
+    const academy = (currentUser.role === 'admin') 
+      ? currentUser.data 
+      : (currentUser.role === 'student')
+        ? { id: currentUser.academyId, name: currentUser.academyName, academyId: '' } as Academy
+        : (currentUser.role === 'staff')
+          ? { id: currentUser.academyId, name: 'Staff View', academyId: '' } as Academy // Simplified for staff view
+          : null;
+          
+    if (!academy) {
+        return <SplashScreen />; // Or an error page
+    }
+
+    // STUDENT VIEW
+    if (currentUser.role === 'student') {
+        const student = currentUser.data;
+        
+        const studentScreens: { [key: string]: React.ReactNode } = {
+          'dashboard': <StudentDashboardPage student={student} academy={academy} onNavigate={handleNavigate} onToggleNav={() => setIsSideNavOpen(true)} theme={theme} onToggleTheme={toggleTheme} onShowDevPopup={setShowDevPopup} />,
+          'fee-status': <StudentFeeStatusPage student={student} feeCollections={feeCollections.filter(fc => fc.studentId === student.id)} onBack={navigateToDashboard} />,
+          'my-academy': <MyAcademyPage academy={academy} onBack={navigateToDashboard} />,
+          'attendance': <StudentAttendancePage student={student} academyId={academyId!} onBack={navigateToDashboard} />,
+        };
+
+        return (
+            <div className="md:max-w-lg md:mx-auto md:shadow-2xl">
+                {studentScreens[currentPage] || studentScreens['dashboard']}
+                <StudentSideNav isOpen={isSideNavOpen} onClose={() => setIsSideNavOpen(false)} onNavigate={handleNavigate} onLogout={handleLogout} />
+            </div>
+        );
+    }
+
+    // STAFF VIEW
+    if (currentUser.role === 'staff') {
+      const staffMember = currentUser.data;
+      const staffAcademy = { id: currentUser.academyId, name: "Academy", academyId: "Loading..." }
+      
+      const selectedBatchForAttendance = batches.find(b => b.id === selectedBatchId);
+      const studentsForAttendance = selectedBatchForAttendance ? students.filter(s => s.batches.includes(selectedBatchForAttendance.name) && s.isActive) : [];
+      
+      const staffScreens: { [key: string]: React.ReactNode } = {
+        'dashboard': <StaffDashboardPage onNavigate={handleNavigate} academy={academy} staff={staffMember} onShowDevPopup={setShowDevPopup} />,
+        'active-students': <ActiveStudentsPage onBack={navigateToDashboard} students={students} batches={batches} onToggleStudentStatus={handleToggleStudentStatus} onEditStudent={navigateToEditStudent} onViewStudent={navigateToViewStudentForm} staffPermissions={staffMember.batchAccess} />,
+        'select-batch-attendance': <SelectBatchForAttendancePage onBack={navigateToDashboard} batches={batches} onSelectBatch={navigateToTakeAttendance} />,
+        'take-attendance': selectedBatchForAttendance ? <TakeAttendancePage onBack={navigateToSelectBatchForAttendance} batch={selectedBatchForAttendance} students={studentsForAttendance} academyId={academyId!} isDemoMode={isDemoMode} /> : null,
+        'fees-options': <FeesOptionsPage onBack={navigateToDashboard} onNavigate={setCurrentPage} />,
+        'select-batch-for-fees': <SelectBatchForFeesPage onBack={navigateToFeesOptions} batches={batches} onSelectBatch={navigateToSelectStudentForFees} />,
+      };
+      
+      return (
+        <div className="md:max-w-lg md:mx-auto md:shadow-2xl">
+          {currentPage === 'dashboard' && (
+            <StaffHeader staffName={staffMember.name} academyName={academy.name} onLogout={handleLogout} onToggleNav={() => setIsSideNavOpen(true)} theme={theme} onToggleTheme={toggleTheme} />
+          )}
+          {staffScreens[currentPage] || staffScreens['dashboard']}
+          <StaffSideNav isOpen={isSideNavOpen} onClose={() => setIsSideNavOpen(false)} onNavigate={handleNavigate} onLogout={handleLogout} staff={staffMember} onShowDevPopup={setShowDevPopup} />
+        </div>
+      );
+    }
+    
+
+    // ADMIN VIEW
+    const selectedBatch = batches.find(b => b.id === selectedBatchId);
+    const selectedStudent = students.find(s => s.id === selectedStudentId);
+    const selectedStaff = staff.find(s => s.id === selectedStaffId);
+    const studentsInSelectedBatch = selectedBatch ? students.filter(s => s.batches.includes(selectedBatch.name) && s.isActive) : [];
+
+    const adminScreens: { [key: string]: React.ReactNode } = {
+        'dashboard': <Dashboard onNavigate={handleNavigate} academy={academy} students={students} batches={batches} staff={staff} onShowDevPopup={setShowDevPopup} />,
+        'batches': <BatchesPage onBack={navigateToDashboard} onCreate={navigateToNewBatch} batches={batches} onViewStudents={navigateToActiveStudentsFromBatch} onShowDevPopup={setShowDevPopup} />,
+        'new-batch': <NewBatchPage onBack={navigateToBatches} onSave={handleCreateBatch} />,
+        'student-options': <StudentOptionsPage onBack={navigateToDashboard} onNavigate={setCurrentPage} onShowDevPopup={setShowDevPopup} />,
+        'fees-options': <FeesOptionsPage onBack={navigateToDashboard} onNavigate={setCurrentPage} />,
+        'new-student': <NewStudentPage onBack={navigateToStudentOptions} onSave={handleCreateStudent} batches={batches} />,
+        'select-batch-attendance': <SelectBatchForAttendancePage onBack={navigateToDashboard} batches={batches.filter(b => b.currentStudents > 0)} onSelectBatch={navigateToTakeAttendance} />,
+        'take-attendance': selectedBatch ? <TakeAttendancePage onBack={navigateToSelectBatchForAttendance} batch={selectedBatch} students={studentsInSelectedBatch} academyId={academyId!} isDemoMode={isDemoMode} /> : null,
+        'active-students': <ActiveStudentsPage onBack={navigateToStudentOptions} students={students} batches={batches} onToggleStudentStatus={handleToggleStudentStatus} onEditStudent={navigateToEditStudent} onViewStudent={navigateToViewStudentForm} initialFilter={initialStudentFilter} />,
+        'inactive-students': <InactiveStudentsPage onBack={navigateToStudentOptions} students={students} batches={batches} onToggleStudentStatus={handleToggleStudentStatus} />,
+        'birthday-list': <BirthdayListPage onBack={navigateToStudentOptions} students={students} />,
+        'registration-form-list': <RegistrationFormListPage onBack={navigateToStudentOptions} students={students} onSelectStudent={navigateToViewStudentForm} />,
+        'registration-form-view': selectedStudent ? <RegistrationFormViewPage onBack={() => setCurrentPage('registration-form-list')} student={selectedStudent} /> : null,
+        'edit-student': selectedStudent ? <EditStudentPage onBack={() => setCurrentPage('active-students')} onUpdate={handleUpdateStudent} student={selectedStudent} batches={batches} /> : null,
+        'my-account': <MyAccountPage onBack={navigateToDashboard} onSave={handleUpdateAcademyDetails} academy={academy} onLogout={handleLogout} />,
+        'select-batch-for-fees': <SelectBatchForFeesPage onBack={navigateToFeesOptions} batches={batches} onSelectBatch={navigateToSelectStudentForFees} />,
+        'select-student-for-fees': selectedBatch ? <SelectStudentForFeesPage onBack={navigateToSelectBatchForFees} batch={selectedBatch} students={studentsInSelectedBatch} onSelectStudent={navigateToStudentFeeDetails} /> : null,
+        'student-fee-details': selectedStudent ? <StudentFeeDetailsPage onBack={() => setCurrentPage('select-student-for-fees')} student={selectedStudent} feeCollections={feeCollections.filter(fc => fc.studentId === selectedStudent.id)} onSavePayment={handleSavePayment} /> : null,
+        'fee-dues-list': <FeeDuesListPage onBack={navigateToFeesOptions} students={students} batches={batches} feeCollections={feeCollections} />,
+        'fee-collection-report': <FeeCollectionReportPage onBack={navigateToFeesOptions} feeCollections={feeCollections} />,
+        'staff-manager': <StaffManagerPage onBack={navigateToDashboard} onCreate={navigateToNewStaff} staff={staff} onManageAccess={navigateToStaffAccess} onShowDevPopup={setShowDevPopup} />,
+        'new-staff': <NewStaffPage onBack={navigateToStaffManager} onSave={handleCreateStaff} />,
+        'staff-batch-access': selectedStaff ? <StaffBatchAccessPage onBack={navigateToStaffManager} staff={selectedStaff} batches={batches} onSave={handleSaveStaffAccess} /> : null,
+        'settings': <SettingsPage onBack={navigateToDashboard} onNavigate={setCurrentPage} onShowDevPopup={setShowDevPopup} />,
+        'custom-sms-settings': <CustomSmsSettingsPage onBack={navigateToSettings} onShowDevPopup={setShowDevPopup} />
     };
 
     return (
         <div className="bg-slate-100 dark:bg-gray-900 h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl">
-            <StaffSideNav 
-                isOpen={isStaffNavOpen} 
-                onClose={() => setIsStaffNavOpen(false)}
-                onNavigate={setStaffPage}
-                onLogout={handleLogout}
-                staff={currentUser.data}
-                onShowDevPopup={handleShowDevPopup}
-            />
-            {staffPage === 'dashboard' && (
-                <StaffHeader 
-                    staffName={currentUser.data.name}
-                    academyName={currentAcademy.name}
-                    onToggleNav={() => setIsStaffNavOpen(true)}
-                    onLogout={handleLogout}
-                    theme={theme}
-                    onToggleTheme={toggleTheme}
-                />
+            <SideNav isOpen={isSideNavOpen} onClose={() => setIsSideNavOpen(false)} onNavigate={handleNavigate} onLogout={handleLogout} onShowDevPopup={setShowDevPopup} />
+            {currentPage === 'dashboard' && (
+                <Header academyName={academy.name} academyId={academy.academyId} logoUrl={academy.logoUrl} onLogout={handleLogout} onToggleNav={() => setIsSideNavOpen(true)} theme={theme} onToggleTheme={toggleTheme} />
             )}
-            <main className="flex-grow relative flex flex-col">
-                {renderStaffPage()}
-            </main>
+            {isOffline && <OfflineIndicator />}
+            {connectionError && <ConnectionErrorBanner message={connectionError} onClose={() => setConnectionError(null)} />}
+            <div className="flex-grow flex flex-col overflow-y-auto">
+                {adminScreens[currentPage] || adminScreens['dashboard']}
+            </div>
+            {['dashboard', 'my-account'].includes(currentPage) && <BottomNav onNavigate={handleNavigate} activePage={currentPage} />}
             <Chatbot />
         </div>
     );
-}
-
-  if (!currentUser) {
-    return (
-        <div className="bg-gray-50 dark:bg-gray-900 font-sans min-h-screen">
-            {!isUsingPlaceholderConfig && criticalError && <ConnectionErrorBanner message={criticalError} onClose={() => setCriticalError(null)} />}
-            {!isUsingPlaceholderConfig && isOffline && <OfflineIndicator />}
-            {authPage === 'login' && <LoginPage onLogin={handleLogin} onNavigateToRegister={() => setAuthPage('register')} externalError={loginError} clearExternalError={() => setLoginError(null)} />}
-            {authPage === 'register' && <RegisterPage onRegisterSuccess={handleLoginAfterRegister} onNavigateToLogin={() => setAuthPage('login')} />}
-        </div>
-    );
-  }
-
-  const renderPage = () => {
-    switch (page) {
-      case 'select-batch-attendance':
-        return <SelectBatchForAttendancePage onBack={() => setPage('dashboard')} batches={batches.filter(b => b.currentStudents > 0)} onSelectBatch={handleSelectBatchForAttendance} />;
-      
-      case 'take-attendance': {
-        const selectedBatch = batches.find(b => b.id === selectedBatchId);
-        if (!selectedBatch) {
-            setPage('select-batch-attendance');
-            return null;
-        }
-        const batchStudents = students.filter(s => s.batches.includes(selectedBatch.name) && s.isActive);
-        return <TakeAttendancePage onBack={() => setPage('select-batch-attendance')} batch={selectedBatch} students={batchStudents} academyId={academyId!} isDemoMode={isDemoMode} />;
-      }
-      
-      case 'fees-options':
-        return <FeesOptionsPage onBack={() => setPage('dashboard')} onNavigate={setPage}/>;
-      
-      case 'select-batch-for-fees':
-        return <SelectBatchForFeesPage onBack={() => setPage('fees-options')} batches={batches} onSelectBatch={handleSelectBatchForFees} />;
-      
-      case 'select-student-for-fees': {
-        const selectedBatch = batches.find(b => b.id === selectedBatchId);
-        if (!selectedBatch) {
-            setPage('select-batch-for-fees');
-            return null;
-        }
-        const batchStudents = students.filter(s => s.batches.includes(selectedBatch.name) && s.isActive);
-        return <SelectStudentForFeesPage onBack={() => setPage('select-batch-for-fees')} batch={selectedBatch} students={batchStudents} onSelectStudent={handleSelectStudentForFees} />;
-      }
-
-      case 'student-fee-details': {
-        const selectedStudent = students.find(s => s.id === selectedStudentId);
-        if (!selectedStudent) {
-            setPage('select-batch-for-fees');
-            return null;
-        }
-        return <StudentFeeDetailsPage onBack={() => setPage('select-student-for-fees')} student={selectedStudent} feeCollections={feeCollections} onSavePayment={saveFeePayment} />;
-      }
-
-      case 'fee-dues-list':
-        return <FeeDuesListPage onBack={() => setPage('fees-options')} students={students} batches={batches} feeCollections={feeCollections} />;
-      
-      case 'fee-collection-report':
-        return <FeeCollectionReportPage onBack={() => setPage('fees-options')} feeCollections={feeCollections} />;
-      
-      case 'student-options':
-        if (batchFilter) setBatchFilter(null);
-        return <StudentOptionsPage onBack={() => setPage('dashboard')} onNavigate={setPage} onShowDevPopup={handleShowDevPopup} />;
-      
-      case 'new-student':
-        return <NewStudentPage onBack={() => setPage('student-options')} onSave={addStudent} batches={batches} />;
-
-      case 'active-students':
-        return <ActiveStudentsPage 
-                  onBack={() => {
-                      if (batchFilter) {
-                          setBatchFilter(null);
-                          setPage('batches');
-                      } else {
-                          setPage('student-options');
-                      }
-                  }}
-                  students={students}
-                  batches={batches}
-                  onToggleStudentStatus={toggleStudentStatus}
-                  onEditStudent={handleEditStudent}
-                  onViewStudent={handleViewRegistrationForm}
-                  initialFilter={batchFilter || 'all'}
-                />;
-      
-      case 'edit-student': {
-        const selectedStudent = students.find(s => s.id === selectedStudentId);
-        if (!selectedStudent) {
-            setPage('active-students');
-            return null;
-        }
-        return <EditStudentPage onBack={() => setPage('active-students')} onUpdate={updateStudent} student={selectedStudent} batches={batches} />;
-      }
-      
-      case 'inactive-students':
-        return <InactiveStudentsPage onBack={() => setPage('student-options')} students={students} batches={batches} onToggleStudentStatus={toggleStudentStatus} />;
-      
-      case 'birthday-list':
-        return <BirthdayListPage onBack={() => setPage('student-options')} students={students} />;
-      
-      case 'registration-form-list':
-        return <RegistrationFormListPage onBack={() => setPage('student-options')} students={students} onSelectStudent={handleViewRegistrationForm} />;
-      
-      case 'registration-form-view': {
-        const selectedStudent = students.find(s => s.id === selectedStudentId);
-        if (!selectedStudent) {
-            setPage('registration-form-list');
-            return null;
-        }
-        return <RegistrationFormViewPage onBack={() => setPage('registration-form-list')} student={selectedStudent} />;
-      }
-
-      case 'my-account':
-        return <MyAccountPage 
-                  onBack={() => setPage('dashboard')} 
-                  onLogout={handleLogout} 
-                  onSave={updateAcademyContactDetails} 
-                  academy={currentUser.data as Academy} 
-                />;
-      
-      case 'batches':
-        return <BatchesPage onBack={() => setPage('dashboard')} onCreate={() => setPage('new-batch')} batches={batches} onViewStudents={handleViewBatchStudents} onShowDevPopup={handleShowDevPopup} />;
-      
-      case 'new-batch':
-        return <NewBatchPage onBack={() => setPage('batches')} onSave={addBatch} />;
-      
-      case 'staff-manager':
-        return <StaffManagerPage onBack={() => setPage('dashboard')} staff={staff} onCreate={() => setPage('new-staff')} onManageAccess={handleManageStaffAccess} onShowDevPopup={handleShowDevPopup} />;
-
-      case 'new-staff':
-        return <NewStaffPage onBack={() => setPage('staff-manager')} onSave={addStaff} />;
-
-      case 'staff-batch-access': {
-          const selectedStaff = staff.find(s => s.id === selectedStaffId);
-          if (!selectedStaff) {
-              setPage('staff-manager');
-              return null;
-          }
-          return <StaffBatchAccessPage onBack={() => setPage('staff-manager')} staff={selectedStaff} batches={batches} onSave={updateStaffBatchAccess} />;
-      }
-
-      case 'settings':
-        return <SettingsPage onBack={() => setPage('dashboard')} onNavigate={setPage} onShowDevPopup={handleShowDevPopup} />;
-
-      case 'custom-sms-settings':
-        return <CustomSmsSettingsPage onBack={() => setPage('settings')} onShowDevPopup={handleShowDevPopup} />;
-
-      case 'dashboard':
-      default:
-        return (
-          <Dashboard
-            onNavigate={setPage}
-            academy={currentUser.data as Academy}
-            students={students}
-            batches={batches}
-            staff={staff}
-            onShowDevPopup={handleShowDevPopup}
-          />
-        );
-    }
   };
 
   return (
-    <div className="bg-slate-100 dark:bg-gray-900 h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl">
-      <SideNav 
-          isOpen={isNavOpen} 
-          onClose={() => setIsNavOpen(false)}
-          onNavigate={setPage}
-          onLogout={handleLogout}
-          onShowDevPopup={handleShowDevPopup}
-      />
-      {page === 'dashboard' && (
-          <Header
-            academyName={currentAcademy!.name}
-            academyId={currentAcademy!.academyId}
-            logoUrl={currentAcademy!.logoUrl}
-            onLogout={handleLogout}
-            onToggleNav={() => setIsNavOpen(true)}
-            theme={theme}
-            onToggleTheme={toggleTheme}
-          />
-      )}
-
-      {!isUsingPlaceholderConfig && criticalError && <ConnectionErrorBanner message={criticalError} onClose={() => setCriticalError(null)} />}
-      {!isUsingPlaceholderConfig && isOffline && <OfflineIndicator />}
-
-      <main className="flex-grow relative flex flex-col">
-        {renderPage()}
-      </main>
-
-      <BottomNav onNavigate={setPage} activePage={page} />
+    <>
+      {renderContent()}
       {showDevPopup && <DevelopmentPopup featureName={showDevPopup} onClose={() => setShowDevPopup(null)} />}
-      <Chatbot />
-    </div>
+    </>
   );
 }
 
-// FIX: Export the App component as a default export.
 export default App;

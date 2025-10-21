@@ -99,6 +99,12 @@ export type CurrentUser = {
   role: 'staff';
   data: Staff;
   academyId: string;
+} | {
+  role: 'superadmin';
+  data: {
+    uid: string;
+    email: string;
+  };
 }
 
 

@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { Student, Batch } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -8,7 +9,7 @@ import { CalendarIcon } from './icons/CalendarIcon';
 
 interface NewStudentPageProps {
   onBack: () => void;
-  onSave: (studentData: Omit<Student, 'id' | 'isActive'>) => void;
+  onSave: (studentData: Omit<Student, 'id' | 'isActive' | 'rollNumber'>) => void;
   batches: Batch[];
 }
 
@@ -27,8 +28,7 @@ const FormInput = ({ label, id, children, containerClassName, ...props }: { labe
 );
 
 export function NewStudentPage({ onBack, onSave, batches }: NewStudentPageProps): React.ReactNode {
-    const [formData, setFormData] = React.useState<Omit<Student, 'id' | 'feeAmount' | 'isActive'> & { feeAmount: string }>({
-        rollNumber: '',
+    const [formData, setFormData] = React.useState<Omit<Student, 'id' | 'feeAmount' | 'isActive' | 'rollNumber'> & { feeAmount: string }>({
         name: '',
         fatherName: '',
         motherName: '',
@@ -97,8 +97,8 @@ export function NewStudentPage({ onBack, onSave, batches }: NewStudentPageProps)
     };
 
     const handleSave = () => {
-        if (!formData.name.trim() || !formData.fatherName.trim() || !formData.motherName.trim() || !formData.dob || !formData.mobile1 || !formData.address || !formData.admissionDate || !formData.rollNumber) {
-            alert("Please fill all required fields, including Roll Number.");
+        if (!formData.name.trim() || !formData.fatherName.trim() || !formData.motherName.trim() || !formData.dob || !formData.mobile1 || !formData.address || !formData.admissionDate) {
+            alert("Please fill all required fields.");
             return;
         }
         if (formData.batches.length === 0) {
@@ -133,7 +133,6 @@ export function NewStudentPage({ onBack, onSave, batches }: NewStudentPageProps)
                 </button>
             </div>
 
-            <FormInput label="Roll Number / Student ID" id="rollNumber" name="rollNumber" placeholder="Unique ID for login" value={formData.rollNumber} onChange={handleChange} required />
             <FormInput label="Student Name" id="studentName" name="name" value={formData.name} onChange={handleChange} required containerClassName="border-indigo-500 border-2" />
             <FormInput label="Father Name" id="fatherName" name="fatherName" value={formData.fatherName} onChange={handleChange} required />
             <FormInput label="Mother Name" id="motherName" name="motherName" value={formData.motherName} onChange={handleChange} required />

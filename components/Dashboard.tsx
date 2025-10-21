@@ -98,9 +98,8 @@ export function Dashboard({ onNavigate, academy, students, batches, staff, onSho
   const hasContactInfo = academy.contactEmail || academy.contactPhone || academy.address;
 
   return (
-    <>
-    <div className="p-6 overflow-y-auto flex-grow">
-      <div className="bg-indigo-600 text-white p-4 rounded-xl shadow-lg mb-8 flex items-center space-x-4">
+    <div className="p-4 overflow-y-auto flex-grow">
+      <div className="bg-indigo-600 text-white p-4 rounded-xl shadow-lg mb-6 flex items-center space-x-4">
           <div className="bg-white/30 w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0">
                {academy.logoUrl ? (
                 <img src={academy.logoUrl} alt="Academy Logo" className="w-full h-full rounded-full object-cover" />
@@ -116,7 +115,7 @@ export function Dashboard({ onNavigate, academy, students, batches, staff, onSho
       </div>
 
       {hasContactInfo && (
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md mb-8 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md mb-6 border border-gray-200 dark:border-gray-700">
           <h3 className="text-base font-bold text-gray-800 dark:text-gray-100 mb-3">Academy Details</h3>
           <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
             {academy.contactEmail && (
@@ -150,12 +149,12 @@ export function Dashboard({ onNavigate, academy, students, batches, staff, onSho
           />
         ))}
       </div>
-    </div>
-    <div className="p-4 grid grid-cols-3 gap-3 bg-white dark:bg-gray-800 shadow-inner mt-auto flex-shrink-0">
+      
+      <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
         <SummaryCard title="Batches" active={activeBatches} inactive={inactiveBatches} colorClass="bg-teal-500" onNavigate={() => onNavigate('batches')} />
         <SummaryCard title="Students" active={activeStudents} inactive={inactiveStudents} colorClass="bg-orange-500" onNavigate={() => onNavigate('student-options')} />
         <SummaryCard title="Staff" active={activeStaff} inactive={inactiveStaff} colorClass="bg-red-500" onNavigate={() => onNavigate('staff-manager')} />
+      </div>
     </div>
-    </>
   );
 }

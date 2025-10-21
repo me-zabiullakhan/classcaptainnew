@@ -10,6 +10,10 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../../firebaseConfig';
 import type { CurrentUser, Student, Staff, Academy } from '../../types';
 import { demoStudents, demoStaff } from '../../demoData';
+import { GoogleIcon } from '../icons/GoogleIcon';
+import firebase from 'firebase/compat/app';
+import { XMarkIcon } from '../icons/XMarkIcon';
+
 
 type Role = 'academy' | 'student' | 'staff';
 
@@ -100,54 +104,127 @@ const AcademyLoginFailedPopup = ({ onCancel, onRegister }: { onCancel: () => voi
     </div>
 );
 
-const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { setIsLoading: (l:boolean)=>void, setError: (e:string)=>void, onLoginFailed: () => void, onLogin: (user: CurrentUser) => void }) => (
-    <form onSubmit={async (e) => {
+const SuperAdminLoginModal = ({ onLogin, onClose }: { onLogin: (user: CurrentUser) => void, onClose: () => void }) => {
+    const [email, setEmail] = React.useState('');
+    const [password, setPassword] = React.useState('');
+    const [error, setError] = React.useState('');
+
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+
+        if (email === 'admin@classcaptain.com' && password === 'superadmin123') {
+            onLogin({
+                role: 'superadmin',
+                data: { uid: 'super-admin-static-uid', email: 'admin@classcaptain.com' }
+            });
+            onClose();
+        } else {
+            setError('Invalid super admin credentials.');
+        }
+    };
+
+    return (
+         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fade-in p-4">
+            <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-lg w-full max-w-sm relative">
+                 <button onClick={onClose} className="absolute top-3 right-3 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Close modal">
+                    <XMarkIcon className="w-6 h-6 text-gray-500 dark:text-gray-300" />
+                </button>
+                <h2 className="text-xl font-bold text-center text-gray-800 dark:text-gray-100 mb-6">Super Admin Login</h2>
+                <form onSubmit={handleSubmit}>
+                    <FormInput icon={<EmailIcon className="w-5 h-5" />} label="Email Address" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+                    <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+                    {error && <p className="text-red-500 text-sm text-center mt-2">{error}</p>}
+                    <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4">
+                        Login
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { setIsLoading: (l:boolean)=>void, setError: (e:string)=>void, onLoginFailed: () => void, onLogin: (user: CurrentUser) => void }) => {
+    
+    const handleGoogleLogin = async () => {
+        setError('');
         setIsLoading(true);
-
-        const form = e.target as HTMLFormElement;
-        const emailInput = form.elements.namedItem('email') as HTMLInputElement;
-        const passwordInput = form.elements.namedItem('password') as HTMLInputElement;
-        const rawEmail = emailInput.value;
-        const rawPassword = passwordInput.value;
-
-        if (rawEmail === 'demo@classcaptain.com' && rawPassword === 'demo123') {
-            const demoAcademy: Academy = {
-                id: 'demo-academy-id',
-                academyId: 'ACDEMO',
-                name: 'Demo Academy',
-                adminUid: 'demo-admin-uid',
-                adminEmail: 'demo@classcaptain.com',
-                status: 'active',
-            };
-            onLogin({ role: 'admin', data: demoAcademy });
-            setIsLoading(false);
-            return;
-        }
-
+        const provider = new firebase.auth.GoogleAuthProvider();
         try {
-            await auth.signInWithEmailAndPassword(rawEmail, rawPassword);
-            // onAuthStateChanged in App.tsx will handle the rest
-        } catch (err: any) {
-            if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-                onLoginFailed();
-            } else {
-                console.error("Login Error:", err);
-                setError(err.message || 'Failed to login.');
-            }
-        } finally {
+            await auth.signInWithRedirect(provider);
+            // The page will redirect. App.tsx's onAuthStateChanged will handle the result.
+        } catch (error: any) {
+            console.error("Google Login Redirect Error:", error);
+            setError(error.message || 'Failed to start sign in with Google.');
             setIsLoading(false);
         }
-    }}>
-        <FormInput icon={<EmailIcon className="w-5 h-5" />} label="Email Address" type="email" name="email" placeholder="Enter your email" required />
-        <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" name="password" placeholder="Enter your password" required />
-        
-        <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4">
-            Sign in
-        </button>
-    </form>
-);
+    };
+
+    return (
+        <>
+            <form onSubmit={async (e) => {
+                e.preventDefault();
+                setError('');
+                setIsLoading(true);
+
+                const form = e.target as HTMLFormElement;
+                const emailInput = form.elements.namedItem('email') as HTMLInputElement;
+                const passwordInput = form.elements.namedItem('password') as HTMLInputElement;
+                const rawEmail = emailInput.value;
+                const rawPassword = passwordInput.value;
+
+                if (rawEmail === 'demo@classcaptain.com' && rawPassword === 'demo123') {
+                    const demoAcademy: Academy = {
+                        id: 'demo-academy-id',
+                        academyId: 'ACDEMO',
+                        name: 'Demo Academy',
+                        adminUid: 'demo-admin-uid',
+                        adminEmail: 'demo@classcaptain.com',
+                        status: 'active',
+                    };
+                    onLogin({ role: 'admin', data: demoAcademy });
+                    setIsLoading(false);
+                    return;
+                }
+
+                try {
+                    await auth.signInWithEmailAndPassword(rawEmail, rawPassword);
+                    // onAuthStateChanged in App.tsx will handle the rest
+                } catch (err: any) {
+                    if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+                        onLoginFailed();
+                    } else {
+                        console.error("Login Error:", err);
+                        setError(err.message || 'Failed to login.');
+                    }
+                } finally {
+                    setIsLoading(false);
+                }
+            }}>
+                <FormInput icon={<EmailIcon className="w-5 h-5" />} label="Email Address" type="email" name="email" placeholder="Enter your email" required />
+                <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" name="password" placeholder="Enter your password" required />
+                
+                <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4">
+                    Sign in
+                </button>
+            </form>
+
+            <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">OR</span>
+                </div>
+            </div>
+
+            <button type="button" onClick={handleGoogleLogin} className="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors shadow-sm">
+                <GoogleIcon className="w-5 h-5" />
+                Sign in with Google
+            </button>
+        </>
+    );
+};
 
 const StudentLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (l:boolean)=>void, setError: (e:string)=>void, onLogin: (user: CurrentUser) => void }) => {
     const handleStudentLogin = async (e: React.FormEvent) => {
@@ -311,6 +388,7 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
     const [isLoading, setIsLoading] = React.useState(false);
     const [error, setError] = React.useState('');
     const [showAcademyNotFound, setShowAcademyNotFound] = React.useState(false);
+    const [isSuperAdminModalOpen, setIsSuperAdminModalOpen] = React.useState(false);
 
     React.useEffect(() => {
         if (externalError) {
@@ -330,6 +408,7 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
     };
 
     return (
+        <>
         <AuthLayout title="Welcome Back!" subtitle="Please sign in to continue">
             <AuthCard>
                 <RoleSwitcher activeRole={role} onRoleChange={handleRoleChange} />
@@ -347,16 +426,19 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
                 )}
             </AuthCard>
 
-            {role === 'academy' && (
-                <div className="text-center mt-6">
+            <div className="text-center mt-6 space-y-2">
+                {role === 'academy' && (
                     <p className="text-sm text-gray-600 dark:text-gray-300">
                         Don't have an account?{' '}
                         <button onClick={onNavigateToRegister} className="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
                             Register here
                         </button>
                     </p>
-                </div>
-            )}
+                )}
+                 <button onClick={() => setIsSuperAdminModalOpen(true)} className="text-xs text-gray-500 dark:text-gray-400 hover:underline">
+                    Super Admin Login
+                </button>
+            </div>
             
             {showAcademyNotFound && (
                 <AcademyLoginFailedPopup 
@@ -368,5 +450,10 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
                 />
             )}
         </AuthLayout>
+
+        {isSuperAdminModalOpen && (
+            <SuperAdminLoginModal onLogin={onLogin} onClose={() => setIsSuperAdminModalOpen(false)} />
+        )}
+        </>
     );
 }
