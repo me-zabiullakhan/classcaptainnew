@@ -1,6 +1,9 @@
 
 
 
+
+
+
 import React from 'react';
 import { GoogleGenAI, Chat, GenerateContentResponse } from '@google/genai';
 import { Header } from './components/Header';
@@ -24,7 +27,7 @@ import { RegisterPage } from './components/auth/RegisterPage';
 import { MyAccountPage } from './components/MyAccountPage';
 import { auth, db, firebaseConfig } from './firebaseConfig';
 // FIX: Import FirestoreError to explicitly type the error object from onSnapshot.
-import { collection, addDoc, onSnapshot, query, where, doc, runTransaction, increment, Timestamp, updateDoc, getDoc, FirestoreError } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, where, doc, runTransaction, increment, Timestamp, updateDoc, getDoc, getDocs, FirestoreError } from 'firebase/firestore';
 import { SplashScreen } from './components/SplashScreen';
 import { ConnectionErrorBanner } from './components/ConnectionErrorBanner';
 import { OfflineIndicator } from './components/OfflineIndicator';
@@ -297,7 +300,7 @@ function App(): React.ReactNode {
     if (isUsingPlaceholderConfig) return;
 
     // FIX: Safely access the error code property to avoid type errors with unknown error objects.
-    const code = (err && typeof err === 'object' && 'code' in err) ? String((err as {code: unknown}).code) : undefined;
+    const code = (err && typeof err === 'object' && 'code' in err) ? String((err as any).code) : undefined;
 
 
     if (code === 'unavailable' || code === 'cancelled') {
@@ -329,7 +332,8 @@ function App(): React.ReactNode {
       if (user) {
         const academiesRef = collection(db, 'academies');
         const q = query(academiesRef, where('adminUid', '==', user.uid));
-        const unsubscribeFirestore = onSnapshot(q, (snapshot) => {
+        
+        getDocs(q).then((snapshot) => {
           if (!snapshot.empty) {
             const academyDoc = snapshot.docs[0];
             const academyData = { id: academyDoc.id, ...academyDoc.data() } as Academy;
@@ -352,8 +356,7 @@ function App(): React.ReactNode {
             setCurrentAcademy(null);
           }
           setIsLoading(false);
-// FIX: The error from onSnapshot is a FirestoreError, so we can access .code directly, avoiding type errors with `unknown`.
-        }, (err: FirestoreError) => {
+        }).catch((err: FirestoreError) => {
           handleFirestoreError(err, 'academy data');
           if (err.code !== 'unavailable' && err.code !== 'cancelled') {
               setCurrentUser(null);
@@ -361,7 +364,6 @@ function App(): React.ReactNode {
           }
           setIsLoading(false);
         });
-        return () => unsubscribeFirestore();
       } else {
         setCurrentUser(null);
         setCurrentAcademy(null);
