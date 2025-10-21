@@ -1,5 +1,6 @@
 
 
+
 import React from 'react';
 import { GoogleGenAI, Chat, GenerateContentResponse } from '@google/genai';
 import { Header } from './components/Header';
@@ -50,6 +51,8 @@ import { StaffSideNav } from './components/staff/StaffSideNav';
 import { StaffHeader } from './components/staff/StaffHeader';
 import { StaffBatchAccessPage } from './components/StaffBatchAccessPage';
 import { WrenchIcon } from './components/icons/WrenchIcon';
+import { SettingsPage } from './components/SettingsPage';
+import { CustomSmsSettingsPage } from './components/CustomSmsSettingsPage';
 
 type Message = {
     text: string;
@@ -349,13 +352,10 @@ function App(): React.ReactNode {
             setCurrentAcademy(null);
           }
           setIsLoading(false);
-        }, (err: unknown) => {
+// FIX: The error from onSnapshot is a FirestoreError, so we can access .code directly, avoiding type errors with `unknown`.
+        }, (err: FirestoreError) => {
           handleFirestoreError(err, 'academy data');
-          // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
-          // The error from onSnapshot is a FirestoreError, so we can access .code directly.
-          // Safely access the error code to prevent type errors.
-          const code = (err && typeof err === 'object' && 'code' in err) ? String((err as {code: unknown}).code) : undefined;
-          if (code !== 'unavailable' && code !== 'cancelled') {
+          if (err.code !== 'unavailable' && err.code !== 'cancelled') {
               setCurrentUser(null);
               setCurrentAcademy(null);
           }
@@ -1064,12 +1064,21 @@ function App(): React.ReactNode {
           return <StaffBatchAccessPage onBack={() => setPage('staff-manager')} staff={selectedStaff} batches={batches} onSave={updateStaffBatchAccess} />;
       }
 
+      case 'settings':
+        return <SettingsPage onBack={() => setPage('dashboard')} onNavigate={setPage} onShowDevPopup={handleShowDevPopup} />;
+
+      case 'custom-sms-settings':
+        return <CustomSmsSettingsPage onBack={() => setPage('settings')} onShowDevPopup={handleShowDevPopup} />;
+
       case 'dashboard':
       default:
         return (
           <Dashboard
             onNavigate={setPage}
             academy={currentUser.data as Academy}
+            students={students}
+            batches={batches}
+            staff={staff}
             onShowDevPopup={handleShowDevPopup}
           />
         );

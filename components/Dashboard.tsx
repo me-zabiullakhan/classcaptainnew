@@ -1,6 +1,7 @@
 
+
 import React from 'react';
-import type { FeatureItem, Academy } from '../types';
+import type { FeatureItem, Academy, Student, Batch, Staff } from '../types';
 import { FeatureIcon } from './FeatureIcon';
 
 import { BatchesIcon } from './icons/BatchesIcon';
@@ -48,10 +49,24 @@ const features: FeatureItem[] = [
 interface DashboardProps {
     onNavigate: (page: string) => void;
     academy: Academy;
+    students: Student[];
+    batches: Batch[];
+    staff: Staff[];
     onShowDevPopup: (featureName: string) => void;
 }
 
-export function Dashboard({ onNavigate, academy, onShowDevPopup }: DashboardProps): React.ReactNode {
+const SummaryCard = ({ title, active, inactive, colorClass, onNavigate }: { title: string, active: number, inactive: number, colorClass: string, onNavigate: () => void }) => (
+  <button onClick={onNavigate} className={`p-4 rounded-xl shadow-md text-white w-full ${colorClass} text-left transition-transform transform hover:scale-105`}>
+    <h3 className="text-xl font-bold">{title}</h3>
+    <div className="mt-2 text-sm">
+      <div className="flex justify-between"><span>Active</span> <span>{active}</span></div>
+      <div className="flex justify-between"><span>Inactive</span> <span>{inactive}</span></div>
+    </div>
+  </button>
+);
+
+
+export function Dashboard({ onNavigate, academy, students, batches, staff, onShowDevPopup }: DashboardProps): React.ReactNode {
   const getClickHandler = (name: string) => {
     switch (name) {
       case 'Batches':
@@ -64,14 +79,26 @@ export function Dashboard({ onNavigate, academy, onShowDevPopup }: DashboardProp
         return () => onNavigate('select-batch-attendance');
       case 'Staff Manager':
         return () => onNavigate('staff-manager');
+      case 'Settings':
+        return () => onNavigate('settings');
       default:
         return () => onShowDevPopup(name);
     }
   }
 
+  const activeStudents = students.filter(s => s.isActive).length;
+  const inactiveStudents = students.length - activeStudents;
+
+  const activeStaff = staff.filter(s => s.isActive).length;
+  const inactiveStaff = staff.length - activeStaff;
+
+  const activeBatches = batches.length;
+  const inactiveBatches = 0;
+
   const hasContactInfo = academy.contactEmail || academy.contactPhone || academy.address;
 
   return (
+    <>
     <div className="p-6 overflow-y-auto flex-grow">
       <div className="bg-indigo-600 text-white p-4 rounded-xl shadow-lg mb-8 flex items-center space-x-4">
           <div className="bg-white/30 w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0">
@@ -124,5 +151,11 @@ export function Dashboard({ onNavigate, academy, onShowDevPopup }: DashboardProp
         ))}
       </div>
     </div>
+    <div className="p-4 grid grid-cols-3 gap-3 bg-white dark:bg-gray-800 shadow-inner mt-auto flex-shrink-0">
+        <SummaryCard title="Batches" active={activeBatches} inactive={inactiveBatches} colorClass="bg-teal-500" onNavigate={() => onNavigate('batches')} />
+        <SummaryCard title="Students" active={activeStudents} inactive={inactiveStudents} colorClass="bg-orange-500" onNavigate={() => onNavigate('student-options')} />
+        <SummaryCard title="Staff" active={activeStaff} inactive={inactiveStaff} colorClass="bg-red-500" onNavigate={() => onNavigate('staff-manager')} />
+    </div>
+    </>
   );
 }
