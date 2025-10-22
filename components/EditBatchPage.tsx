@@ -1,13 +1,12 @@
-
-
 import React from 'react';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import type { Batch } from '../types';
 import { ClockIcon } from './icons/ClockIcon';
 
-interface NewBatchPageProps {
+interface EditBatchPageProps {
   onBack: () => void;
-  onSave: (batchData: Omit<Batch, 'id' | 'currentStudents' | 'isActive'>) => void;
+  onSave: (batchId: string, batchData: Omit<Batch, 'id' | 'currentStudents'>) => void;
+  batch: Batch;
 }
 
 const FormInput = ({ label, id, icon, ...props }: { label: string, id: string, icon?: React.ReactNode } & React.InputHTMLAttributes<HTMLInputElement>) => (
@@ -36,15 +35,30 @@ const DayButton: React.FC<{ day: string, isSelected: boolean, onClick: () => voi
   </button>
 );
 
-export function NewBatchPage({ onBack, onSave }: NewBatchPageProps): React.ReactNode {
-  const [name, setName] = React.useState('');
-  const [location, setLocation] = React.useState('');
-  const [teacher, setTeacher] = React.useState('');
-  const [time, setTime] = React.useState('');
-  const [maxSlots, setMaxSlots] = React.useState('');
-  const [selectedDays, setSelectedDays] = React.useState<Set<string>>(new Set());
-  const [batchFeeAmount, setBatchFeeAmount] = React.useState('');
-  const [batchFeeType, setBatchFeeType] = React.useState<'Monthly' | 'Yearly' | undefined>(undefined);
+const ToggleSwitch: React.FC<{ checked: boolean; onChange: () => void }> = ({ checked, onChange }) => (
+    <button
+        type="button"
+        className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${checked ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+        onClick={onChange}
+        aria-pressed={checked}
+    >
+        <span
+        className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`}
+        />
+    </button>
+);
+
+
+export function EditBatchPage({ onBack, onSave, batch }: EditBatchPageProps): React.ReactNode {
+  const [name, setName] = React.useState(batch.name);
+  const [location, setLocation] = React.useState(batch.location);
+  const [teacher, setTeacher] = React.useState(batch.teacher);
+  const [time, setTime] = React.useState(batch.time);
+  const [maxSlots, setMaxSlots] = React.useState(String(batch.maxSlots));
+  const [selectedDays, setSelectedDays] = React.useState<Set<string>>(new Set(batch.days));
+  const [batchFeeAmount, setBatchFeeAmount] = React.useState(String(batch.batchFeeAmount || ''));
+  const [batchFeeType, setBatchFeeType] = React.useState<'Monthly' | 'Yearly' | undefined>(batch.batchFeeType);
+  const [isActive, setIsActive] = React.useState(batch.isActive);
 
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -68,13 +82,14 @@ export function NewBatchPage({ onBack, onSave }: NewBatchPageProps): React.React
 
     const feeAmountNumber = batchFeeAmount ? parseInt(batchFeeAmount, 10) : undefined;
     
-    const saveData: Omit<Batch, 'id' | 'currentStudents' | 'isActive'> = {
+    const saveData: Omit<Batch, 'id' | 'currentStudents'> = {
       name,
       location,
       teacher,
       time,
       days: Array.from(selectedDays),
       maxSlots: parseInt(maxSlots, 10) || 0,
+      isActive,
     };
 
     if (feeAmountNumber && feeAmountNumber > 0 && batchFeeType) {
@@ -85,7 +100,7 @@ export function NewBatchPage({ onBack, onSave }: NewBatchPageProps): React.React
         return;
     }
 
-    onSave(saveData);
+    onSave(batch.id, saveData);
   };
 
   return (
@@ -94,11 +109,18 @@ export function NewBatchPage({ onBack, onSave }: NewBatchPageProps): React.React
         <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back to batches">
           <ArrowLeftIcon className="w-6 h-6" />
         </button>
-        <h1 className="text-xl font-bold ml-2">New Batch</h1>
+        <h1 className="text-xl font-bold ml-2">Edit Batch</h1>
       </header>
       
       <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="flex-grow flex flex-col">
         <main className="flex-grow p-4 overflow-y-auto">
+          <div className="mb-6 flex justify-between items-center bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-300 dark:border-gray-600">
+            <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium">Batch Status</label>
+            <div className="flex items-center space-x-2">
+                <span className={`text-sm font-semibold ${isActive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{isActive ? 'Active' : 'Inactive'}</span>
+                <ToggleSwitch checked={isActive} onChange={() => setIsActive(prev => !prev)} />
+            </div>
+          </div>
           <FormInput id="batchName" label="Batch Name" value={name} onChange={e => setName(e.target.value)} required />
           <FormInput id="batchLocation" label="Batch Location" value={location} onChange={e => setLocation(e.target.value)} />
           <FormInput id="batchTeacher" label="Batch Teacher" value={teacher} onChange={e => setTeacher(e.target.value)} />
@@ -159,7 +181,7 @@ export function NewBatchPage({ onBack, onSave }: NewBatchPageProps): React.React
             type="submit"
             className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
-            SAVE BATCH
+            UPDATE BATCH
           </button>
         </footer>
       </form>

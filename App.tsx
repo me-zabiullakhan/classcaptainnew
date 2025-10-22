@@ -1,5 +1,6 @@
 
 
+
 import React from 'react';
 import { GoogleGenAI, Chat, GenerateContentResponse } from '@google/genai';
 import { Header } from './components/Header';
@@ -54,6 +55,9 @@ import { WrenchIcon } from './components/icons/WrenchIcon';
 import { SettingsPage } from './components/SettingsPage';
 import { CustomSmsSettingsPage } from './components/CustomSmsSettingsPage';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
+import { EditBatchPage } from './components/EditBatchPage';
+import { StaffOptionsPage } from './components/StaffOptionsPage';
+import { InactiveStaffPage } from './components/InactiveStaffPage';
 
 type Message = {
     text: string;
@@ -501,9 +505,9 @@ function App(): React.ReactNode {
   };
   
   // Handlers
-  const handleCreateBatch = async (batchData: Omit<Batch, 'id' | 'currentStudents'>) => {
+  const handleCreateBatch = async (batchData: Omit<Batch, 'id' | 'currentStudents' | 'isActive'>) => {
     if (isDemoMode) {
-        const newBatch = { ...batchData, id: `demo-batch-${Date.now()}`, currentStudents: 0 };
+        const newBatch = { ...batchData, id: `demo-batch-${Date.now()}`, currentStudents: 0, isActive: true };
         setBatches(prev => [...prev, newBatch]);
         setCurrentPage('batches');
         return;
@@ -512,7 +516,8 @@ function App(): React.ReactNode {
     try {
         await addDoc(collection(db, `academies/${academyId}/batches`), {
             ...batchData,
-            currentStudents: 0
+            currentStudents: 0,
+            isActive: true
         });
         setCurrentPage('batches');
     } catch (error) {
@@ -521,18 +526,34 @@ function App(): React.ReactNode {
     }
   };
 
-  const handleCreateStudent = async (studentData: Omit<Student, 'id' | 'isActive' | 'rollNumber'>) => {
+  const handleUpdateBatch = async (batchId: string, batchData: Omit<Batch, 'id' | 'currentStudents'>) => {
     if (isDemoMode) {
-        const nextId = students.length + 1;
-        const newRollNumber = `STU${String(nextId).padStart(4, '0')}`;
-        const newStudent = { ...studentData, rollNumber: newRollNumber, id: `demo-student-${Date.now()}`, isActive: true };
-        setStudents(prev => [...prev, newStudent as Student]);
-        setCurrentPage('student-options');
-        return;
+      setBatches(prev => prev.map(b => b.id === batchId ? { ...b, ...batchData, id: b.id, currentStudents: b.currentStudents } : b));
+      setCurrentPage('batches');
+      return;
     }
     if (!academyId) return;
     try {
-        await runTransaction(db, async (transaction) => {
+      const batchRef = doc(db, `academies/${academyId}/batches`, batchId);
+      await updateDoc(batchRef, batchData);
+      setCurrentPage('batches');
+    } catch (error) {
+      console.error("Error updating batch: ", error);
+      alert("Failed to update batch. Please check your connection and try again.");
+    }
+  };
+
+  const handleCreateStudent = async (studentData: Omit<Student, 'id' | 'isActive' | 'rollNumber'>): Promise<Student | void> => {
+    if (isDemoMode) {
+        const nextId = students.length + 1;
+        const newRollNumber = `STU${String(nextId).padStart(4, '0')}`;
+        const newStudent: Student = { ...studentData, rollNumber: newRollNumber, id: `demo-student-${Date.now()}`, isActive: true };
+        setStudents(prev => [...prev, newStudent]);
+        return newStudent;
+    }
+    if (!academyId) return;
+    try {
+        const newStudent = await runTransaction(db, async (transaction) => {
             const counterRef = doc(db, `academies/${academyId}/counters`, 'studentCounter');
             const counterDoc = await transaction.get(counterRef);
 
@@ -542,6 +563,13 @@ function App(): React.ReactNode {
 
             const newStudentRef = doc(collection(db, `academies/${academyId}/students`));
 
+            const fullStudentData: Student = {
+                ...studentData,
+                id: newStudentRef.id,
+                rollNumber: formattedId,
+                isActive: true
+            };
+
             transaction.set(newStudentRef, {
                 ...studentData,
                 rollNumber: formattedId,
@@ -549,8 +577,18 @@ function App(): React.ReactNode {
             });
             
             transaction.set(counterRef, { lastId: newIdNumber }, { merge: !counterDoc.exists() });
+
+            // Increment student count in batches
+            studentData.batches.forEach(batchName => {
+                const batchToUpdate = batches.find(b => b.name === batchName);
+                if (batchToUpdate) {
+                    const batchRef = doc(db, `academies/${academyId}/batches`, batchToUpdate.id);
+                    transaction.update(batchRef, { currentStudents: increment(1) });
+                }
+            });
+            return fullStudentData;
         });
-        setCurrentPage('student-options');
+        return newStudent;
     } catch (error) {
         console.error("Error adding student: ", error);
         alert("Failed to create student. Please check your connection and try again.");
@@ -565,8 +603,41 @@ function App(): React.ReactNode {
     }
     if (!academyId || !selectedStudentId) return;
     try {
-        const studentRef = doc(db, `academies/${academyId}/students`, selectedStudentId);
-        await updateDoc(studentRef, studentData);
+        await runTransaction(db, async (transaction) => {
+            const studentRef = doc(db, `academies/${academyId}/students`, selectedStudentId);
+            const studentDoc = await transaction.get(studentRef);
+            if (!studentDoc.exists()) {
+                throw new Error("Student not found!");
+            }
+            const oldStudentData = studentDoc.data() as Student;
+
+            // Only update batch counts if the student is currently active
+            if (oldStudentData.isActive) {
+                const oldBatches = new Set(oldStudentData.batches || []);
+                const newBatches = new Set(studentData.batches || []);
+
+                const batchesToRemoveFrom = [...oldBatches].filter(b => !newBatches.has(b));
+                const batchesToAddTo = [...newBatches].filter(b => !oldBatches.has(b));
+                
+                batchesToRemoveFrom.forEach(batchName => {
+                    const batchToUpdate = batches.find(b => b.name === batchName);
+                    if (batchToUpdate) {
+                        const batchRef = doc(db, `academies/${academyId}/batches`, batchToUpdate.id);
+                        transaction.update(batchRef, { currentStudents: increment(-1) });
+                    }
+                });
+
+                batchesToAddTo.forEach(batchName => {
+                    const batchToUpdate = batches.find(b => b.name === batchName);
+                    if (batchToUpdate) {
+                        const batchRef = doc(db, `academies/${academyId}/batches`, batchToUpdate.id);
+                        transaction.update(batchRef, { currentStudents: increment(1) });
+                    }
+                });
+            }
+            
+            transaction.update(studentRef, studentData);
+        });
         setCurrentPage('active-students');
     } catch (error) {
         console.error("Error updating student: ", error);
@@ -628,12 +699,53 @@ function App(): React.ReactNode {
     }
 
     if (!academyId) return;
+    
     const studentRef = doc(db, `academies/${academyId}/students`, studentId);
+    const newStatus = !student.isActive;
+    const incrementValue = newStatus ? 1 : -1;
+
     try {
-        await updateDoc(studentRef, { isActive: !student.isActive });
+        await runTransaction(db, async (transaction) => {
+            transaction.update(studentRef, { isActive: newStatus });
+            
+            student.batches.forEach(batchName => {
+                const batchToUpdate = batches.find(b => b.name === batchName);
+                if (batchToUpdate) {
+                    const batchRef = doc(db, `academies/${academyId}/batches`, batchToUpdate.id);
+                    // Prevent negative counts
+                    const currentStudents = batchToUpdate.currentStudents || 0;
+                    if (incrementValue === -1 && currentStudents <= 0) {
+                        return;
+                    }
+                    transaction.update(batchRef, { currentStudents: increment(incrementValue) });
+                }
+            });
+        });
     } catch (error) {
         console.error("Error toggling student status: ", error);
         alert("Failed to update student status.");
+    }
+  };
+
+  const handleToggleStaffStatus = async (staffId: string) => {
+    const staffMember = staff.find(s => s.id === staffId);
+    if (!staffMember) return;
+
+    if (isDemoMode) {
+        setStaff(prev => prev.map(s => s.id === staffId ? {...s, isActive: !s.isActive} : s));
+        return;
+    }
+
+    if (!academyId) return;
+    
+    const staffRef = doc(db, `academies/${academyId}/staff`, staffId);
+    const newStatus = !staffMember.isActive;
+
+    try {
+        await updateDoc(staffRef, { isActive: newStatus });
+    } catch (error) {
+        console.error("Error toggling staff status: ", error);
+        alert("Failed to update staff status.");
     }
   };
 
@@ -683,7 +795,7 @@ function App(): React.ReactNode {
   const navigateToStudentOptions = () => setCurrentPage('student-options');
   const navigateToFeesOptions = () => setCurrentPage('fees-options');
   const navigateToSelectBatchForAttendance = () => setCurrentPage('select-batch-attendance');
-  const navigateToStaffManager = () => setCurrentPage('staff-manager');
+  const navigateToStaffOptions = () => setCurrentPage('staff-options');
   const navigateToSettings = () => setCurrentPage('settings');
 
   const navigateToTakeAttendance = (batchId: string) => {
@@ -699,6 +811,11 @@ function App(): React.ReactNode {
   const navigateToEditStudent = (studentId: string) => {
       setSelectedStudentId(studentId);
       setCurrentPage('edit-student');
+  };
+
+  const navigateToEditBatch = (batchId: string) => {
+    setSelectedBatchId(batchId);
+    setCurrentPage('edit-batch');
   };
   
   const navigateToSelectBatchForFees = () => {
@@ -816,12 +933,13 @@ function App(): React.ReactNode {
 
     const adminScreens: { [key: string]: React.ReactNode } = {
         'dashboard': <Dashboard onNavigate={handleNavigate} academy={academy} students={students} batches={batches} staff={staff} onShowDevPopup={setShowDevPopup} />,
-        'batches': <BatchesPage onBack={navigateToDashboard} onCreate={navigateToNewBatch} batches={batches} onViewStudents={navigateToActiveStudentsFromBatch} onShowDevPopup={setShowDevPopup} />,
+        'batches': <BatchesPage onBack={navigateToDashboard} onCreate={navigateToNewBatch} batches={batches} onViewStudents={navigateToActiveStudentsFromBatch} onEditBatch={navigateToEditBatch} />,
         'new-batch': <NewBatchPage onBack={navigateToBatches} onSave={handleCreateBatch} />,
+        'edit-batch': selectedBatch ? <EditBatchPage onBack={navigateToBatches} onSave={handleUpdateBatch} batch={selectedBatch} /> : null,
         'student-options': <StudentOptionsPage onBack={navigateToDashboard} onNavigate={setCurrentPage} onShowDevPopup={setShowDevPopup} />,
         'fees-options': <FeesOptionsPage onBack={navigateToDashboard} onNavigate={setCurrentPage} />,
-        'new-student': <NewStudentPage onBack={navigateToStudentOptions} onSave={handleCreateStudent} batches={batches} />,
-        'select-batch-attendance': <SelectBatchForAttendancePage onBack={navigateToDashboard} batches={batches.filter(b => b.currentStudents > 0)} onSelectBatch={navigateToTakeAttendance} />,
+        'new-student': <NewStudentPage onBack={navigateToStudentOptions} onSave={handleCreateStudent} batches={batches} academyId={academy?.academyId || ''} />,
+        'select-batch-attendance': <SelectBatchForAttendancePage onBack={navigateToDashboard} batches={batches} onSelectBatch={navigateToTakeAttendance} />,
         'take-attendance': selectedBatch ? <TakeAttendancePage onBack={navigateToSelectBatchForAttendance} batch={selectedBatch} students={studentsInSelectedBatch} academyId={academyId!} isDemoMode={isDemoMode} /> : null,
         'active-students': <ActiveStudentsPage onBack={navigateToStudentOptions} students={students} batches={batches} onToggleStudentStatus={handleToggleStudentStatus} onEditStudent={navigateToEditStudent} onViewStudent={navigateToViewStudentForm} initialFilter={initialStudentFilter} />,
         'inactive-students': <InactiveStudentsPage onBack={navigateToStudentOptions} students={students} batches={batches} onToggleStudentStatus={handleToggleStudentStatus} />,
@@ -835,9 +953,11 @@ function App(): React.ReactNode {
         'student-fee-details': selectedStudent ? <StudentFeeDetailsPage onBack={() => setCurrentPage('select-student-for-fees')} student={selectedStudent} feeCollections={feeCollections.filter(fc => fc.studentId === selectedStudent.id)} onSavePayment={handleSavePayment} /> : null,
         'fee-dues-list': <FeeDuesListPage onBack={navigateToFeesOptions} students={students} batches={batches} feeCollections={feeCollections} />,
         'fee-collection-report': <FeeCollectionReportPage onBack={navigateToFeesOptions} feeCollections={feeCollections} />,
-        'staff-manager': <StaffManagerPage onBack={navigateToDashboard} onCreate={navigateToNewStaff} staff={staff} onManageAccess={navigateToStaffAccess} onShowDevPopup={setShowDevPopup} />,
-        'new-staff': <NewStaffPage onBack={navigateToStaffManager} onSave={handleCreateStaff} />,
-        'staff-batch-access': selectedStaff ? <StaffBatchAccessPage onBack={navigateToStaffManager} staff={selectedStaff} batches={batches} onSave={handleSaveStaffAccess} /> : null,
+        'staff-options': <StaffOptionsPage onBack={navigateToDashboard} onNavigate={setCurrentPage} />,
+        'staff-manager': <StaffManagerPage onBack={() => handleNavigate('staff-options')} staff={staff} onManageAccess={navigateToStaffAccess} onShowDevPopup={setShowDevPopup} onToggleStatus={handleToggleStaffStatus} />,
+        'new-staff': <NewStaffPage onBack={() => handleNavigate('staff-options')} onSave={handleCreateStaff} />,
+        'inactive-staff': <InactiveStaffPage onBack={() => handleNavigate('staff-options')} staff={staff} onToggleStatus={handleToggleStaffStatus} />,
+        'staff-batch-access': selectedStaff ? <StaffBatchAccessPage onBack={() => handleNavigate('staff-manager')} staff={selectedStaff} batches={batches} onSave={handleSaveStaffAccess} /> : null,
         'settings': <SettingsPage onBack={navigateToDashboard} onNavigate={setCurrentPage} onShowDevPopup={setShowDevPopup} />,
         'custom-sms-settings': <CustomSmsSettingsPage onBack={navigateToSettings} onShowDevPopup={setShowDevPopup} />
     };

@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { Student, Batch, BatchAccessPermissions } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -138,7 +139,7 @@ export function ActiveStudentsPage({ onBack, students, batches, onToggleStudentS
                         className="w-full sm:w-auto px-4 py-2 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     >
                         <option value="all">All Batches</option>
-                        {batches.map(batch => (
+                        {batches.filter(b => b.isActive).map(batch => (
                             <option key={batch.id} value={batch.name}>{batch.name}</option>
                         ))}
                     </select>

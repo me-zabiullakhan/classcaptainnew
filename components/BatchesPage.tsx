@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { PlusIcon } from './icons/PlusIcon';
@@ -11,10 +12,10 @@ interface BatchesPageProps {
   onCreate: () => void;
   batches: Batch[];
   onViewStudents: (batchName: string) => void;
-  onShowDevPopup: (featureName: string) => void;
+  onEditBatch: (batchId: string) => void;
 }
 
-export function BatchesPage({ onBack, onCreate, batches, onViewStudents, onShowDevPopup }: BatchesPageProps): React.ReactNode {
+export function BatchesPage({ onBack, onCreate, batches, onViewStudents, onEditBatch }: BatchesPageProps): React.ReactNode {
   return (
     <div className="animate-fade-in flex flex-col h-full">
       <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md flex-shrink-0 sticky top-0 z-10">
@@ -32,14 +33,19 @@ export function BatchesPage({ onBack, onCreate, batches, onViewStudents, onShowD
         ) : (
           <div className="space-y-4 pb-20">
             {batches.map(batch => (
-              <div key={batch.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border-l-4 border-indigo-500 hover:shadow-lg transition-shadow duration-200 flex flex-col justify-between">
+              <div key={batch.id} className={`bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border-l-4 ${batch.isActive ? 'border-indigo-500' : 'border-gray-400'} hover:shadow-lg transition-shadow duration-200 flex flex-col justify-between`}>
                 <div>
                   <div className="flex justify-between items-start">
                       <div>
                           <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100">{batch.name}</h3>
                           <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{batch.teacher || 'No Teacher'} &middot; {batch.location || 'No Location'}</p>
                       </div>
-                      <span className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-full flex-shrink-0">{batch.time || 'Unscheduled'}</span>
+                      <div className="flex flex-col items-end space-y-2">
+                        <span className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-full flex-shrink-0">{batch.time || 'Unscheduled'}</span>
+                         <span className={`text-xs px-2 py-1 rounded-full ${batch.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            {batch.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
                   </div>
                   <div className="flex justify-between items-center mt-2 text-sm text-gray-600 dark:text-gray-300">
                     <span className="font-medium">{batch.currentStudents} / {batch.maxSlots} Students</span>
@@ -51,7 +57,7 @@ export function BatchesPage({ onBack, onCreate, batches, onViewStudents, onShowD
 
                 <div className="border-t dark:border-gray-700 mt-4 pt-3 flex justify-end space-x-2">
                     <button
-                      onClick={() => onShowDevPopup('Edit Batch')}
+                      onClick={() => onEditBatch(batch.id)}
                       className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-200 bg-gray-100 dark:bg-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
                       aria-label={`Edit batch ${batch.name}`}
                     >

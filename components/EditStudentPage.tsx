@@ -35,6 +35,10 @@ export function EditStudentPage({ onBack, onUpdate, student, batches }: EditStud
     });
     const [isBatchModalOpen, setBatchModalOpen] = React.useState(false);
 
+    const selectableBatches = React.useMemo(() => 
+        batches.filter(b => b.isActive || formData.batches.includes(b.name)), 
+    [batches, formData.batches]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -207,7 +211,7 @@ export function EditStudentPage({ onBack, onUpdate, student, batches }: EditStud
             <div className="bg-white rounded-lg shadow-xl m-4 w-full max-w-md flex flex-col max-h-[90vh]">
                 <h3 className="text-lg font-bold p-4 border-b">Select Batches</h3>
                 <div className="p-4 space-y-2 overflow-y-auto">
-                    {batches.length > 0 ? batches.map(batch => (
+                    {selectableBatches.length > 0 ? selectableBatches.map(batch => (
                         <label key={batch.id} className="flex items-center p-3 rounded-lg hover:bg-slate-100 cursor-pointer">
                             <input 
                                 type="checkbox" 
@@ -215,10 +219,10 @@ export function EditStudentPage({ onBack, onUpdate, student, batches }: EditStud
                                 checked={formData.batches.includes(batch.name)}
                                 onChange={() => handleBatchSelection(batch.name)}
                             />
-                            <span className="ml-3 text-gray-700">{batch.name}</span>
+                            <span className="ml-3 text-gray-700">{batch.name} {!batch.isActive && <span className="text-xs text-red-500">(Inactive)</span>}</span>
                         </label>
                     )) : (
-                        <p className="text-gray-500 text-center">No batches available. Please create a batch first.</p>
+                        <p className="text-gray-500 text-center">No active batches available.</p>
                     )}
                 </div>
                 <div className="p-4 border-t">

@@ -14,7 +14,7 @@ export function SelectBatchForFeesPage({ onBack, batches, onSelectBatch }: Selec
   const [searchTerm, setSearchTerm] = React.useState('');
 
   const filteredBatches = batches.filter(batch =>
-    batch.name.toLowerCase().includes(searchTerm.toLowerCase())
+    batch.isActive && batch.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -56,8 +56,8 @@ export function SelectBatchForFeesPage({ onBack, batches, onSelectBatch }: Selec
           </div>
         ) : (
           <div className="text-center py-20 px-4">
-            <p className="text-lg text-gray-500">No batches found.</p>
-            <p className="text-sm text-gray-400 mt-2">Create a batch to start collecting fees.</p>
+            <p className="text-lg text-gray-500">No active batches found.</p>
+            <p className="text-sm text-gray-400 mt-2">Create an active batch to start collecting fees.</p>
           </div>
         )}
       </main>

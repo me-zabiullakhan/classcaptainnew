@@ -1,5 +1,6 @@
 
 
+
 import React from 'react';
 import type { FeatureItem, Academy, Student, Batch, Staff } from '../types';
 import { FeatureIcon } from './FeatureIcon';
@@ -78,7 +79,7 @@ export function Dashboard({ onNavigate, academy, students, batches, staff, onSho
       case 'Attendance':
         return () => onNavigate('select-batch-attendance');
       case 'Staff Manager':
-        return () => onNavigate('staff-manager');
+        return () => onNavigate('staff-options');
       case 'Settings':
         return () => onNavigate('settings');
       default:
@@ -92,8 +93,8 @@ export function Dashboard({ onNavigate, academy, students, batches, staff, onSho
   const activeStaff = staff.filter(s => s.isActive).length;
   const inactiveStaff = staff.length - activeStaff;
 
-  const activeBatches = batches.length;
-  const inactiveBatches = 0;
+  const activeBatches = batches.filter(b => b.isActive).length;
+  const inactiveBatches = batches.length - activeBatches;
 
   const hasContactInfo = academy.contactEmail || academy.contactPhone || academy.address;
 
@@ -153,7 +154,7 @@ export function Dashboard({ onNavigate, academy, students, batches, staff, onSho
       <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
         <SummaryCard title="Batches" active={activeBatches} inactive={inactiveBatches} colorClass="bg-teal-500" onNavigate={() => onNavigate('batches')} />
         <SummaryCard title="Students" active={activeStudents} inactive={inactiveStudents} colorClass="bg-orange-500" onNavigate={() => onNavigate('student-options')} />
-        <SummaryCard title="Staff" active={activeStaff} inactive={inactiveStaff} colorClass="bg-red-500" onNavigate={() => onNavigate('staff-manager')} />
+        <SummaryCard title="Staff" active={activeStaff} inactive={inactiveStaff} colorClass="bg-red-500" onNavigate={() => onNavigate('staff-options')} />
       </div>
     </div>
   );

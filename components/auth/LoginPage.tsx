@@ -192,7 +192,23 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { 
                     // onAuthStateChanged in App.tsx will handle the rest
                 } catch (err: any) {
                     if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-                        onLoginFailed();
+                        // Check if an academy with this email exists in Firestore to give a more specific error.
+                        try {
+                            const q = query(collection(db, 'academies'), where('adminEmail', '==', rawEmail));
+                            const querySnapshot = await getDocs(q);
+                            
+                            if (querySnapshot.empty) {
+                                // No academy found for this email, so it's a "user not found" case.
+                                onLoginFailed(); 
+                            } else {
+                                // Academy exists, so it must be a "wrong password" case.
+                                setError('Incorrect password. Please try again.');
+                            }
+                        } catch (firestoreError) {
+                            // If the Firestore query fails, fallback to a generic message.
+                            console.error("Firestore check failed during login:", firestoreError);
+                            setError("Invalid email or password. Please try again.");
+                        }
                     } else {
                         console.error("Login Error:", err);
                         setError(err.message || 'Failed to login.');
@@ -233,7 +249,7 @@ const StudentLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (
         setIsLoading(true);
         const form = e.target as HTMLFormElement;
         const academyId = (form.elements.namedItem('academyId') as HTMLInputElement).value.toUpperCase();
-        const rollNumber = (form.elements.namedItem('rollNumber') as HTMLInputElement).value;
+        const rollNumber = (form.elements.namedItem('rollNumber') as HTMLInputElement).value.toUpperCase();
         const password = (form.elements.namedItem('password') as HTMLInputElement).value;
 
         if (academyId === 'ACDEMO') {
@@ -295,8 +311,8 @@ const StudentLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (
 
     return (
         <form onSubmit={handleStudentLogin}>
-            <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Academy ID" type="text" name="academyId" placeholder="e.g. AC0001" required />
-            <FormInput icon={<UserIcon className="w-5 h-5" />} label="Roll Number" type="text" name="rollNumber" placeholder="Your student ID" required />
+            <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Academy ID" type="text" name="academyId" placeholder="e.g. AC0001" required autoCapitalize="characters" />
+            <FormInput icon={<UserIcon className="w-5 h-5" />} label="Roll Number" type="text" name="rollNumber" placeholder="e.g. S001" required autoCapitalize="characters" />
             <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" name="password" placeholder="Enter your password" required />
             <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4">
                 Sign in
@@ -312,7 +328,7 @@ const StaffLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (l:
         setIsLoading(true);
         const form = e.target as HTMLFormElement;
         const academyId = (form.elements.namedItem('academyId') as HTMLInputElement).value.toUpperCase();
-        const staffId = (form.elements.namedItem('staffId') as HTMLInputElement).value;
+        const staffId = (form.elements.namedItem('staffId') as HTMLInputElement).value.toUpperCase();
         const password = (form.elements.namedItem('password') as HTMLInputElement).value;
 
         if (academyId === 'ACDEMO') {
@@ -373,8 +389,8 @@ const StaffLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (l:
 
     return (
         <form onSubmit={handleStaffLogin}>
-            <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Academy ID" type="text" name="academyId" placeholder="e.g. AC0001" required />
-            <FormInput icon={<BookIcon className="w-5 h-5" />} label="Staff ID" type="text" name="staffId" placeholder="Your staff ID" required />
+            <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Academy ID" type="text" name="academyId" placeholder="e.g. AC0001" required autoCapitalize="characters" />
+            <FormInput icon={<BookIcon className="w-5 h-5" />} label="Staff ID" type="text" name="staffId" placeholder="e.g. T01" required autoCapitalize="characters" />
             <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" name="password" placeholder="Enter your password" required />
             <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4">
                 Sign in

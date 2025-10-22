@@ -35,6 +35,7 @@ export interface Batch {
   currentStudents: number;
   batchFeeAmount?: number;
   batchFeeType?: 'Monthly' | 'Yearly';
+  isActive: boolean;
 }
 
 export interface Student {

@@ -12,6 +12,7 @@ export const demoBatches: Batch[] = [
         currentStudents: 3,
         batchFeeAmount: 500,
         batchFeeType: 'Monthly',
+        isActive: true,
     },
     {
         id: 'demo-batch-2',
@@ -24,6 +25,7 @@ export const demoBatches: Batch[] = [
         currentStudents: 4,
         batchFeeAmount: 400,
         batchFeeType: 'Monthly',
+        isActive: true,
     },
 ];
 

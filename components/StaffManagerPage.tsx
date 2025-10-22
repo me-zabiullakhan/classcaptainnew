@@ -1,38 +1,55 @@
 
+
 import React from 'react';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
-import { PlusIcon } from './icons/PlusIcon';
 import type { Staff } from '../types';
 import { PencilIcon } from './icons/PencilIcon';
 import { TrashIcon } from './icons/TrashIcon';
 import { KeyIcon } from './icons/KeyIcon';
 
+const ToggleSwitch: React.FC<{ checked: boolean; onChange: () => void }> = ({ checked, onChange }) => (
+    <button
+        type="button"
+        className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${checked ? 'bg-indigo-600' : 'bg-gray-300'}`}
+        onClick={onChange}
+        aria-pressed={checked}
+    >
+        <span
+        className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`}
+        />
+    </button>
+);
+
+
 interface StaffManagerPageProps {
   onBack: () => void;
-  onCreate: () => void;
   staff: Staff[];
   onManageAccess: (staffId: string) => void;
   onShowDevPopup: (featureName: string) => void;
+  onToggleStatus: (staffId: string) => void;
 }
 
-export function StaffManagerPage({ onBack, onCreate, staff, onManageAccess, onShowDevPopup }: StaffManagerPageProps): React.ReactNode {
+export function StaffManagerPage({ onBack, staff, onManageAccess, onShowDevPopup, onToggleStatus }: StaffManagerPageProps): React.ReactNode {
+  
+  const activeStaff = staff.filter(s => s.isActive);
+
   return (
     <div className="animate-fade-in flex flex-col h-full">
       <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md flex-shrink-0 sticky top-0 z-10">
-        <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go to dashboard">
+        <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go to staff options">
           <ArrowLeftIcon className="w-6 h-6" />
         </button>
-        <h1 className="text-xl font-bold ml-2">Staff Manager</h1>
+        <h1 className="text-xl font-bold ml-2">Active Staff</h1>
       </header>
       <main className="flex-grow p-4 overflow-y-auto">
-        {staff.length === 0 ? (
+        {activeStaff.length === 0 ? (
           <div className="text-center py-20 px-4">
-            <p className="text-lg text-gray-500 mb-4">No staff members have been added yet.</p>
-            <p className="text-gray-400">Click the <span className="font-bold text-indigo-500">+</span> button to add your first staff member.</p>
+            <p className="text-lg text-gray-500 mb-4">No active staff members found.</p>
+            <p className="text-gray-400">Go to Staff Options to add a new staff member.</p>
           </div>
         ) : (
-          <div className="space-y-4 pb-20">
-            {staff.map(member => (
+          <div className="space-y-4 pb-4">
+            {activeStaff.map(member => (
               <div key={member.id} className="bg-white p-4 rounded-lg shadow-md border-l-4 border-indigo-500 flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-start">
@@ -45,9 +62,10 @@ export function StaffManagerPage({ onBack, onCreate, staff, onManageAccess, onSh
                             <p className="text-sm text-gray-500 mb-1">{member.staffId}</p>
                         </div>
                       </div>
-                      <span className={`text-xs px-2 py-1 rounded-full ${member.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {member.isActive ? 'Active' : 'Inactive'}
-                      </span>
+                       <div className="flex flex-col items-end">
+                          <ToggleSwitch checked={member.isActive} onChange={() => onToggleStatus(member.id)} />
+                          <span className="text-xs text-gray-400 mt-1">{member.isActive ? 'Active' : 'Inactive'}</span>
+                      </div>
                   </div>
                 </div>
 
@@ -82,14 +100,6 @@ export function StaffManagerPage({ onBack, onCreate, staff, onManageAccess, onSh
           </div>
         )}
       </main>
-
-      <button
-        onClick={onCreate}
-        className="absolute bottom-20 right-4 bg-indigo-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        aria-label="Add New Staff"
-      >
-        <PlusIcon className="w-8 h-8" />
-      </button>
     </div>
   );
 }

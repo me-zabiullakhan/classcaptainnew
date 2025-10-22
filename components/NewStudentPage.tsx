@@ -6,12 +6,73 @@ import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { CameraIcon } from './icons/CameraIcon';
 import { ContactsIcon } from './icons/ContactsIcon';
 import { CalendarIcon } from './icons/CalendarIcon';
+import { ClipboardDocumentIcon } from './icons/ClipboardDocumentIcon';
+import { CheckCircleIcon } from './icons/CheckCircleIcon';
 
 interface NewStudentPageProps {
   onBack: () => void;
-  onSave: (studentData: Omit<Student, 'id' | 'isActive' | 'rollNumber'>) => void;
+  onSave: (studentData: Omit<Student, 'id' | 'isActive' | 'rollNumber'>) => Promise<Student | void>;
   batches: Batch[];
+  academyId: string;
 }
+
+const StudentCreationSuccessModal: React.FC<{ student: Student, academyId: string, onClose: () => void }> = ({ student, academyId, onClose }) => {
+    
+    const [copied, setCopied] = React.useState(false);
+
+    const handleCopy = () => {
+        const textToCopy = `Student Login Details:\nAcademy ID: ${academyId}\nRoll Number: ${student.rollNumber}\nPassword: ${student.password}`;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    };
+    
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fade-in p-4">
+            <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-lg max-w-sm mx-auto text-center">
+                <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/40 mb-5">
+                    <CheckCircleIcon className="h-9 w-9 text-green-600 dark:text-green-400" />
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100 mb-3">Student Added Successfully!</h2>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6">
+                    Please share the following login credentials with the student.
+                </p>
+                
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-left space-y-2 mb-6 border border-gray-200 dark:border-gray-600">
+                    <div className="flex justify-between items-center">
+                        <span className="font-medium text-gray-500 dark:text-gray-400 text-sm">Academy ID:</span>
+                        <span className="font-mono font-bold text-gray-800 dark:text-gray-100">{academyId}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="font-medium text-gray-500 dark:text-gray-400 text-sm">Roll Number:</span>
+                        <span className="font-mono font-bold text-gray-800 dark:text-gray-100">{student.rollNumber}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="font-medium text-gray-500 dark:text-gray-400 text-sm">Password:</span>
+                        <span className="font-mono font-bold text-gray-800 dark:text-gray-100">{student.password}</span>
+                    </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                    <button 
+                        onClick={handleCopy}
+                        className="w-full flex items-center justify-center gap-2 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-bold py-3 px-4 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900 transition-colors"
+                    >
+                        <ClipboardDocumentIcon className="w-5 h-5" />
+                        <span>{copied ? 'Copied!' : 'Copy Details'}</span>
+                    </button>
+                    <button 
+                        onClick={onClose}
+                        className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors shadow-md"
+                    >
+                        Done
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const FormInput = ({ label, id, children, containerClassName, ...props }: { label: string, id: string, children?: React.ReactNode, containerClassName?: string } & React.InputHTMLAttributes<HTMLInputElement>) => (
   <div className={`relative bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-300 dark:border-gray-600 ${containerClassName}`}>
@@ -27,7 +88,7 @@ const FormInput = ({ label, id, children, containerClassName, ...props }: { labe
   </div>
 );
 
-export function NewStudentPage({ onBack, onSave, batches }: NewStudentPageProps): React.ReactNode {
+export function NewStudentPage({ onBack, onSave, batches, academyId }: NewStudentPageProps): React.ReactNode {
     const [formData, setFormData] = React.useState<Omit<Student, 'id' | 'feeAmount' | 'isActive' | 'rollNumber'> & { feeAmount: string }>({
         name: '',
         fatherName: '',
@@ -45,6 +106,10 @@ export function NewStudentPage({ onBack, onSave, batches }: NewStudentPageProps)
     });
     const [isBatchModalOpen, setBatchModalOpen] = React.useState(false);
     const [batchFeeHint, setBatchFeeHint] = React.useState<string | null>(null);
+    const [createdStudent, setCreatedStudent] = React.useState<Student | null>(null);
+    const [isSaving, setIsSaving] = React.useState(false);
+
+    const activeBatches = batches.filter(b => b.isActive);
 
     React.useEffect(() => {
         let feeDetailsFound = false;
@@ -96,7 +161,7 @@ export function NewStudentPage({ onBack, onSave, batches }: NewStudentPageProps)
         });
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!formData.name.trim() || !formData.fatherName.trim() || !formData.motherName.trim() || !formData.dob || !formData.mobile1 || !formData.address || !formData.admissionDate) {
             alert("Please fill all required fields.");
             return;
@@ -109,10 +174,16 @@ export function NewStudentPage({ onBack, onSave, batches }: NewStudentPageProps)
             alert("Please specify fee type and amount.");
             return;
         }
-        onSave({
+        
+        setIsSaving(true);
+        const result = await onSave({
             ...formData,
             feeAmount: parseFloat(formData.feeAmount) || 0,
         });
+        setIsSaving(false);
+        if (result) {
+            setCreatedStudent(result);
+        }
     };
 
   return (
@@ -231,16 +302,18 @@ export function NewStudentPage({ onBack, onSave, batches }: NewStudentPageProps)
         <button
           type="button"
           onClick={onBack}
-          className="w-full bg-red-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-600 transition-colors shadow-md"
+          disabled={isSaving}
+          className="w-full bg-red-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-600 transition-colors shadow-md disabled:bg-red-300 disabled:cursor-not-allowed"
         >
           CANCEL
         </button>
         <button
           type="submit"
           form="new-student-form"
-          className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors shadow-md"
+          disabled={isSaving}
+          className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors shadow-md disabled:bg-indigo-300 disabled:cursor-not-allowed"
         >
-          SAVE
+          {isSaving ? 'SAVING...' : 'SAVE'}
         </button>
       </footer>
     </div>
@@ -249,7 +322,7 @@ export function NewStudentPage({ onBack, onSave, batches }: NewStudentPageProps)
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl m-4 w-full max-w-md flex flex-col max-h-[90vh]">
                 <h3 className="text-lg font-bold p-4 border-b dark:border-gray-700 text-gray-800 dark:text-gray-100">Select Batches</h3>
                 <div className="p-4 space-y-2 overflow-y-auto">
-                    {batches.length > 0 ? batches.map(batch => (
+                    {activeBatches.length > 0 ? activeBatches.map(batch => (
                         <label key={batch.id} className="flex items-center p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-700 cursor-pointer">
                             <input 
                                 type="checkbox" 
@@ -260,7 +333,7 @@ export function NewStudentPage({ onBack, onSave, batches }: NewStudentPageProps)
                             <span className="ml-3 text-gray-700 dark:text-gray-300">{batch.name}</span>
                         </label>
                     )) : (
-                        <p className="text-gray-500 dark:text-gray-400 text-center">No batches available. Please create a batch first.</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-center">No active batches available. Please create an active batch first.</p>
                     )}
                 </div>
                 <div className="p-4 border-t dark:border-gray-700">
@@ -271,6 +344,7 @@ export function NewStudentPage({ onBack, onSave, batches }: NewStudentPageProps)
             </div>
         </div>
     )}
+    {createdStudent && <StudentCreationSuccessModal student={createdStudent} academyId={academyId} onClose={onBack} />}
     </>
   );
 }

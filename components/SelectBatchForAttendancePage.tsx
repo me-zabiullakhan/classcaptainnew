@@ -34,6 +34,8 @@ const BatchAttendanceCard: React.FC<{ batch: Batch; onSelect: () => void; }> = (
 );
 
 export function SelectBatchForAttendancePage({ onBack, batches, onSelectBatch }: SelectBatchForAttendancePageProps): React.ReactNode {
+  const activeBatches = batches.filter(batch => batch.isActive);
+
   return (
     <div className="animate-fade-in flex flex-col h-full">
       <header className="bg-indigo-700 text-white p-3 flex items-center justify-between shadow-md flex-shrink-0 sticky top-0 z-10">
@@ -49,16 +51,16 @@ export function SelectBatchForAttendancePage({ onBack, batches, onSelectBatch }:
       </header>
 
       <main className="flex-grow p-4 overflow-y-auto">
-        {batches.length > 0 ? (
+        {activeBatches.length > 0 ? (
           <div className="space-y-3">
-            {batches.map(batch => (
+            {activeBatches.map(batch => (
               <BatchAttendanceCard key={batch.id} batch={batch} onSelect={() => onSelectBatch(batch.id)} />
             ))}
           </div>
         ) : (
           <div className="text-center py-20 px-4">
-            <p className="text-lg text-gray-500">No batches with active students found.</p>
-            <p className="text-sm text-gray-400 mt-2">Please create a batch and add students to take attendance.</p>
+            <p className="text-lg text-gray-500">No active batches found.</p>
+            <p className="text-sm text-gray-400 mt-2">Create a batch and mark it as active to take attendance.</p>
           </div>
         )}
       </main>
