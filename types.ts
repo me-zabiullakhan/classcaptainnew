@@ -70,6 +70,7 @@ export interface BatchAccessPermissions {
   studyMaterial?: boolean;
   homework?: boolean;
   onlineExam?: boolean;
+  schedule?: boolean; // Can view/manage schedule for this batch
 }
 
 export interface Staff {
@@ -126,4 +127,30 @@ export interface FeeCollection {
   paymentMode: 'Cash' | 'UPI' | 'Card' | 'Other';
   collectedBy?: string; // admin's email or ID
   createdAt: Timestamp;
+}
+
+export interface ClassScheduleItem {
+  type: 'class';
+  id: string;
+  subject: string;
+  teacherId: string;
+  teacherName: string;
+  startTime: string;
+  endTime: string;
+}
+
+export interface BreakScheduleItem {
+  type: 'break';
+  id: string;
+  breakType: 'Short Break' | 'Lunch Break' | 'Other';
+  startTime: string;
+  endTime: string;
+}
+
+export type ScheduleItem = ClassScheduleItem | BreakScheduleItem;
+
+// Document ID will be 'YYYY-MM-DD'
+// Content will be key-value pairs of batchId: ScheduleItem[]
+export interface DailySchedule {
+  [batchId: string]: ScheduleItem[];
 }

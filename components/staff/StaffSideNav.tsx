@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { FeatureItem, Staff, BatchAccessPermissions } from '../../types';
 import { LogoIcon } from '../icons/LogoIcon';
@@ -9,10 +10,12 @@ import { FeesIcon } from '../icons/FeesIcon';
 import { ExamsIcon } from '../icons/ExamsIcon';
 import { AccountIcon } from '../icons/AccountIcon';
 import { LogoutIcon } from '../icons/LogoutIcon';
+import { TimetableIcon } from '../icons/TimetableIcon';
 
 const allFeatures: Omit<FeatureItem, 'color'>[] = [
   { name: 'Students', Icon: StudentsIcon },
   { name: 'Attendance', Icon: AttendanceIcon },
+  { name: 'Class Schedule', Icon: TimetableIcon },
   { name: 'Tuition Fees', Icon: FeesIcon },
   { name: 'Manage Exams', Icon: ExamsIcon },
 ];
@@ -44,6 +47,7 @@ export function StaffSideNav({ isOpen, onClose, onNavigate, onLogout, staff, onS
       case 'Students': return () => handleNavigate('active-students');
       case 'Tuition Fees': return () => handleNavigate('fees-options');
       case 'Attendance': return () => handleNavigate('select-batch-attendance');
+      case 'Class Schedule': return () => handleNavigate('class-schedule');
       default: return () => onShowDevPopup(name);
     }
   }
@@ -52,6 +56,7 @@ export function StaffSideNav({ isOpen, onClose, onNavigate, onLogout, staff, onS
       switch (feature.name) {
           case 'Students': return Object.keys(batchAccess || {}).length > 0;
           case 'Attendance': return hasPermission('attendance');
+          case 'Class Schedule': return Object.keys(batchAccess || {}).length > 0;
           case 'Tuition Fees': return hasPermission('fees');
           case 'Manage Exams': return hasPermission('exams');
           default: return false;

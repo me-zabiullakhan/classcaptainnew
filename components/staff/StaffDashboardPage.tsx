@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { FeatureItem, Academy, Staff, BatchAccessPermissions } from '../../types';
 import { FeatureIcon } from '../FeatureIcon';
@@ -8,10 +9,12 @@ import { FeesIcon } from '../icons/FeesIcon';
 import { ExamsIcon } from '../icons/ExamsIcon';
 import { NoticeIcon } from '../icons/NoticeIcon';
 import { IncomeIcon } from '../icons/IncomeIcon';
+import { TimetableIcon } from '../icons/TimetableIcon';
 
 const permissionBasedFeatures: FeatureItem[] = [
   { name: 'Students', Icon: StudentsIcon, color: 'bg-blue-600' },
   { name: 'Attendance', Icon: AttendanceIcon, color: 'bg-purple-600' },
+  { name: 'Class Schedule', Icon: TimetableIcon, color: 'bg-pink-500' },
   { name: 'Tuition Fees', Icon: FeesIcon, color: 'bg-emerald-500' },
   { name: 'Manage Exams', Icon: ExamsIcon, color: 'bg-lime-500' },
 ];
@@ -45,6 +48,8 @@ export function StaffDashboardPage({ onNavigate, academy, staff, onShowDevPopup 
               return Object.keys(batchAccess || {}).length > 0;
           case 'Attendance':
               return hasPermission('attendance');
+          case 'Class Schedule':
+              return Object.keys(batchAccess || {}).length > 0;
           case 'Tuition Fees':
               return hasPermission('fees');
           case 'Manage Exams':
@@ -61,6 +66,7 @@ export function StaffDashboardPage({ onNavigate, academy, staff, onShowDevPopup 
       case 'Students': return () => onNavigate('active-students');
       case 'Tuition Fees': return () => onNavigate('select-batch-for-fees');
       case 'Attendance': return () => onNavigate('select-batch-attendance');
+      case 'Class Schedule': return () => onNavigate('class-schedule');
       default: return () => onShowDevPopup(name);
     }
   }

@@ -1,8 +1,12 @@
+
 import React from 'react';
 import { LogoIcon } from '../icons/LogoIcon';
 import { XMarkIcon } from '../icons/XMarkIcon';
 import { MyAcademyIcon } from '../icons/MyAcademyIcon';
 import { LogoutIcon } from '../icons/LogoutIcon';
+import { TimetableIcon } from '../icons/TimetableIcon';
+import { AttendanceStudentIcon } from '../icons/AttendanceStudentIcon';
+import { TuitionFeesStudentIcon } from '../icons/TuitionFeesStudentIcon';
 
 interface StudentSideNavProps {
   isOpen: boolean;
@@ -52,6 +56,24 @@ export function StudentSideNav({ isOpen, onClose, onNavigate, onLogout }: Studen
                         <button onClick={() => handleNavigate('my-academy')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
                             <MyAcademyIcon className="w-6 h-6 mr-4 text-gray-400"/>
                             <span className="font-medium">My Academy</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button onClick={() => handleNavigate('timetable')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                            <TimetableIcon className="w-6 h-6 mr-4 text-gray-400"/>
+                            <span className="font-medium">Timetable</span>
+                        </button>
+                    </li>
+                     <li>
+                        <button onClick={() => handleNavigate('attendance')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                            <AttendanceStudentIcon className="w-6 h-6 mr-4 text-gray-400"/>
+                            <span className="font-medium">Attendance</span>
+                        </button>
+                    </li>
+                     <li>
+                        <button onClick={() => handleNavigate('fee-status')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                            <TuitionFeesStudentIcon className="w-6 h-6 mr-4 text-gray-400"/>
+                            <span className="font-medium">Fee Status</span>
                         </button>
                     </li>
                 </ul>

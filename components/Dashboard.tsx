@@ -1,6 +1,5 @@
 
 
-
 import React from 'react';
 import type { FeatureItem, Academy, Student, Batch, Staff } from '../types';
 import { FeatureIcon } from './FeatureIcon';
@@ -22,6 +21,7 @@ import { TodoIcon } from './icons/TodoIcon';
 import { NoticeIcon } from './icons/NoticeIcon';
 import { TransportIcon } from './icons/TransportIcon';
 import { SettingsIcon } from './icons/SettingsIcon';
+import { TimetableIcon } from './icons/TimetableIcon';
 import { GraduationCapIcon } from './icons/GraduationCapIcon';
 import { EmailIcon } from './icons/EmailIcon';
 import { PhoneIcon } from './icons/PhoneIcon';
@@ -30,6 +30,7 @@ import { BuildingIcon } from './icons/BuildingIcon';
 const features: FeatureItem[] = [
   { name: 'Batches', Icon: BatchesIcon, color: 'bg-teal-500' },
   { name: 'Students', Icon: StudentsIcon, color: 'bg-blue-600' },
+  { name: 'Timetable', Icon: TimetableIcon, color: 'bg-pink-500' },
   { name: 'Attendance', Icon: AttendanceIcon, color: 'bg-purple-600' },
   { name: 'Tuition Fees', Icon: FeesIcon, color: 'bg-emerald-500' },
   { name: 'Income/Expenses', Icon: IncomeIcon, color: 'bg-orange-500' },
@@ -74,6 +75,8 @@ export function Dashboard({ onNavigate, academy, students, batches, staff, onSho
         return () => onNavigate('batches');
       case 'Students':
         return () => onNavigate('student-options');
+      case 'Timetable':
+        return () => onNavigate('schedule-classes');
       case 'Tuition Fees':
         return () => onNavigate('fees-options');
       case 'Attendance':
@@ -99,7 +102,7 @@ export function Dashboard({ onNavigate, academy, students, batches, staff, onSho
   const hasContactInfo = academy.contactEmail || academy.contactPhone || academy.address;
 
   return (
-    <div className="p-4 overflow-y-auto flex-grow">
+    <div className="p-4 flex-grow">
       <div className="bg-indigo-600 text-white p-4 rounded-xl shadow-lg mb-6 flex items-center space-x-4">
           <div className="bg-white/30 w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0">
                {academy.logoUrl ? (

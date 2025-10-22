@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import { LogoIcon } from '../icons/LogoIcon';
 import { BuildingIcon } from '../icons/BuildingIcon';
@@ -145,6 +143,18 @@ const SuperAdminLoginModal = ({ onLogin, onClose }: { onLogin: (user: CurrentUse
     );
 };
 
+const DemoCredentials: React.FC<{ credentials: Record<string, string> }> = ({ credentials }) => (
+    <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg border dark:border-gray-600">
+        <p className="font-bold text-center mb-1 text-gray-600 dark:text-gray-300">For Demo</p>
+        {Object.entries(credentials).map(([key, value]) => (
+            <div key={key} className="flex justify-between">
+                <span className="font-semibold">{key}:</span>
+                <span className="font-mono">{value}</span>
+            </div>
+        ))}
+    </div>
+);
+
 const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { setIsLoading: (l:boolean)=>void, setError: (e:string)=>void, onLoginFailed: () => void, onLogin: (user: CurrentUser) => void }) => {
     
     const handleGoogleLogin = async () => {
@@ -224,6 +234,7 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { 
                 <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4">
                     Sign in
                 </button>
+                <DemoCredentials credentials={{ Email: 'demo@classcaptain.com', Password: 'demo123' }} />
             </form>
 
             <div className="relative my-4">
@@ -257,16 +268,19 @@ const StudentLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (
             const demoStudent = demoStudents.find(s => s.rollNumber === rollNumber && s.password === password);
             if (demoStudent) {
                 onLogin({ role: 'student', data: demoStudent, academyId, academyName: 'Demo Academy' });
-                setIsLoading(false);
-                return;
             } else {
                 setError("Invalid demo credentials.");
-                setIsLoading(false);
-                return;
             }
+            setIsLoading(false);
+            return;
         }
 
         try {
+            // Ensure we have an anonymous user session to perform reads, if not already present.
+            if (!auth.currentUser || !auth.currentUser.isAnonymous) {
+                await auth.signInAnonymously();
+            }
+
             const q = query(
                 collection(db, 'academies'),
                 where('academyId', '==', academyId)
@@ -275,7 +289,6 @@ const StudentLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (
 
             if (academySnapshot.empty) {
                 setError(`Academy with ID ${academyId} not found.`);
-                setIsLoading(false);
                 return;
             }
             const academyDoc = academySnapshot.docs[0];
@@ -290,7 +303,6 @@ const StudentLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (
 
             if (studentSnapshot.empty) {
                 setError('Student not found with that Roll Number.');
-                setIsLoading(false);
                 return;
             }
 
@@ -298,13 +310,21 @@ const StudentLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (
             const studentData = { id: studentDoc.id, ...studentDoc.data() } as Student;
 
             if (studentData.password === password) {
+                // Login success: Do not sign out the anonymous user.
+                // The session will persist until the user logs out of the app.
                 onLogin({ role: 'student', data: studentData, academyId: firestoreAcademyId, academyName: academyName });
             } else {
                 setError('Incorrect password.');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            setError('An error occurred during login. Please try again.');
+            if (error.code === 'auth/operation-not-allowed') {
+                 setError('Anonymous sign-in is not enabled in your Firebase project. Please contact the developer.');
+            } else if (error.code === 'permission-denied' || error.code === 'missing-permission') {
+                setError('Permission denied. Please check your Firestore security rules.');
+            } else {
+                setError('An error occurred during login. Please try again.');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -318,6 +338,7 @@ const StudentLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (
             <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4">
                 Sign in
             </button>
+            <DemoCredentials credentials={{ "Academy ID": "ACDEMO", "Roll Number": "S001", "Password": "alice123" }} />
         </form>
     );
 };
@@ -336,16 +357,19 @@ const StaffLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (l:
             const demoStaffMember = demoStaff.find(s => s.staffId === staffId && s.password === password);
             if (demoStaffMember) {
                 onLogin({ role: 'staff', data: demoStaffMember, academyId, academyName: 'Demo Academy' });
-                setIsLoading(false);
-                return;
             } else {
                 setError("Invalid demo credentials for staff.");
-                setIsLoading(false);
-                return;
             }
+            setIsLoading(false);
+            return;
         }
 
         try {
+            // Ensure we have an anonymous user session to perform reads, if not already present.
+            if (!auth.currentUser || !auth.currentUser.isAnonymous) {
+                await auth.signInAnonymously();
+            }
+
             const q = query(
                 collection(db, 'academies'),
                 where('academyId', '==', academyId)
@@ -354,7 +378,6 @@ const StaffLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (l:
 
             if (academySnapshot.empty) {
                 setError(`Academy with ID ${academyId} not found.`);
-                setIsLoading(false);
                 return;
             }
             const academyDoc = academySnapshot.docs[0];
@@ -369,7 +392,6 @@ const StaffLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (l:
 
             if (staffSnapshot.empty) {
                 setError('Staff member not found with that ID.');
-                setIsLoading(false);
                 return;
             }
 
@@ -377,13 +399,21 @@ const StaffLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (l:
             const staffData = { id: staffDoc.id, ...staffDoc.data() } as Staff;
 
             if (staffData.password === password) {
+                // Login success: Do not sign out the anonymous user.
+                // The session will persist until the user logs out of the app.
                 onLogin({ role: 'staff', data: staffData, academyId: firestoreAcademyId, academyName });
             } else {
                 setError('Incorrect password.');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            setError('An error occurred during login. Please try again.');
+            if (error.code === 'auth/operation-not-allowed') {
+                 setError('Anonymous sign-in is not enabled in your Firebase project. Please contact the developer.');
+            } else if (error.code === 'permission-denied' || error.code === 'missing-permission') {
+                setError('Permission denied. Please check your Firestore security rules.');
+            } else {
+                setError('An error occurred during login. Please try again.');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -397,6 +427,7 @@ const StaffLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (l:
             <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4">
                 Sign in
             </button>
+            <DemoCredentials credentials={{ "Academy ID": "ACDEMO", "Staff ID": "T01", "Password": "demostaff" }} />
         </form>
     );
 };

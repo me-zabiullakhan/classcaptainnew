@@ -1,6 +1,7 @@
 
+
 import React from 'react';
-import type { Batch } from '../types';
+import type { Batch, BatchAccessPermissions } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { SearchIcon } from './icons/SearchIcon';
 
@@ -8,14 +9,17 @@ interface SelectBatchForFeesPageProps {
   onBack: () => void;
   batches: Batch[];
   onSelectBatch: (batchId: string) => void;
+  staffPermissions?: Record<string, BatchAccessPermissions>;
 }
 
-export function SelectBatchForFeesPage({ onBack, batches, onSelectBatch }: SelectBatchForFeesPageProps): React.ReactNode {
+export function SelectBatchForFeesPage({ onBack, batches, onSelectBatch, staffPermissions }: SelectBatchForFeesPageProps): React.ReactNode {
   const [searchTerm, setSearchTerm] = React.useState('');
 
-  const filteredBatches = batches.filter(batch =>
-    batch.isActive && batch.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredBatches = batches.filter(batch => {
+    if (!batch.isActive) return false;
+    if (staffPermissions && !staffPermissions[batch.id]?.fees) return false;
+    return batch.name.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   return (
     <div className="animate-fade-in flex flex-col h-full">
@@ -56,8 +60,8 @@ export function SelectBatchForFeesPage({ onBack, batches, onSelectBatch }: Selec
           </div>
         ) : (
           <div className="text-center py-20 px-4">
-            <p className="text-lg text-gray-500">No active batches found.</p>
-            <p className="text-sm text-gray-400 mt-2">Create an active batch to start collecting fees.</p>
+            <p className="text-lg text-gray-500">No batches assigned for fee collection.</p>
+            <p className="text-sm text-gray-400 mt-2">Admin needs to grant you fee collection permission for one or more batches.</p>
           </div>
         )}
       </main>

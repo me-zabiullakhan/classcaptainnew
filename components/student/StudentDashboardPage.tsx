@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { Student, Academy } from '../../types';
 import { StudentHeader } from './StudentHeader';
@@ -10,6 +11,7 @@ import { ExamsIcon } from '../icons/ExamsIcon';
 import { HomeworkStudentIcon } from '../icons/HomeworkStudentIcon';
 import { OnlineExamIcon } from '../icons/OnlineExamIcon';
 import { StudyMaterialStudentIcon } from '../icons/StudyMaterialStudentIcon';
+import { TimetableIcon } from '../icons/TimetableIcon';
 
 interface StudentDashboardPageProps {
     student: Student;
@@ -24,6 +26,7 @@ interface StudentDashboardPageProps {
 const studentFeatures = [
     { name: 'My Academy', Icon: MyAcademyIcon, color: 'bg-cyan-500' },
     { name: 'Attendance', Icon: AttendanceStudentIcon, color: 'bg-purple-500' },
+    { name: 'Timetable', Icon: TimetableIcon, color: 'bg-pink-500' },
     { name: 'Tuition Fees', Icon: TuitionFeesStudentIcon, color: 'bg-green-500' },
     { name: 'Exams', Icon: ExamsIcon, color: 'bg-lime-500' },
     { name: 'Homework', Icon: HomeworkStudentIcon, color: 'bg-teal-500' },
@@ -43,13 +46,15 @@ export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav
                 return () => onNavigate('my-academy');
             case 'Attendance':
                 return () => onNavigate('attendance');
+            case 'Timetable':
+                return () => onNavigate('timetable');
             default:
                 return () => onShowDevPopup(name);
         }
     };
 
     return (
-        <div className="bg-gray-100 dark:bg-gray-900 h-screen font-sans flex flex-col md:max-w-lg md:mx-auto md:shadow-2xl">
+        <div className="bg-gray-100 dark:bg-gray-900 h-full font-sans flex flex-col">
             <StudentHeader studentName={student.name} academyLogoUrl={academy.logoUrl} onToggleNav={onToggleNav} theme={theme} onToggleTheme={onToggleTheme} />
             <main className="flex-grow p-4 space-y-4 overflow-y-auto">
                 {/* Banner */}

@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { FeatureItem } from '../types';
 import { LogoIcon } from './icons/LogoIcon';
@@ -22,11 +23,13 @@ import { TransportIcon } from './icons/TransportIcon';
 import { SettingsIcon } from './icons/SettingsIcon';
 import { AccountIcon } from './icons/AccountIcon';
 import { LogoutIcon } from './icons/LogoutIcon';
+import { TimetableIcon } from './icons/TimetableIcon';
 
 const features: Omit<FeatureItem, 'color'>[] = [
   { name: 'Batches', Icon: BatchesIcon },
   { name: 'Students', Icon: StudentsIcon },
   { name: 'Attendance', Icon: AttendanceIcon },
+  { name: 'Timetable', Icon: TimetableIcon },
   { name: 'Tuition Fees', Icon: FeesIcon },
   { name: 'Income/Expenses', Icon: IncomeIcon },
   { name: 'Manage Exams', Icon: ExamsIcon },
@@ -64,10 +67,16 @@ export function SideNav({ isOpen, onClose, onNavigate, onLogout, onShowDevPopup 
         return () => handleNavigate('batches');
       case 'Students':
         return () => handleNavigate('student-options');
+      case 'Timetable':
+        return () => handleNavigate('schedule-classes');
       case 'Tuition Fees':
         return () => handleNavigate('fees-options');
       case 'Attendance':
         return () => handleNavigate('select-batch-attendance');
+      case 'Staff Manager':
+        return () => handleNavigate('staff-options');
+      case 'Settings':
+        return () => handleNavigate('settings');
       default:
         return () => {
             onShowDevPopup(name);

@@ -1,6 +1,7 @@
 
+
 import React from 'react';
-import type { Batch } from '../types';
+import type { Batch, BatchAccessPermissions } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { SearchIcon } from './icons/SearchIcon';
 
@@ -8,6 +9,7 @@ interface SelectBatchForAttendancePageProps {
   onBack: () => void;
   batches: Batch[];
   onSelectBatch: (batchId: string) => void;
+  staffPermissions?: Record<string, BatchAccessPermissions>;
 }
 
 const BatchAttendanceCard: React.FC<{ batch: Batch; onSelect: () => void; }> = ({ batch, onSelect }) => (
@@ -33,8 +35,14 @@ const BatchAttendanceCard: React.FC<{ batch: Batch; onSelect: () => void; }> = (
   </button>
 );
 
-export function SelectBatchForAttendancePage({ onBack, batches, onSelectBatch }: SelectBatchForAttendancePageProps): React.ReactNode {
-  const activeBatches = batches.filter(batch => batch.isActive);
+export function SelectBatchForAttendancePage({ onBack, batches, onSelectBatch, staffPermissions }: SelectBatchForAttendancePageProps): React.ReactNode {
+  const activeBatches = batches.filter(batch => {
+    if (!batch.isActive) return false;
+    if (staffPermissions) {
+        return !!staffPermissions[batch.id]?.attendance;
+    }
+    return true;
+  });
 
   return (
     <div className="animate-fade-in flex flex-col h-full">
@@ -59,8 +67,8 @@ export function SelectBatchForAttendancePage({ onBack, batches, onSelectBatch }:
           </div>
         ) : (
           <div className="text-center py-20 px-4">
-            <p className="text-lg text-gray-500">No active batches found.</p>
-            <p className="text-sm text-gray-400 mt-2">Create a batch and mark it as active to take attendance.</p>
+            <p className="text-lg text-gray-500">No batches assigned for attendance.</p>
+            <p className="text-sm text-gray-400 mt-2">Admin needs to grant you attendance permission for one or more batches.</p>
           </div>
         )}
       </main>

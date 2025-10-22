@@ -30,7 +30,6 @@ const StudentCard: React.FC<{
     staffPermissions?: Record<string, BatchAccessPermissions>;
 }> = ({ student, batches, onToggleStatus, onEditStudent, onViewStudent, staffPermissions }) => {
 
-    // FIX: Rewrote logic to be more explicit and resolve the "Type 'unknown' cannot be used as an index type" error.
     const canEdit = React.useMemo(() => {
         if (!staffPermissions) return true; // Default to true for admin view
 
@@ -59,8 +58,16 @@ const StudentCard: React.FC<{
                     </div>
                 </div>
                 <div className="flex flex-col items-end">
-                    <ToggleSwitch checked={student.isActive} onChange={() => onToggleStatus(student.id)} />
-                    <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">{student.isActive ? 'Active' : 'Inactive'}</span>
+                    {canEdit ? (
+                        <>
+                            <ToggleSwitch checked={student.isActive} onChange={() => onToggleStatus(student.id)} />
+                            <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">{student.isActive ? 'Active' : 'Inactive'}</span>
+                        </>
+                    ) : (
+                         <span className={`text-xs px-2 py-1 rounded-full ${student.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            {student.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                    )}
                 </div>
             </div>
             <div className="mt-3 text-xs text-gray-600 dark:text-gray-300">
