@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { LogoIcon } from '../icons/LogoIcon';
 import { BuildingIcon } from '../icons/BuildingIcon';
@@ -151,11 +152,11 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { 
         setIsLoading(true);
         const provider = new firebase.auth.GoogleAuthProvider();
         try {
-            await auth.signInWithRedirect(provider);
-            // The page will redirect. App.tsx's onAuthStateChanged will handle the result.
+            await auth.signInWithPopup(provider);
+            // The onAuthStateChanged listener in App.tsx will handle the result.
         } catch (error: any) {
-            console.error("Google Login Redirect Error:", error);
-            setError(error.message || 'Failed to start sign in with Google.');
+            console.error("Google Login Popup Error:", error);
+            setError(error.message || 'Failed to sign in with Google.');
             setIsLoading(false);
         }
     };
@@ -248,8 +249,8 @@ const StudentLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (
         setError('');
         setIsLoading(true);
         const form = e.target as HTMLFormElement;
-        const academyId = (form.elements.namedItem('academyId') as HTMLInputElement).value.toUpperCase();
-        const rollNumber = (form.elements.namedItem('rollNumber') as HTMLInputElement).value.toUpperCase();
+        const academyId = (form.elements.namedItem('academyId') as HTMLInputElement).value.trim().toUpperCase();
+        const rollNumber = (form.elements.namedItem('rollNumber') as HTMLInputElement).value.trim().toUpperCase();
         const password = (form.elements.namedItem('password') as HTMLInputElement).value;
 
         if (academyId === 'ACDEMO') {
@@ -327,14 +328,14 @@ const StaffLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (l:
         setError('');
         setIsLoading(true);
         const form = e.target as HTMLFormElement;
-        const academyId = (form.elements.namedItem('academyId') as HTMLInputElement).value.toUpperCase();
-        const staffId = (form.elements.namedItem('staffId') as HTMLInputElement).value.toUpperCase();
+        const academyId = (form.elements.namedItem('academyId') as HTMLInputElement).value.trim().toUpperCase();
+        const staffId = (form.elements.namedItem('staffId') as HTMLInputElement).value.trim().toUpperCase();
         const password = (form.elements.namedItem('password') as HTMLInputElement).value;
 
         if (academyId === 'ACDEMO') {
             const demoStaffMember = demoStaff.find(s => s.staffId === staffId && s.password === password);
             if (demoStaffMember) {
-                onLogin({ role: 'staff', data: demoStaffMember, academyId });
+                onLogin({ role: 'staff', data: demoStaffMember, academyId, academyName: 'Demo Academy' });
                 setIsLoading(false);
                 return;
             } else {
@@ -358,6 +359,7 @@ const StaffLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (l:
             }
             const academyDoc = academySnapshot.docs[0];
             const firestoreAcademyId = academyDoc.id;
+            const academyName = academyDoc.data().name;
 
             const staffQuery = query(
                 collection(db, `academies/${firestoreAcademyId}/staff`),
@@ -375,7 +377,7 @@ const StaffLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (l:
             const staffData = { id: staffDoc.id, ...staffDoc.data() } as Staff;
 
             if (staffData.password === password) {
-                onLogin({ role: 'staff', data: staffData, academyId: firestoreAcademyId });
+                onLogin({ role: 'staff', data: staffData, academyId: firestoreAcademyId, academyName });
             } else {
                 setError('Incorrect password.');
             }

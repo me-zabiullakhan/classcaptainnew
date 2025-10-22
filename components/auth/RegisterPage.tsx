@@ -1,6 +1,7 @@
 
 
 
+
 import React from 'react';
 import { LogoIcon } from '../icons/LogoIcon';
 import { BuildingIcon } from '../icons/BuildingIcon';
@@ -130,9 +131,10 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
             sessionStorage.setItem('google_reg_flow', 'true');
             sessionStorage.setItem('google_reg_institute_name', instituteName);
             const provider = new firebase.auth.GoogleAuthProvider();
-            await auth.signInWithRedirect(provider);
+            await auth.signInWithPopup(provider);
+            // The onAuthStateChanged listener in App.tsx will handle the result.
         } catch (error: any) {
-            console.error("Google Registration Redirect Error:", error);
+            console.error("Google Registration Popup Error:", error);
             setError(error.message || 'Failed to start sign up with Google.');
             setIsLoading(false);
         }

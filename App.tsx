@@ -1,6 +1,9 @@
 
 
 
+
+
+
 import React from 'react';
 import { GoogleGenAI, Chat, GenerateContentResponse } from '@google/genai';
 import { Header } from './components/Header';
@@ -345,12 +348,6 @@ function App(): React.ReactNode {
                 setCurrentUser(null);
                 setIsLoading(false);
             }
-        });
-
-        // Handle Google sign-in redirect result
-        auth.getRedirectResult().catch(error => {
-            console.error("Google Redirect Result Error:", error);
-            setAuthError(error.message || "Failed to sign in with Google.");
         });
 
         return () => unsubscribe();
@@ -870,7 +867,7 @@ function App(): React.ReactNode {
       : (currentUser.role === 'student')
         ? { id: currentUser.academyId, name: currentUser.academyName, academyId: '' } as Academy
         : (currentUser.role === 'staff')
-          ? { id: currentUser.academyId, name: 'Staff View', academyId: '' } as Academy // Simplified for staff view
+          ? { id: currentUser.academyId, name: currentUser.academyName, academyId: '' } as Academy
           : null;
           
     if (!academy) {
@@ -899,7 +896,6 @@ function App(): React.ReactNode {
     // STAFF VIEW
     if (currentUser.role === 'staff') {
       const staffMember = currentUser.data;
-      const staffAcademy = { id: currentUser.academyId, name: "Academy", academyId: "Loading..." }
       
       const selectedBatchForAttendance = batches.find(b => b.id === selectedBatchId);
       const studentsForAttendance = selectedBatchForAttendance ? students.filter(s => s.batches.includes(selectedBatchForAttendance.name) && s.isActive) : [];
