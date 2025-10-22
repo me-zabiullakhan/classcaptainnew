@@ -152,7 +152,7 @@ export function StudentAttendancePage({ student, academyId, onBack }: StudentAtt
     const daysOfWeek = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
     return (
-        <div className="bg-slate-100 flex flex-col h-screen animate-fade-in md:max-w-lg md:mx-auto md:shadow-2xl">
+        <div className="bg-slate-100 flex flex-col h-full animate-fade-in">
             <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md flex-shrink-0 sticky top-0 z-10">
                 <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back to dashboard">
                     <ArrowLeftIcon className="w-6 h-6" />
