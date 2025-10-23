@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 // Firebase
 import { auth, db, firebaseConfig } from './firebaseConfig';
@@ -223,7 +224,9 @@ export default function App() {
         const unsubscribers: (() => void)[] = [];
 
         // Academy details for non-admins
-        if (currentUser.role !== 'admin' && currentUser.role !== 'superadmin') {
+        // FIX: The 'superadmin' role is already handled by a guard clause at the start of this effect.
+        // This removes the redundant and incorrect type comparison.
+        if (currentUser.role !== 'admin') {
             const academyDocRef = doc(db, 'academies', academyId);
             const unsubAcademy = onSnapshot(academyDocRef, (docSnap) => {
                 if (docSnap.exists()) {
