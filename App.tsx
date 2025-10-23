@@ -1,6 +1,5 @@
 
 
-
 import React, { useState, useEffect, useCallback } from 'react';
 // Firebase
 import { auth, db, firebaseConfig } from './firebaseConfig';
@@ -93,6 +92,52 @@ const DevInProgressPopup: React.FC<{ featureName: string; onClose: () => void }>
     </div>
 );
 
+const createAcademyInFirestore = async (user: User, instituteName: string): Promise<Academy> => {
+    const newAcademyRef = doc(collection(db, 'academies'));
+    const academyId = `AC${newAcademyRef.id.substring(0, 6).toUpperCase()}`;
+
+    const academyData = {
+        name: instituteName,
+        adminEmail: user.email!,
+        adminUid: user.uid,
+        createdAt: Timestamp.now(),
+        status: 'active' as const,
+        academyId: academyId,
+        subscriptionStatus: 'trialing' as const,
+        trialEndsAt: Timestamp.fromMillis(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+    };
+
+    // Create a mapping document in a 'users' collection to link UID to academy doc ID
+    const userDocRef = doc(db, 'users', user.uid);
+    const userMappingData = {
+        academyId: newAcademyRef.id,
+        role: 'admin'
+    };
+
+    try {
+        // Use a batch write to ensure both documents are created atomically
+        const batch = writeBatch(db);
+        batch.set(newAcademyRef, academyData);
+        batch.set(userDocRef, userMappingData);
+        await batch.commit();
+
+        // Verification step
+        const docSnap = await getDoc(newAcademyRef);
+        if (!docSnap.exists()) {
+            throw new Error("Failed to verify academy creation in database.");
+        }
+
+        return {
+            id: newAcademyRef.id,
+            ...academyData,
+        } as unknown as Academy;
+
+    } catch (error) {
+        console.error("Academy and user mapping creation failed:", error);
+        throw error;
+    }
+};
+
 
 export default function App() {
     // Theme state
@@ -158,6 +203,12 @@ export default function App() {
             window.removeEventListener('offline', handleOffline);
         };
     }, []);
+    
+    const handleRegisterSuccess = (academy: Academy) => {
+        setAcademy(academy);
+        setCurrentUser({ role: 'admin', data: academy });
+        setPage('dashboard');
+    }
 
     // Auth effect
     useEffect(() => {
@@ -168,25 +219,58 @@ export default function App() {
 
         const unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
             if (user) {
-                const q = query(collection(db, "academies"), where("adminUid", "==", user.uid));
-                const querySnapshot = await getDocs(q);
-                if (!querySnapshot.empty) {
-                    const academyDoc = querySnapshot.docs[0];
-                    const academyData = { id: academyDoc.id, ...academyDoc.data() } as Academy;
-                    setAcademy(academyData);
-                    setCurrentUser({ role: 'admin', data: academyData });
-                    setPage('dashboard');
+                // New logic: Check the 'users' collection first via direct doc read
+                const userDocRef = doc(db, "users", user.uid);
+                const userDocSnap = await getDoc(userDocRef);
+
+                if (userDocSnap.exists()) {
+                    // User mapping found. Fetch the associated academy.
+                    const userData = userDocSnap.data();
+                    if (userData.role === 'admin' && userData.academyId) {
+                        const academyDocRef = doc(db, "academies", userData.academyId);
+                        const academyDocSnap = await getDoc(academyDocRef);
+
+                        if (academyDocSnap.exists()) {
+                            // Academy found! Log them in.
+                            const academyData = { id: academyDocSnap.id, ...academyDocSnap.data() } as Academy;
+                            setAcademy(academyData);
+                            setCurrentUser({ role: 'admin', data: academyData });
+                            setPage('dashboard');
+                        } else {
+                            // Broken state: mapping exists but academy doc is gone.
+                            setAuthError("Your academy data could not be found. Please contact support.");
+                            await signOut(auth);
+                        }
+                    } else {
+                        // User exists but is not an admin (e.g., student/staff - handled elsewhere)
+                        setAuthError("Your account is not configured as an admin account.");
+                        await signOut(auth);
+                    }
                 } else {
-                     const isGoogleReg = sessionStorage.getItem('google_reg_flow') === 'true';
-                     if (isGoogleReg) {
-                        // Let the registration page handle it.
-                     } else {
-                        // User is authenticated but has no academy, might be an interrupted registration.
+                    // No user mapping found. This indicates a new registration flow.
+                    const instituteName = sessionStorage.getItem('google_reg_institute_name') || sessionStorage.getItem('registration_institute_name');
+                    if (instituteName) {
+                        try {
+                            const newAcademy = await createAcademyInFirestore(user, instituteName);
+                            alert(`Registration successful! Your Academy ID is ${newAcademy.academyId}. Please save it for your students and staff to log in.`);
+                            handleRegisterSuccess(newAcademy);
+                        } catch (error) {
+                            console.error("Error creating academy:", error);
+                            setAuthError("Failed to create your academy account. This can happen due to permission issues. Please check your Firestore security rules and try again.");
+                            await signOut(auth);
+                        } finally {
+                            sessionStorage.removeItem('google_reg_flow');
+                            sessionStorage.removeItem('google_reg_institute_name');
+                            sessionStorage.removeItem('registration_institute_name');
+                        }
+                    } else {
+                        // User is authenticated but has no mapping and is not in a registration flow.
                         setAuthError("No academy found for your account. Please register.");
                         await signOut(auth);
-                     }
+                    }
                 }
             } else {
+                // User is signed out.
                 setCurrentUser(null);
                 setAcademy(null);
             }
@@ -303,12 +387,6 @@ export default function App() {
         }
         setPage('dashboard');
     };
-
-    const handleRegisterSuccess = (academy: Academy) => {
-        setAcademy(academy);
-        setCurrentUser({ role: 'admin', data: academy });
-        setPage('dashboard');
-    }
 
     const handleLogout = async () => {
         setIsNavOpen(false);
@@ -501,7 +579,7 @@ export default function App() {
             <div className={`font-sans antialiased text-gray-900 bg-gray-50 dark:bg-gray-900 ${theme}`}>
                 {isPlaceholderConfig && <ConfigurationWarning />}
                 {page === 'register' ? (
-                    <RegisterPage onRegisterSuccess={handleRegisterSuccess} onNavigateToLogin={() => setPage('login')} />
+                    <RegisterPage onNavigateToLogin={() => setPage('login')} />
                 ) : (
                     <LoginPage onLogin={handleLogin} onNavigateToRegister={() => setPage('register')} externalError={authError} clearExternalError={() => setAuthError(null)} />
                 )}

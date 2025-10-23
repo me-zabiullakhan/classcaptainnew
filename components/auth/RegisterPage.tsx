@@ -2,20 +2,21 @@
 
 
 
+
+
+
+
 import React from 'react';
 import { LogoIcon } from '../icons/LogoIcon';
 import { BuildingIcon } from '../icons/BuildingIcon';
 import { EmailIcon } from '../icons/EmailIcon';
 import { LockIcon } from '../icons/LockIcon';
-import { collection, doc, runTransaction, query, where, getDocs, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { auth, db } from '../../firebaseConfig';
-import type { Academy } from '../../types';
+import { auth } from '../../firebaseConfig';
 import { GoogleIcon } from '../icons/GoogleIcon';
 import firebase from 'firebase/compat/app';
 
 
 interface RegisterPageProps {
-    onRegisterSuccess: (academy: Academy) => void;
     onNavigateToLogin: () => void;
 }
 
@@ -78,10 +79,9 @@ const InfoNote: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     </div>
 );
 
-export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterPageProps) {
+export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
     const [error, setError] = React.useState('');
     const [isLoading, setIsLoading] = React.useState(false);
-    const [newAcademy, setNewAcademy] = React.useState<Academy | null>(null);
     const [email, setEmail] = React.useState('');
     const instituteNameRef = React.useRef<HTMLInputElement>(null);
 
@@ -91,38 +91,6 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
             setEmail(prefilledEmail);
         }
     }, []);
-
-    const createAcademyInFirestore = async (user: firebase.User, instituteName: string): Promise<Academy> => {
-        return await runTransaction(db, async (transaction) => {
-            const counterRef = doc(db, 'counters', 'academyCounter');
-            const counterDoc = await transaction.get(counterRef);
-            
-            const lastId = counterDoc.exists() ? counterDoc.data().lastId : 0;
-            const newIdNumber = lastId + 1;
-            const formattedId = `AC${String(newIdNumber).padStart(4, '0')}`;
-            
-            const newAcademyRef = doc(collection(db, 'academies'));
-            
-            const academyDataForFirestore = {
-                name: instituteName,
-                adminEmail: user.email!,
-                adminUid: user.uid,
-                createdAt: serverTimestamp(),
-                status: 'active' as const,
-                academyId: formattedId,
-                subscriptionStatus: 'trialing' as const,
-                trialEndsAt: Timestamp.fromMillis(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-            };
-            transaction.set(newAcademyRef, academyDataForFirestore);
-            
-            transaction.set(counterRef, { lastId: newIdNumber }, { merge: !counterDoc.exists() });
-
-            return {
-                id: newAcademyRef.id,
-                ...academyDataForFirestore,
-            } as Academy;
-        });
-    };
 
     const handleGoogleRegister = async () => {
         setError('');
@@ -138,7 +106,7 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
             sessionStorage.setItem('google_reg_institute_name', instituteName);
             const provider = new firebase.auth.GoogleAuthProvider();
             await auth.signInWithPopup(provider);
-            // The onAuthStateChanged listener in App.tsx will handle the result.
+            // The onAuthStateChanged listener in App.tsx will now handle academy creation.
         } catch (error: any) {
             console.error("Google Registration Popup Error:", error);
             setError(error.message || 'Failed to start sign up with Google.');
@@ -163,49 +131,30 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
         }
 
         try {
-            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-            const user = userCredential.user;
-            if (!user) throw new Error("User creation failed.");
-
-            const createdAcademy = await createAcademyInFirestore(user, instituteName);
-            setNewAcademy(createdAcademy);
-
+            // Store institute name for the onAuthStateChanged listener to pick up
+            sessionStorage.setItem('registration_institute_name', instituteName);
+            
+            // Attempt to create the user.
+            await auth.createUserWithEmailAndPassword(email, password);
+            
+            // If successful, the onAuthStateChanged listener in App.tsx will take over.
+            // It will see the new user, find no academy document, and then create one
+            // using the instituteName from sessionStorage.
+            
         } catch (err: any) {
-             if (err.code === 'auth/email-already-in-use') {
+            // Handle specific errors from createUserWithEmailAndPassword
+            if (err.code === 'auth/email-already-in-use') {
                 setError("This email address is already registered. Please try logging in.");
             } else {
-                setError(err.message || "Failed to create account.");
+                console.error("Registration Error:", err);
+                setError(err.message || "An unexpected error occurred during registration.");
             }
-        } finally {
+            
+            // Clean up sessionStorage if any part of the registration fails
+            sessionStorage.removeItem('registration_institute_name');
             setIsLoading(false);
         }
     };
-
-    if (newAcademy) {
-        return (
-            <AuthLayout title="Registration Successful!" subtitle="Your academy is now ready to go.">
-                <AuthCard>
-                    <div className="text-center">
-                        <p className="text-gray-600 dark:text-gray-300 mb-4">Here is your unique Academy ID. Please save it carefully. Your students and teachers will need this ID to log in.</p>
-                        <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg my-4">
-                            <p className="text-gray-500 dark:text-gray-400 text-sm">Academy ID</p>
-                            <p className="text-indigo-600 dark:text-indigo-400 font-bold text-xl tracking-widest">{newAcademy.academyId}</p>
-                        </div>
-                        <button
-                            onClick={() => {
-                                navigator.clipboard.writeText(newAcademy.academyId);
-                                alert('Academy ID copied to clipboard!');
-                                onRegisterSuccess(newAcademy);
-                            }}
-                            className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4"
-                        >
-                            Copy ID & Proceed to Dashboard
-                        </button>
-                    </div>
-                </AuthCard>
-            </AuthLayout>
-        );
-    }
 
     return (
         <AuthLayout title="Create Your Account" subtitle="Register your coaching institute with Class Captain">
@@ -225,7 +174,7 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
                     <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" name="password" placeholder="Create a password" required />
                     <FormInput icon={<LockIcon className="w-5 h-5" />} label="Confirm Password" type="password" name="confirmPassword" placeholder="Confirm your password" required />
                     
-                    {error && <p className="text-red-500 text-sm text-center !-mt-2">{error}</p>}
+                    {error && <p className="text-red-500 text-sm text-center -mt-2 mb-2">{error}</p>}
 
                     <button type="submit" disabled={isLoading} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md disabled:bg-indigo-300">
                         {isLoading ? 'Creating Account...' : 'Create Account'}
