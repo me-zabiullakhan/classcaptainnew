@@ -5,7 +5,7 @@ import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 
 // IMPORTANT: Replace the following with your app's Firebase project configuration
 // For more information, visit: https://firebase.google.com/docs/web/setup#available-libraries
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyA_Nvv_zzZP-15Xaw0qsddKu5eahac-OvY",
   authDomain: "class-captain-01.firebaseapp.com",
   projectId: "class-captain-01",
