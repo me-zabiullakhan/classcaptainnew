@@ -159,3 +159,15 @@ export type ScheduleItem = ClassScheduleItem | BreakScheduleItem;
 export interface DailySchedule {
   [batchId: string]: ScheduleItem[];
 }
+
+export interface Transaction {
+  id: string; // Firestore document ID
+  type: 'Income' | 'Expense';
+  category: string;
+  amount: number;
+  paymentMethod: 'Cash' | 'UPI' | 'Bank Transfer' | 'Other';
+  description: string;
+  date: Timestamp;
+  attachmentUrl?: string;
+  createdAt: Timestamp;
+}

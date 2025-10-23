@@ -4,13 +4,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 // Firebase
 import { auth, db, firebaseConfig } from './firebaseConfig';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { collection, doc, onSnapshot, addDoc, updateDoc, setDoc, getDoc, query, where, getDocs, writeBatch, serverTimestamp, Timestamp, runTransaction } from 'firebase/firestore';
+import { collection, doc, onSnapshot, addDoc, updateDoc, setDoc, getDoc, query, where, getDocs, writeBatch, serverTimestamp, Timestamp, runTransaction, deleteDoc } from 'firebase/firestore';
 
 // Types
-import type { CurrentUser, Academy, Batch, Student, Staff, FeeCollection, BatchAccessPermissions, ScheduleItem } from './types';
+import type { CurrentUser, Academy, Batch, Student, Staff, FeeCollection, BatchAccessPermissions, ScheduleItem, Transaction } from './types';
 
 // Demo Data
-import { demoStudents, demoBatches, demoStaff } from './demoData';
+import { demoStudents, demoBatches, demoStaff, demoTransactions } from './demoData';
 
 // Components
 import { SplashScreen } from './components/SplashScreen';
@@ -49,6 +49,7 @@ import { EditBatchPage } from './components/EditBatchPage';
 import { ScheduleClassesPage } from './components/ScheduleClassesPage';
 import { SubscriptionPage } from './components/SubscriptionPage';
 import { SubscriptionExpiredPage } from './components/SubscriptionExpiredPage';
+import { IncomeExpensesPage } from './components/IncomeExpensesPage';
 // Student view components
 import { StudentDashboardPage } from './components/student/StudentDashboardPage';
 import { StudentFeeStatusPage } from './components/student/StudentFeeStatusPage';
@@ -162,6 +163,7 @@ export default function App() {
     const [students, setStudents] = useState<Student[]>([]);
     const [staff, setStaff] = useState<Staff[]>([]);
     const [feeCollections, setFeeCollections] = useState<FeeCollection[]>([]);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
 
     // Page-specific state
     const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
@@ -301,6 +303,7 @@ export default function App() {
                 setBatches(demoBatches);
                 setStaff(demoStaff);
                 setFeeCollections([]);
+                setTransactions(demoTransactions);
             }
             return;
         };
@@ -328,12 +331,13 @@ export default function App() {
             unsubscribers.push(unsubAcademy);
         }
 
-        const collectionsToSubscribe = ['batches', 'students', 'staff', 'fees'];
+        const collectionsToSubscribe = ['batches', 'students', 'staff', 'fees', 'transactions'];
         const setters: any = {
             batches: setBatches,
             students: setStudents,
             staff: setStaff,
-            fees: setFeeCollections
+            fees: setFeeCollections,
+            transactions: setTransactions,
         };
 
         collectionsToSubscribe.forEach(coll => {
@@ -578,6 +582,31 @@ export default function App() {
         // The onSnapshot listener will update the academy state, and re-render the app
     };
 
+    const handleSaveTransaction = async (transactionData: Omit<Transaction, 'id' | 'createdAt' | 'attachmentUrl'>) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode: Cannot save data."); }
+        await addDoc(collection(db, `academies/${academy.id}/transactions`), {
+            ...transactionData,
+            date: Timestamp.fromDate(new Date(transactionData.date as any)),
+            createdAt: serverTimestamp()
+        });
+    };
+    
+    const handleUpdateTransaction = async (transactionId: string, transactionData: Partial<Omit<Transaction, 'id' | 'createdAt'>>) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode: Cannot save data."); }
+        const transactionRef = doc(db, `academies/${academy.id}/transactions`, transactionId);
+        const dataToUpdate: { [key: string]: any } = { ...transactionData };
+        if (transactionData.date) {
+            dataToUpdate.date = Timestamp.fromDate(new Date(transactionData.date as any));
+        }
+        await updateDoc(transactionRef, dataToUpdate);
+    };
+
+    const handleDeleteTransaction = async (transactionId: string) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode: Cannot save data."); }
+        const transactionRef = doc(db, `academies/${academy.id}/transactions`, transactionId);
+        await deleteDoc(transactionRef);
+    };
+
 
     // Navigation handler
     const handleNavigate = (targetPage: string, params?: { [key: string]: any }) => {
@@ -670,6 +699,7 @@ export default function App() {
                     case 'staff-batch-access': return selectedStaffMember ? <StaffBatchAccessPage onBack={() => setPage('staff-manager')} staff={selectedStaffMember} batches={batches} onSave={handleSaveStaffAccess} /> : <p>Staff member not found</p>;
                     case 'schedule-classes': return <ScheduleClassesPage onBack={() => setPage('dashboard')} batches={batches} staff={staff} academyId={academy!.id} onSave={handleSaveDailySchedule} isDemoMode={isDemoMode} />;
                     case 'subscription': return <SubscriptionPage onBack={() => setPage('dashboard')} academy={academy!} onSubscribe={handleSubscribe} />;
+                    case 'income-expenses': return <IncomeExpensesPage onBack={() => setPage('dashboard')} transactions={transactions} onSave={handleSaveTransaction} onUpdate={handleUpdateTransaction} onDelete={handleDeleteTransaction} isDemoMode={isDemoMode} />;
                     default: return <Dashboard onNavigate={handleNavigate} academy={academy!} students={students} batches={batches} staff={staff} onShowDevPopup={setShowDevPopup} />;
                 }
             case 'student':

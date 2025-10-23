@@ -85,6 +85,8 @@ export function Dashboard({ onNavigate, academy, students, batches, staff, onSho
         return () => onNavigate('staff-options');
       case 'Settings':
         return () => onNavigate('settings');
+      case 'Income/Expenses':
+        return () => onNavigate('income-expenses');
       default:
         return () => onShowDevPopup(name);
     }

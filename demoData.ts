@@ -1,4 +1,5 @@
-import type { Batch, Student, Staff } from './types';
+import type { Batch, Student, Staff, Transaction } from './types';
+import { Timestamp } from 'firebase/firestore';
 
 export const demoBatches: Batch[] = [
     {
@@ -176,4 +177,37 @@ export const demoStaff: Staff[] = [
         },
         isActive: true,
     }
+];
+
+export const demoTransactions: Transaction[] = [
+    {
+        id: 'demo-tx-1',
+        type: 'Income',
+        category: 'Stationery Sales',
+        amount: 1500,
+        paymentMethod: 'Cash',
+        description: 'Sold 10 notebooks and 20 pens',
+        date: Timestamp.fromMillis(Date.now() - 86400 * 5 * 1000), // 5 days ago
+        createdAt: Timestamp.fromMillis(Date.now() - 86400 * 5 * 1000),
+    },
+    {
+        id: 'demo-tx-2',
+        type: 'Expense',
+        category: 'Rent',
+        amount: 10000,
+        paymentMethod: 'Bank Transfer',
+        description: 'Monthly rent for premises',
+        date: Timestamp.fromMillis(Date.now() - 86400 * 2 * 1000), // 2 days ago
+        createdAt: Timestamp.fromMillis(Date.now() - 86400 * 2 * 1000),
+    },
+    {
+        id: 'demo-tx-3',
+        type: 'Expense',
+        category: 'Electricity Bill',
+        amount: 2500,
+        paymentMethod: 'UPI',
+        description: 'Bill for last month',
+        date: Timestamp.fromMillis(Date.now() - 86400 * 10 * 1000), // 10 days ago
+        createdAt: Timestamp.fromMillis(Date.now() - 86400 * 10 * 1000),
+    },
 ];
