@@ -46,6 +46,8 @@ import { EditStudentPage } from './components/EditStudentPage';
 import { InactiveStudentsPage } from './components/InactiveStudentsPage';
 import { EditBatchPage } from './components/EditBatchPage';
 import { ScheduleClassesPage } from './components/ScheduleClassesPage';
+import { SubscriptionPage } from './components/SubscriptionPage';
+import { SubscriptionExpiredPage } from './components/SubscriptionExpiredPage';
 // Student view components
 import { StudentDashboardPage } from './components/student/StudentDashboardPage';
 import { StudentFeeStatusPage } from './components/student/StudentFeeStatusPage';
@@ -68,7 +70,7 @@ import { CustomSmsSettingsPage } from './components/CustomSmsSettingsPage';
 import { WrenchIcon } from './components/icons/WrenchIcon';
 
 // Check if Firebase config is still the placeholder
-const isPlaceholderConfig = firebaseConfig.apiKey.includes('placeholder') || firebaseConfig.apiKey.includes('AIzaSyA_Nvv_zzZP-15Xaw0qsddKu5eahac-OvY');
+const isPlaceholderConfig = firebaseConfig.apiKey.includes('placeholder');
 
 const DevInProgressPopup: React.FC<{ featureName: string; onClose: () => void }> = ({ featureName, onClose }) => (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fade-in p-4">
@@ -201,7 +203,7 @@ export default function App() {
     useEffect(() => {
         if (!currentUser || isPlaceholderConfig || isDemoMode) {
             if (isDemoMode) {
-                setAcademy({ id: 'demo-academy-id', academyId: 'ACDEMO', name: 'Demo Academy', adminUid: 'demo-admin-uid', adminEmail: 'demo@classcaptain.com', status: 'active' });
+                setAcademy({ id: 'demo-academy-id', academyId: 'ACDEMO', name: 'Demo Academy', adminUid: 'demo-admin-uid', adminEmail: 'demo@classcaptain.com', status: 'active', subscriptionStatus: 'active' });
                 setStudents(demoStudents);
                 setBatches(demoBatches);
                 setStaff(demoStaff);
@@ -209,6 +211,11 @@ export default function App() {
             }
             return;
         };
+
+        // FIX: The superadmin role does not have an academyId and should not trigger data fetching for an academy.
+        if (currentUser.role === 'superadmin') {
+            return;
+        }
 
         const academyId = (currentUser.role === 'admin') ? currentUser.data.id : currentUser.academyId;
         if (!academyId) return;
@@ -249,6 +256,37 @@ export default function App() {
         return () => unsubscribers.forEach(unsub => unsub());
 
     }, [currentUser, isDemoMode]);
+
+    // Subscription status check effect
+    useEffect(() => {
+        if (isPlaceholderConfig || !academy || currentUser?.role !== 'admin' || isDemoMode) return;
+
+        const checkSubscription = async () => {
+            const now = Timestamp.now();
+            let shouldUpdate = false;
+            let newStatus = academy.subscriptionStatus;
+    
+            if (academy.subscriptionStatus === 'trialing' && academy.trialEndsAt && academy.trialEndsAt < now) {
+                newStatus = 'expired';
+                shouldUpdate = true;
+            } else if (academy.subscriptionStatus === 'active' && academy.subscriptionEndsAt && academy.subscriptionEndsAt < now) {
+                newStatus = 'expired';
+                shouldUpdate = true;
+            }
+    
+            if (shouldUpdate) {
+                try {
+                    const academyRef = doc(db, 'academies', academy.id);
+                    await updateDoc(academyRef, { subscriptionStatus: newStatus });
+                    // The onSnapshot listener will update the local 'academy' state automatically.
+                } catch (error) {
+                    console.error("Error updating subscription status:", error);
+                }
+            }
+        };
+    
+        checkSubscription();
+    }, [academy, currentUser, isDemoMode]);
 
 
     // Handlers
@@ -417,6 +455,21 @@ export default function App() {
             throw new Error("Failed to save schedule. Please try again.");
         }
     };
+    
+    const handleSubscribe = async (plan: 'monthly' | 'quarterly' | 'yearly', months: number) => {
+        if (!academy || isDemoMode) { alert("Demo mode."); return; }
+
+        const newExpiryDate = new Date();
+        newExpiryDate.setMonth(newExpiryDate.getMonth() + months);
+
+        const academyRef = doc(db, 'academies', academy.id);
+        await updateDoc(academyRef, {
+            subscriptionStatus: 'active',
+            subscriptionEndsAt: Timestamp.fromDate(newExpiryDate),
+            plan: plan
+        });
+        // The onSnapshot listener will update the academy state, and re-render the app
+    };
 
 
     // Navigation handler
@@ -438,6 +491,26 @@ export default function App() {
             setShowConsent(false);
         }} />;
     }
+    
+    // Auth screens
+    if (!currentUser) {
+        return (
+            <div className={`font-sans antialiased text-gray-900 bg-gray-50 dark:bg-gray-900 ${theme}`}>
+                {isPlaceholderConfig && <ConfigurationWarning />}
+                {page === 'register' ? (
+                    <RegisterPage onRegisterSuccess={handleRegisterSuccess} onNavigateToLogin={() => setPage('login')} />
+                ) : (
+                    <LoginPage onLogin={handleLogin} onNavigateToRegister={() => setPage('register')} externalError={authError} clearExternalError={() => setAuthError(null)} />
+                )}
+            </div>
+        );
+    }
+    
+    const isSubscriptionExpired = currentUser?.role === 'admin' && academy?.subscriptionStatus === 'expired';
+    if (isSubscriptionExpired) {
+        return <SubscriptionExpiredPage onNavigate={handleNavigate} onLogout={handleLogout} />;
+    }
+
 
     const renderPage = () => {
         if (!currentUser || (currentUser.role !== 'superadmin' && !academy)) {
@@ -481,6 +554,7 @@ export default function App() {
                     case 'inactive-staff': return <InactiveStaffPage onBack={() => setPage('staff-options')} staff={staff} onToggleStatus={handleToggleStaffStatus} />;
                     case 'staff-batch-access': return selectedStaffMember ? <StaffBatchAccessPage onBack={() => setPage('staff-manager')} staff={selectedStaffMember} batches={batches} onSave={handleSaveStaffAccess} /> : <p>Staff member not found</p>;
                     case 'schedule-classes': return <ScheduleClassesPage onBack={() => setPage('dashboard')} batches={batches} staff={staff} academyId={academy!.id} onSave={handleSaveDailySchedule} isDemoMode={isDemoMode} />;
+                    case 'subscription': return <SubscriptionPage onBack={() => setPage('dashboard')} academy={academy!} onSubscribe={handleSubscribe} />;
                     default: return <Dashboard onNavigate={handleNavigate} academy={academy!} students={students} batches={batches} staff={staff} onShowDevPopup={setShowDevPopup} />;
                 }
             case 'student':
@@ -519,19 +593,6 @@ export default function App() {
         }
     };
     
-    // Auth screens
-    if (!currentUser) {
-        return (
-            <div className={`font-sans antialiased text-gray-900 bg-gray-50 dark:bg-gray-900 ${theme}`}>
-                {isPlaceholderConfig && <ConfigurationWarning />}
-                {page === 'register' ? (
-                    <RegisterPage onRegisterSuccess={handleRegisterSuccess} onNavigateToLogin={() => setPage('login')} />
-                ) : (
-                    <LoginPage onLogin={handleLogin} onNavigateToRegister={() => setPage('register')} externalError={authError} clearExternalError={() => setAuthError(null)} />
-                )}
-            </div>
-        );
-    }
 
     // Main App Screens
     return (
@@ -545,11 +606,10 @@ export default function App() {
             {currentUser.role === 'admin' && academy && (
                 <>
                     {page === 'dashboard' && <Header
-                        academyName={academy.name}
-                        academyId={academy.academyId}
-                        logoUrl={academy.logoUrl}
+                        academy={academy}
                         onLogout={handleLogout}
                         onToggleNav={() => setIsNavOpen(true)}
+                        onNavigate={handleNavigate}
                         theme={theme}
                         onToggleTheme={handleToggleTheme}
                     />}

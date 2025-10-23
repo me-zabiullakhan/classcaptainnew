@@ -1,21 +1,46 @@
 
+
 import React from 'react';
 import { LogoutIcon } from './icons/LogoutIcon';
 import { MoonIcon } from './icons/MoonIcon';
 import { MenuIcon } from './icons/MenuIcon';
 import { SunIcon } from './icons/SunIcon';
+import type { Academy } from '../types';
 
 interface HeaderProps {
-    academyName: string;
-    academyId: string;
-    logoUrl?: string;
+    academy: Academy;
     onLogout: () => void;
     onToggleNav: () => void;
+    onNavigate: (page: string) => void;
     theme: 'light' | 'dark';
     onToggleTheme: () => void;
 }
 
-export function Header({ academyName, academyId, logoUrl, onLogout, onToggleNav, theme, onToggleTheme }: HeaderProps): React.ReactNode {
+const TrialIndicator = ({ trialEndsAt, onNavigate }: { trialEndsAt: any, onNavigate: (page: string) => void }) => {
+    const [daysLeft, setDaysLeft] = React.useState(0);
+
+    React.useEffect(() => {
+        if (trialEndsAt) {
+            const endDate = trialEndsAt.toMillis();
+            const now = Date.now();
+            const remaining = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+            setDaysLeft(Math.max(0, remaining));
+        }
+    }, [trialEndsAt]);
+
+    if (daysLeft <= 0) return null;
+
+    return (
+        <div className="bg-yellow-400 text-yellow-900 text-sm font-bold text-center p-2">
+            <button onClick={() => onNavigate('subscription')} className="w-full">
+                You have {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left in your trial. Upgrade Now!
+            </button>
+        </div>
+    );
+};
+
+
+export function Header({ academy, onLogout, onToggleNav, onNavigate, theme, onToggleTheme }: HeaderProps): React.ReactNode {
     const [greeting, setGreeting] = React.useState('');
 
     React.useEffect(() => {
@@ -30,18 +55,21 @@ export function Header({ academyName, academyId, logoUrl, onLogout, onToggleNav,
     }, []);
 
     return (
-        <header className="bg-indigo-700 text-white p-4 shadow-md sticky top-0 z-30">
-            <div className="flex justify-between items-center">
+        <header className="bg-indigo-700 text-white shadow-md sticky top-0 z-30">
+             {academy.subscriptionStatus === 'trialing' && academy.trialEndsAt && (
+                <TrialIndicator trialEndsAt={academy.trialEndsAt} onNavigate={onNavigate} />
+            )}
+            <div className="p-4 flex justify-between items-center">
                 <div className="flex items-center space-x-3">
                     <button onClick={onToggleNav} className="text-indigo-200 hover:text-white transition-colors p-2 -ml-2 rounded-full" aria-label="Open navigation menu">
                         <MenuIcon className="w-6 h-6" />
                     </button>
-                    {logoUrl && (
-                        <img src={logoUrl} alt="Academy Logo" className="w-10 h-10 rounded-full object-cover" />
+                    {academy.logoUrl && (
+                        <img src={academy.logoUrl} alt="Academy Logo" className="w-10 h-10 rounded-full object-cover" />
                     )}
                     <div>
-                        <h1 className="text-lg sm:text-xl md:text-2xl font-bold">{greeting}, {academyName}!</h1>
-                        <p className="text-sm text-indigo-200 mt-1">Academy ID: {academyId}</p>
+                        <h1 className="text-lg sm:text-xl md:text-2xl font-bold">{greeting}, {academy.name}!</h1>
+                        <p className="text-sm text-indigo-200 mt-1">Academy ID: {academy.academyId}</p>
                     </div>
                 </div>
                 <div className="flex items-center space-x-4">

@@ -7,7 +7,7 @@ import { LogoIcon } from '../icons/LogoIcon';
 import { BuildingIcon } from '../icons/BuildingIcon';
 import { EmailIcon } from '../icons/EmailIcon';
 import { LockIcon } from '../icons/LockIcon';
-import { collection, doc, runTransaction, query, where, getDocs } from 'firebase/firestore';
+import { collection, doc, runTransaction, query, where, getDocs, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { auth, db } from '../../firebaseConfig';
 import type { Academy } from '../../types';
 import { GoogleIcon } from '../icons/GoogleIcon';
@@ -99,9 +99,11 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
                 name: instituteName,
                 adminEmail: user.email!,
                 adminUid: user.uid,
-                createdAt: new Date(),
+                createdAt: serverTimestamp(),
                 status: 'active' as const,
                 academyId: formattedId,
+                subscriptionStatus: 'trialing' as const,
+                trialEndsAt: Timestamp.fromMillis(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
             };
             transaction.set(newAcademyRef, academyDataForFirestore);
             
@@ -109,12 +111,8 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
 
             return {
                 id: newAcademyRef.id,
-                academyId: formattedId,
-                name: instituteName,
-                adminEmail: user.email!,
-                adminUid: user.uid,
-                status: 'active' as const,
-            };
+                ...academyDataForFirestore,
+            } as Academy;
         });
     };
 

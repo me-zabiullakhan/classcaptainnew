@@ -22,6 +22,11 @@ export interface Academy {
   website?: string;
   address?: string;
   logoUrl?: string;
+  createdAt?: Timestamp;
+  subscriptionStatus?: 'trialing' | 'active' | 'expired' | 'cancelled';
+  trialEndsAt?: Timestamp;
+  subscriptionEndsAt?: Timestamp;
+  plan?: 'monthly' | 'quarterly' | 'yearly';
 }
 
 export interface Batch {

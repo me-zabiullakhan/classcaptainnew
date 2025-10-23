@@ -24,6 +24,7 @@ import { SettingsIcon } from './icons/SettingsIcon';
 import { AccountIcon } from './icons/AccountIcon';
 import { LogoutIcon } from './icons/LogoutIcon';
 import { TimetableIcon } from './icons/TimetableIcon';
+import { CreditCardIcon } from './icons/CreditCardIcon';
 
 const features: Omit<FeatureItem, 'color'>[] = [
   { name: 'Batches', Icon: BatchesIcon },
@@ -31,6 +32,7 @@ const features: Omit<FeatureItem, 'color'>[] = [
   { name: 'Attendance', Icon: AttendanceIcon },
   { name: 'Timetable', Icon: TimetableIcon },
   { name: 'Tuition Fees', Icon: FeesIcon },
+  { name: 'Subscription', Icon: CreditCardIcon },
   { name: 'Income/Expenses', Icon: IncomeIcon },
   { name: 'Manage Exams', Icon: ExamsIcon },
   { name: 'Enquiry Manager', Icon: EnquiryIcon },
@@ -77,6 +79,8 @@ export function SideNav({ isOpen, onClose, onNavigate, onLogout, onShowDevPopup 
         return () => handleNavigate('staff-options');
       case 'Settings':
         return () => handleNavigate('settings');
+      case 'Subscription':
+        return () => handleNavigate('subscription');
       default:
         return () => {
             onShowDevPopup(name);
