@@ -5,13 +5,14 @@ import { EmailIcon } from '../icons/EmailIcon';
 import { LockIcon } from '../icons/LockIcon';
 import { UserIcon } from '../icons/UserIcon';
 import { BookIcon } from '../icons/BookIcon';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebaseConfig';
 import type { CurrentUser, Student, Staff, Academy } from '../../types';
 import { demoStudents, demoStaff } from '../../demoData';
 import { GoogleIcon } from '../icons/GoogleIcon';
 import firebase from 'firebase/compat/app';
 import { XMarkIcon } from '../icons/XMarkIcon';
+import { signOut } from 'firebase/auth';
 
 
 type Role = 'academy' | 'student' | 'staff';
@@ -185,57 +186,79 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { 
         }
     };
 
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setIsLoading(true);
+
+        const form = e.target as HTMLFormElement;
+        const passwordInput = form.elements.namedItem('password') as HTMLInputElement;
+        const rawEmail = email;
+        const rawPassword = passwordInput.value;
+
+        if (rawEmail === 'demo@classcaptain.com' && rawPassword === 'demo123') {
+            const demoAcademy: Academy = {
+                id: 'demo-academy-id', academyId: 'ACDEMO', name: 'Demo Academy',
+                adminUid: 'demo-admin-uid', adminEmail: 'demo@classcaptain.com', status: 'active',
+            };
+            onLogin({ role: 'admin', data: demoAcademy });
+            setIsLoading(false);
+            return;
+        }
+
+        try {
+            const userCredential = await auth.signInWithEmailAndPassword(rawEmail, rawPassword);
+            const user = userCredential.user;
+
+            if (user) {
+                const userDocRef = doc(db, "users", user.uid);
+                const userDocSnap = await getDoc(userDocRef);
+
+                if (userDocSnap.exists() && userDocSnap.data().role === 'admin' && userDocSnap.data().academyId) {
+                    const userData = userDocSnap.data();
+                    const academyDocRef = doc(db, "academies", userData.academyId);
+                    const academyDocSnap = await getDoc(academyDocRef);
+
+                    if (academyDocSnap.exists()) {
+                        const academyData = { id: academyDocSnap.id, ...academyDocSnap.data() } as Academy;
+                        onLogin({ role: 'admin', data: academyData });
+                        return; // Success, component will unmount
+                    } else {
+                        setError("Your academy data could not be found. Please contact support.");
+                        await signOut(auth);
+                    }
+                } else {
+                    // Orphaned user or not an admin.
+                    setError("Your account exists but is not linked to an academy due to incomplete registration. Please register again.");
+                    try {
+                        await user.delete();
+                        onLoginFailed(); // Show popup to guide to re-registration
+                    } catch (deleteError) {
+                        console.error("Could not clean up incomplete account:", deleteError);
+                        setError("Your account is in a broken state. Please contact support.");
+                        await signOut(auth);
+                    }
+                }
+            }
+        } catch (err: any) {
+             if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+                const methods = await auth.fetchSignInMethodsForEmail(rawEmail).catch(() => []);
+                if (methods.length === 0) {
+                    onLoginFailed();
+                } else {
+                    setError('Incorrect password. Please try again.');
+                }
+            } else {
+                console.error("Login Error:", err);
+                setError(err.message || 'An error occurred during login.');
+            }
+        }
+        setIsLoading(false);
+    };
+
     return (
         <>
-            <form onSubmit={async (e) => {
-                e.preventDefault();
-                setError('');
-                setIsLoading(true);
-
-                const form = e.target as HTMLFormElement;
-                const passwordInput = form.elements.namedItem('password') as HTMLInputElement;
-                const rawEmail = email;
-                const rawPassword = passwordInput.value;
-
-                if (rawEmail === 'demo@classcaptain.com' && rawPassword === 'demo123') {
-                    const demoAcademy: Academy = {
-                        id: 'demo-academy-id',
-                        academyId: 'ACDEMO',
-                        name: 'Demo Academy',
-                        adminUid: 'demo-admin-uid',
-                        adminEmail: 'demo@classcaptain.com',
-                        status: 'active',
-                    };
-                    onLogin({ role: 'admin', data: demoAcademy });
-                    setIsLoading(false);
-                    return;
-                }
-
-                try {
-                    const signInMethods = await auth.fetchSignInMethodsForEmail(rawEmail);
-            
-                    if (signInMethods.length === 0) {
-                        // User does not exist in Firebase Auth. This is the "not registered" case.
-                        onLoginFailed();
-                    } else {
-                        // User exists, so now we try to sign in with password.
-                        try {
-                            await auth.signInWithEmailAndPassword(rawEmail, rawPassword);
-                            // onAuthStateChanged will handle success
-                        } catch (e) {
-                            // Sign in failed, so it must be a wrong password or another issue.
-                            // Firebase throws `auth/invalid-credential` for wrong password.
-                            setError('Incorrect password. Please try again.');
-                        }
-                    }
-                } catch (err: any) {
-                    // This can catch errors from fetchSignInMethodsForEmail like invalid email format
-                    console.error("Login Error:", err);
-                    setError(err.message || 'An error occurred during login.');
-                } finally {
-                    setIsLoading(false);
-                }
-            }}>
+            <form onSubmit={handleSubmit}>
                 <FormInput
                     icon={<EmailIcon className="w-5 h-5" />}
                     label="Email Address"
