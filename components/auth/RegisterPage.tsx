@@ -82,7 +82,15 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
     const [error, setError] = React.useState('');
     const [isLoading, setIsLoading] = React.useState(false);
     const [newAcademy, setNewAcademy] = React.useState<Academy | null>(null);
+    const [email, setEmail] = React.useState('');
     const instituteNameRef = React.useRef<HTMLInputElement>(null);
+
+    React.useEffect(() => {
+        const prefilledEmail = sessionStorage.getItem('registration_email');
+        if (prefilledEmail) {
+            setEmail(prefilledEmail);
+        }
+    }, []);
 
     const createAcademyInFirestore = async (user: firebase.User, instituteName: string): Promise<Academy> => {
         return await runTransaction(db, async (transaction) => {
@@ -145,7 +153,6 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
 
         const form = e.target as HTMLFormElement;
         const instituteName = (form.elements.namedItem('instituteName') as HTMLInputElement).value;
-        const email = (form.elements.namedItem('email') as HTMLInputElement).value;
         const password = (form.elements.namedItem('password') as HTMLInputElement).value;
         const confirmPassword = (form.elements.namedItem('confirmPassword') as HTMLInputElement).value;
 
@@ -205,7 +212,16 @@ export function RegisterPage({ onRegisterSuccess, onNavigateToLogin }: RegisterP
             <AuthCard>
                 <form onSubmit={handleRegister} className="space-y-4">
                     <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Institute Name" type="text" name="instituteName" placeholder="Enter institute name" required ref={instituteNameRef} />
-                    <FormInput icon={<EmailIcon className="w-5 h-5" />} label="Email Address" type="email" name="email" placeholder="Enter your email" required />
+                    <FormInput
+                        icon={<EmailIcon className="w-5 h-5" />}
+                        label="Email Address"
+                        type="email"
+                        name="email"
+                        placeholder="Enter your email"
+                        required
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                    />
                     <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" name="password" placeholder="Create a password" required />
                     <FormInput icon={<LockIcon className="w-5 h-5" />} label="Confirm Password" type="password" name="confirmPassword" placeholder="Confirm your password" required />
                     

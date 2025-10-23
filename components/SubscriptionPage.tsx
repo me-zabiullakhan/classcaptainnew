@@ -9,7 +9,8 @@ interface SubscriptionPageProps {
     onSubscribe: (plan: 'monthly' | 'quarterly' | 'yearly', months: number) => Promise<void>;
 }
 
-const PlanCard = ({ title, price, period, features, isPopular, onSelect, isCurrent, isLoading, disabled }: {
+// FIX: Refactored to use React.FC and a separate props interface to correctly handle React's special `key` prop and avoid TypeScript errors.
+interface PlanCardProps {
     title: string;
     price: string;
     period: string;
@@ -19,7 +20,9 @@ const PlanCard = ({ title, price, period, features, isPopular, onSelect, isCurre
     isCurrent: boolean;
     isLoading: boolean;
     disabled: boolean;
-}) => (
+}
+
+const PlanCard: React.FC<PlanCardProps> = ({ title, price, period, features, isPopular, onSelect, isCurrent, isLoading, disabled }) => (
     <div className={`relative border-2 rounded-xl p-6 ${isPopular ? 'border-indigo-600' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-gray-800`}>
         {isPopular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full">MOST POPULAR</div>}
         <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">{title}</h3>

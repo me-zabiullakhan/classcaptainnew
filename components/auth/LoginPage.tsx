@@ -156,7 +156,21 @@ const DemoCredentials: React.FC<{ credentials: Record<string, string> }> = ({ cr
 );
 
 const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { setIsLoading: (l:boolean)=>void, setError: (e:string)=>void, onLoginFailed: () => void, onLogin: (user: CurrentUser) => void }) => {
+    const [email, setEmail] = React.useState('');
+
+    React.useEffect(() => {
+        const prefilledEmail = sessionStorage.getItem('registration_email');
+        if (prefilledEmail) {
+            setEmail(prefilledEmail);
+        }
+    }, []);
     
+    const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newEmail = e.target.value;
+        setEmail(newEmail);
+        sessionStorage.setItem('registration_email', newEmail);
+    };
+
     const handleGoogleLogin = async () => {
         setError('');
         setIsLoading(true);
@@ -179,9 +193,8 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { 
                 setIsLoading(true);
 
                 const form = e.target as HTMLFormElement;
-                const emailInput = form.elements.namedItem('email') as HTMLInputElement;
                 const passwordInput = form.elements.namedItem('password') as HTMLInputElement;
-                const rawEmail = emailInput.value;
+                const rawEmail = email;
                 const rawPassword = passwordInput.value;
 
                 if (rawEmail === 'demo@classcaptain.com' && rawPassword === 'demo123') {
@@ -199,36 +212,40 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { 
                 }
 
                 try {
-                    await auth.signInWithEmailAndPassword(rawEmail, rawPassword);
-                    // onAuthStateChanged in App.tsx will handle the rest
-                } catch (err: any) {
-                    if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-                        // Check if an academy with this email exists in Firestore to give a more specific error.
-                        try {
-                            const q = query(collection(db, 'academies'), where('adminEmail', '==', rawEmail));
-                            const querySnapshot = await getDocs(q);
-                            
-                            if (querySnapshot.empty) {
-                                // No academy found for this email, so it's a "user not found" case.
-                                onLoginFailed(); 
-                            } else {
-                                // Academy exists, so it must be a "wrong password" case.
-                                setError('Incorrect password. Please try again.');
-                            }
-                        } catch (firestoreError) {
-                            // If the Firestore query fails, fallback to a generic message.
-                            console.error("Firestore check failed during login:", firestoreError);
-                            setError("Invalid email or password. Please try again.");
-                        }
+                    const signInMethods = await auth.fetchSignInMethodsForEmail(rawEmail);
+            
+                    if (signInMethods.length === 0) {
+                        // User does not exist in Firebase Auth. This is the "not registered" case.
+                        onLoginFailed();
                     } else {
-                        console.error("Login Error:", err);
-                        setError(err.message || 'Failed to login.');
+                        // User exists, so now we try to sign in with password.
+                        try {
+                            await auth.signInWithEmailAndPassword(rawEmail, rawPassword);
+                            // onAuthStateChanged will handle success
+                        } catch (e) {
+                            // Sign in failed, so it must be a wrong password or another issue.
+                            // Firebase throws `auth/invalid-credential` for wrong password.
+                            setError('Incorrect password. Please try again.');
+                        }
                     }
+                } catch (err: any) {
+                    // This can catch errors from fetchSignInMethodsForEmail like invalid email format
+                    console.error("Login Error:", err);
+                    setError(err.message || 'An error occurred during login.');
                 } finally {
                     setIsLoading(false);
                 }
             }}>
-                <FormInput icon={<EmailIcon className="w-5 h-5" />} label="Email Address" type="email" name="email" placeholder="Enter your email" required />
+                <FormInput
+                    icon={<EmailIcon className="w-5 h-5" />}
+                    label="Email Address"
+                    type="email"
+                    name="email"
+                    placeholder="Enter your email"
+                    required
+                    value={email}
+                    onChange={handleEmailChange}
+                />
                 <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" name="password" placeholder="Enter your password" required />
                 
                 <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4">
