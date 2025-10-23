@@ -111,9 +111,9 @@ export function Dashboard({ onNavigate, academy, students, batches, staff, onSho
                 <GraduationCapIcon className="w-9 h-9 text-white" />
               )}
           </div>
-          <div>
-              <h2 className="text-xl font-bold">{academy.name}</h2>
-              <p className="text-sm opacity-90">{academy.adminEmail}</p>
+          <div className="min-w-0 flex-1">
+              <h2 className="text-xl font-bold truncate">{academy.name}</h2>
+              <p className="text-sm opacity-90 truncate">{academy.adminEmail}</p>
               <p className="text-sm opacity-90">Academy ID: {academy.academyId || 'N/A'}</p>
           </div>
       </div>

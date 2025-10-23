@@ -60,16 +60,16 @@ export function Header({ academy, onLogout, onToggleNav, onNavigate, theme, onTo
                 <TrialIndicator trialEndsAt={academy.trialEndsAt} onNavigate={onNavigate} />
             )}
             <div className="p-4 flex justify-between items-center">
-                <div className="flex items-center space-x-3">
-                    <button onClick={onToggleNav} className="text-indigo-200 hover:text-white transition-colors p-2 -ml-2 rounded-full" aria-label="Open navigation menu">
+                <div className="flex items-center space-x-3 flex-1 min-w-0">
+                    <button onClick={onToggleNav} className="flex-shrink-0 text-indigo-200 hover:text-white transition-colors p-2 -ml-2 rounded-full" aria-label="Open navigation menu">
                         <MenuIcon className="w-6 h-6" />
                     </button>
                     {academy.logoUrl && (
-                        <img src={academy.logoUrl} alt="Academy Logo" className="w-10 h-10 rounded-full object-cover" />
+                        <img src={academy.logoUrl} alt="Academy Logo" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                     )}
-                    <div>
-                        <h1 className="text-lg sm:text-xl md:text-2xl font-bold">{greeting}, {academy.name}!</h1>
-                        <p className="text-sm text-indigo-200 mt-1">Academy ID: {academy.academyId}</p>
+                    <div className="min-w-0">
+                        <h1 className="text-base sm:text-lg md:text-xl font-bold truncate">{greeting}, {academy.name}!</h1>
+                        <p className="text-sm text-indigo-200 mt-1 truncate">Academy ID: {academy.academyId}</p>
                     </div>
                 </div>
                 <div className="flex items-center space-x-4">
