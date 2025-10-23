@@ -16,6 +16,7 @@ import { demoStudents, demoBatches, demoStaff } from './demoData';
 import { SplashScreen } from './components/SplashScreen';
 import { LoginPage } from './components/auth/LoginPage';
 import { RegisterPage } from './components/auth/RegisterPage';
+import { CompleteRegistrationPage } from './components/auth/CompleteRegistrationPage';
 import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
 import { BottomNav } from './components/BottomNav';
@@ -219,37 +220,43 @@ export default function App() {
 
         const unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
             if (user) {
-                // New logic: Check the 'users' collection first via direct doc read
+                if (user.isAnonymous) {
+                    // This is a temporary session used by the student/staff login form
+                    // to gain read access to Firestore. The login form itself handles
+                    // the logic, so we should ignore this state change at the app level.
+                    return;
+                }
+
                 const userDocRef = doc(db, "users", user.uid);
                 const userDocSnap = await getDoc(userDocRef);
 
                 if (userDocSnap.exists()) {
-                    // User mapping found. Fetch the associated academy.
                     const userData = userDocSnap.data();
                     if (userData.role === 'admin' && userData.academyId) {
                         const academyDocRef = doc(db, "academies", userData.academyId);
                         const academyDocSnap = await getDoc(academyDocRef);
 
                         if (academyDocSnap.exists()) {
-                            // Academy found! Log them in.
+                            // ACADEMY FOUND - NORMAL LOGIN
                             const academyData = { id: academyDocSnap.id, ...academyDocSnap.data() } as Academy;
                             setAcademy(academyData);
                             setCurrentUser({ role: 'admin', data: academyData });
                             setPage('dashboard');
                         } else {
-                            // Broken state: mapping exists but academy doc is gone.
-                            setAuthError("Your academy data could not be found. Please contact support.");
-                            await signOut(auth);
+                            // BROKEN STATE: mapping exists, academy doc is gone. Go to complete registration.
+                            setAuthError("Your academy data is missing. Please re-enter your institute's name to restore your account.");
+                            setPage('complete-registration');
                         }
                     } else {
-                        // User exists but is not an admin (e.g., student/staff - handled elsewhere)
+                        // User exists but is not an admin (student/staff). For admin login, this is an error.
                         setAuthError("Your account is not configured as an admin account.");
                         await signOut(auth);
                     }
                 } else {
-                    // No user mapping found. This indicates a new registration flow.
+                    // NO USER MAPPING FOUND.
                     const instituteName = sessionStorage.getItem('google_reg_institute_name') || sessionStorage.getItem('registration_institute_name');
                     if (instituteName) {
+                        // NEW REGISTRATION FLOW
                         try {
                             const newAcademy = await createAcademyInFirestore(user, instituteName);
                             alert(`Registration successful! Your Academy ID is ${newAcademy.academyId}. Please save it for your students and staff to log in.`);
@@ -264,15 +271,16 @@ export default function App() {
                             sessionStorage.removeItem('registration_institute_name');
                         }
                     } else {
-                        // User is authenticated but has no mapping and is not in a registration flow.
-                        setAuthError("No academy found for your account. Please register.");
-                        await signOut(auth);
+                        // ORPHANED AUTH USER: Logged in, but no data and not in reg flow. Go to complete registration.
+                        setAuthError("Your registration is incomplete. Please enter your institute name to continue.");
+                        setPage('complete-registration');
                     }
                 }
             } else {
                 // User is signed out.
                 setCurrentUser(null);
                 setAcademy(null);
+                setPage('login');
             }
             setIsLoading(false);
         }, (error) => {
@@ -402,6 +410,24 @@ export default function App() {
         setPage('login');
     };
     
+    const handleCompleteRegistration = async (instituteName: string) => {
+        const user = auth.currentUser;
+        if (user) {
+            try {
+                const newAcademy = await createAcademyInFirestore(user, instituteName);
+                alert(`Registration successful! Your Academy ID is ${newAcademy.academyId}. Please save it for your students and staff to log in.`);
+                handleRegisterSuccess(newAcademy);
+            } catch (error) {
+                console.error("Error creating academy:", error);
+                setAuthError("Failed to complete your academy account. Please try again.");
+                await signOut(auth);
+            }
+        } else {
+            setAuthError("You are not signed in. Please log in again.");
+            setPage('login');
+        }
+    };
+
     // CRUD Handlers
     const handleSaveBatch = async (batchData: Omit<Batch, 'id' | 'currentStudents' | 'isActive'>) => {
         if (!academy || isDemoMode) { alert("Demo mode: Cannot save data."); return; }
@@ -580,6 +606,14 @@ export default function App() {
                 {isPlaceholderConfig && <ConfigurationWarning />}
                 {page === 'register' ? (
                     <RegisterPage onNavigateToLogin={() => setPage('login')} />
+                ) : page === 'complete-registration' && auth.currentUser ? (
+                    <CompleteRegistrationPage
+                        onComplete={handleCompleteRegistration}
+                        onLogout={handleLogout}
+                        userEmail={auth.currentUser.email!}
+                        externalError={authError}
+                        clearExternalError={() => setAuthError(null)}
+                    />
                 ) : (
                     <LoginPage onLogin={handleLogin} onNavigateToRegister={() => setPage('register')} externalError={authError} clearExternalError={() => setAuthError(null)} />
                 )}

@@ -8,6 +8,7 @@ import { ContactsIcon } from './icons/ContactsIcon';
 import { CalendarIcon } from './icons/CalendarIcon';
 import { ClipboardDocumentIcon } from './icons/ClipboardDocumentIcon';
 import { CheckCircleIcon } from './icons/CheckCircleIcon';
+import { ImageEditorModal } from './ImageEditorModal';
 
 interface NewStudentPageProps {
   onBack: () => void;
@@ -103,11 +104,17 @@ export function NewStudentPage({ onBack, onSave, batches, academyId }: NewStuden
         transport: 'NO_TRANSPORT_USE',
         feeType: 'Monthly',
         feeAmount: '',
+        photo: '',
     });
     const [isBatchModalOpen, setBatchModalOpen] = React.useState(false);
     const [batchFeeHint, setBatchFeeHint] = React.useState<string | null>(null);
     const [createdStudent, setCreatedStudent] = React.useState<Student | null>(null);
     const [isSaving, setIsSaving] = React.useState(false);
+
+    const [isPhotoSourceModalOpen, setIsPhotoSourceModalOpen] = React.useState(false);
+    const [imageToEdit, setImageToEdit] = React.useState<string | null>(null);
+    const galleryInputRef = React.useRef<HTMLInputElement>(null);
+    const cameraInputRef = React.useRef<HTMLInputElement>(null);
 
     const activeBatches = batches.filter(b => b.isActive);
 
@@ -147,6 +154,19 @@ export function NewStudentPage({ onBack, onSave, batches, academyId }: NewStuden
         } else if (name === 'feeType') {
             setFormData(prev => ({ ...prev, feeType: value as 'Monthly' | 'Yearly' }));
         }
+    };
+    
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.files && event.target.files[0]) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImageToEdit(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+        setIsPhotoSourceModalOpen(false);
+        event.target.value = '';
     };
 
     const handleBatchSelection = (batchName: string) => {
@@ -199,9 +219,20 @@ export function NewStudentPage({ onBack, onSave, batches, academyId }: NewStuden
       <main className="flex-grow p-4 overflow-y-auto">
         <form id="new-student-form" onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-5">
             <div className="flex justify-center">
-                <button type="button" className="w-24 h-24 rounded-full border-2 border-indigo-400 bg-white dark:bg-gray-800 flex items-center justify-center text-indigo-800 dark:text-indigo-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition" aria-label="Upload student photo">
-                    <CameraIcon className="w-12 h-12"/>
+                <button
+                    type="button"
+                    onClick={() => setIsPhotoSourceModalOpen(true)}
+                    className="w-24 h-24 rounded-full border-2 border-indigo-400 bg-white dark:bg-gray-800 flex items-center justify-center text-indigo-800 dark:text-indigo-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition overflow-hidden"
+                    aria-label="Upload student photo"
+                >
+                    {formData.photo ? (
+                        <img src={formData.photo} alt="Student Preview" className="w-full h-full object-cover" />
+                    ) : (
+                        <CameraIcon className="w-12 h-12"/>
+                    )}
                 </button>
+                <input type="file" accept="image/*" ref={galleryInputRef} onChange={handleFileChange} className="hidden" />
+                <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} onChange={handleFileChange} className="hidden" />
             </div>
 
             <FormInput label="Student Name" id="studentName" name="name" value={formData.name} onChange={handleChange} required containerClassName="border-indigo-500 border-2" />
@@ -343,6 +374,34 @@ export function NewStudentPage({ onBack, onSave, batches, academyId }: NewStuden
                 </div>
             </div>
         </div>
+    )}
+     {isPhotoSourceModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl m-4 w-full max-w-xs flex flex-col">
+                <h3 className="text-lg font-semibold p-4 border-b dark:border-gray-700 text-center">Select Photo Source</h3>
+                <div className="p-4 space-y-3">
+                    <button onClick={() => galleryInputRef.current?.click()} className="w-full bg-indigo-600 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-indigo-700 transition-colors">
+                        Choose from Gallery
+                    </button>
+                    <button onClick={() => cameraInputRef.current?.click()} className="w-full bg-sky-600 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-sky-700 transition-colors">
+                        Take Photo
+                    </button>
+                    <button onClick={() => setIsPhotoSourceModalOpen(false)} className="w-full bg-gray-200 text-gray-800 font-bold py-2.5 px-4 rounded-lg hover:bg-gray-300 transition-colors mt-2 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    )}
+    {imageToEdit && (
+        <ImageEditorModal
+            src={imageToEdit}
+            onSave={(croppedImage) => {
+                setFormData(prev => ({...prev, photo: croppedImage}));
+                setImageToEdit(null);
+            }}
+            onCancel={() => setImageToEdit(null)}
+        />
     )}
     {createdStudent && <StudentCreationSuccessModal student={createdStudent} academyId={academyId} onClose={onBack} />}
     </>

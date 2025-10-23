@@ -1,5 +1,4 @@
 import React from 'react';
-import { LogoIcon } from '../icons/LogoIcon';
 import { BuildingIcon } from '../icons/BuildingIcon';
 import { EmailIcon } from '../icons/EmailIcon';
 import { LockIcon } from '../icons/LockIcon';
@@ -13,6 +12,7 @@ import { GoogleIcon } from '../icons/GoogleIcon';
 import firebase from 'firebase/compat/app';
 import { XMarkIcon } from '../icons/XMarkIcon';
 import { signOut } from 'firebase/auth';
+import { AuthLayout, AuthCard, FormInput } from './AuthComponents';
 
 
 type Role = 'academy' | 'student' | 'staff';
@@ -23,44 +23,6 @@ interface LoginPageProps {
     externalError: string | null;
     clearExternalError: () => void;
 }
-
-const AuthLayout: React.FC<{ title: string, subtitle: string, children: React.ReactNode }> = ({ title, subtitle, children }) => (
-    <div className="min-h-screen flex flex-col justify-center items-center px-4 py-8 bg-gradient-to-br from-purple-50 to-slate-100 dark:from-indigo-900 dark:to-gray-900">
-        <div className="text-center mb-8">
-            <div className="flex justify-center items-center gap-3 mb-4">
-                <LogoIcon className="w-12 h-12 text-indigo-600 dark:text-indigo-400" />
-                <span className="text-3xl font-bold text-gray-800 dark:text-gray-100">Class Captain</span>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{title}</h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">{subtitle}</p>
-        </div>
-        <div className="w-full max-w-sm">
-            {children}
-        </div>
-    </div>
-);
-
-const AuthCard: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-lg">
-        {children}
-    </div>
-);
-
-const FormInput = ({ icon, label, ...props }: { icon: React.ReactNode, label: string } & React.InputHTMLAttributes<HTMLInputElement>) => (
-    <div className="mb-4">
-        <label htmlFor={props.id || props.name} className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">{label}</label>
-        <div className="relative">
-            <label htmlFor={props.id || props.name} className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 cursor-pointer">
-                {icon}
-            </label>
-            <input
-                id={props.id || props.name}
-                className="w-full bg-white dark:bg-gray-700 text-black dark:text-white pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition"
-                {...props}
-            />
-        </div>
-    </div>
-);
 
 const RoleSwitcher = ({ activeRole, onRoleChange }: { activeRole: Role, onRoleChange: (role: Role) => void }) => {
     const roles: { id: Role; name: string; icon: React.ReactNode }[] = [
@@ -207,39 +169,9 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { 
         }
 
         try {
-            const userCredential = await auth.signInWithEmailAndPassword(rawEmail, rawPassword);
-            const user = userCredential.user;
-
-            if (user) {
-                const userDocRef = doc(db, "users", user.uid);
-                const userDocSnap = await getDoc(userDocRef);
-
-                if (userDocSnap.exists() && userDocSnap.data().role === 'admin' && userDocSnap.data().academyId) {
-                    const userData = userDocSnap.data();
-                    const academyDocRef = doc(db, "academies", userData.academyId);
-                    const academyDocSnap = await getDoc(academyDocRef);
-
-                    if (academyDocSnap.exists()) {
-                        const academyData = { id: academyDocSnap.id, ...academyDocSnap.data() } as Academy;
-                        onLogin({ role: 'admin', data: academyData });
-                        return; // Success, component will unmount
-                    } else {
-                        setError("Your academy data could not be found. Please contact support.");
-                        await signOut(auth);
-                    }
-                } else {
-                    // Orphaned user or not an admin.
-                    setError("Your account exists but is not linked to an academy due to incomplete registration. Please register again.");
-                    try {
-                        await user.delete();
-                        onLoginFailed(); // Show popup to guide to re-registration
-                    } catch (deleteError) {
-                        console.error("Could not clean up incomplete account:", deleteError);
-                        setError("Your account is in a broken state. Please contact support.");
-                        await signOut(auth);
-                    }
-                }
-            }
+            // Just sign in. The onAuthStateChanged listener in App.tsx handles success cases.
+            await auth.signInWithEmailAndPassword(rawEmail, rawPassword);
+            // On success, the listener will take over and this component will unmount.
         } catch (err: any) {
              if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
                 const methods = await auth.fetchSignInMethodsForEmail(rawEmail).catch(() => []);
@@ -252,8 +184,8 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { 
                 console.error("Login Error:", err);
                 setError(err.message || 'An error occurred during login.');
             }
+            setIsLoading(false); // Only set loading to false on error.
         }
-        setIsLoading(false);
     };
 
     return (

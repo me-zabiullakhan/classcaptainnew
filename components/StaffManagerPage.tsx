@@ -54,9 +54,11 @@ export function StaffManagerPage({ onBack, staff, onManageAccess, onShowDevPopup
                 <div>
                   <div className="flex justify-between items-start">
                       <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xl">
-                            {member.name.charAt(0)}
-                        </div>
+                        <img
+                            src={member.photo || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(member.name)}`}
+                            alt={member.name}
+                            className="w-12 h-12 rounded-full object-cover bg-gray-200"
+                        />
                         <div>
                             <h3 className="font-bold text-lg text-gray-800">{member.name}</h3>
                             <p className="text-sm text-gray-500 mb-1">{member.staffId}</p>

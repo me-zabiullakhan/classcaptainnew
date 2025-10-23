@@ -36,7 +36,7 @@ interface StaffDashboardPageProps {
 export function StaffDashboardPage({ onNavigate, academy, staff, onShowDevPopup }: StaffDashboardPageProps): React.ReactNode {
   const { batchAccess } = staff;
 
-  const placeholderPhoto = `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(staff.name)}`;
+  const photoUrl = staff.photo || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(staff.name)}`;
 
   const hasPermission = (perm: keyof BatchAccessPermissions) => {
     return Object.values(batchAccess || {}).some(p => p[perm]);
@@ -76,9 +76,9 @@ export function StaffDashboardPage({ onNavigate, academy, staff, onShowDevPopup 
         {/* Profile Card */}
         <div className="bg-white rounded-lg shadow-sm p-4 flex items-center space-x-4">
             <img
-                src={staff.photo || placeholderPhoto}
+                src={photoUrl}
                 alt={staff.name}
-                className="w-16 h-16 rounded-full object-cover border-2 border-indigo-500"
+                className="w-16 h-16 rounded-full object-cover border-2 border-indigo-500 bg-gray-200"
             />
             <div>
                 <h3 className="text-lg font-bold text-gray-800">{staff.name.toUpperCase()}</h3>

@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { Batch, Student, AttendanceStatus } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -8,6 +9,10 @@ import { MoreVertIcon } from './icons/MoreVertIcon';
 import { db } from '../firebaseConfig';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { XCircleIcon } from './icons/XCircleIcon';
+import { UserIcon } from './icons/UserIcon';
+import { PhoneIcon } from './icons/PhoneIcon';
+import { BatchesIcon } from './icons/BatchesIcon';
+import { XMarkIcon } from './icons/XMarkIcon';
 
 interface TakeAttendancePageProps {
   onBack: () => void;
@@ -16,6 +21,54 @@ interface TakeAttendancePageProps {
   academyId: string;
   isDemoMode: boolean;
 }
+
+const StudentInfoModal: React.FC<{ student: Student, onClose: () => void }> = ({ student, onClose }) => {
+    const photoUrl = student.photo || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(student.name)}`;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fade-in p-4" onClick={onClose}>
+            <div className="bg-white dark:bg-gray-800 pt-14 p-6 rounded-2xl shadow-lg w-full max-w-sm mx-auto text-left relative" onClick={e => e.stopPropagation()}>
+                <button onClick={onClose} className="absolute top-3 right-3 p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Close">
+                    <XMarkIcon className="w-6 h-6" />
+                </button>
+                
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                    <img src={photoUrl} alt={student.name} className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow-lg bg-gray-200" />
+                </div>
+                
+                <div className="text-center mb-6">
+                    <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mt-3">{student.name}</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Student ID: {student.rollNumber}</p>
+                </div>
+
+                <div className="space-y-3">
+                    <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <UserIcon className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0"/>
+                        <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Father's Name</p>
+                            <p className="font-semibold text-gray-800 dark:text-gray-200">{student.fatherName}</p>
+                        </div>
+                    </div>
+                     <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <PhoneIcon className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0"/>
+                        <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Contact Number</p>
+                            <a href={`tel:${student.mobile1}`} className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">{student.mobile1}</a>
+                        </div>
+                    </div>
+                     <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <BatchesIcon className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0"/>
+                        <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Batches</p>
+                            <p className="font-semibold text-gray-800 dark:text-gray-200">{student.batches.join(', ')}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const attendanceStatuses: AttendanceStatus[] = ['Present', 'Absent', 'Leave', 'Holiday'];
 
@@ -43,18 +96,18 @@ const StatusButton: React.FC<{ status: AttendanceStatus, isActive: boolean, onCl
     );
 };
 
-const StudentAttendanceCard: React.FC<{ student: Student, batch: Batch, status: AttendanceStatus, onStatusChange: (studentId: string, status: AttendanceStatus) => void}> = ({ student, batch, status, onStatusChange }) => {
+const StudentAttendanceCard: React.FC<{ student: Student, batch: Batch, status: AttendanceStatus, onStatusChange: (studentId: string, status: AttendanceStatus) => void, onShowInfo: (student: Student) => void}> = ({ student, batch, status, onStatusChange, onShowInfo }) => {
     return (
         <div className="bg-white p-3 rounded-lg shadow-sm border">
             <div className="flex justify-between items-center mb-3">
-                <div className="flex-1">
-                    <p className="text-sm text-indigo-700 font-semibold">{student.rollNumber || student.id}</p>
-                    <p className="text-base font-bold text-gray-800">{student.name}</p>
-                    <p className="text-xs text-gray-500">{batch.name}</p>
+                <div className="flex-1 min-w-0">
+                    <p className="text-sm text-indigo-700 font-semibold truncate">{student.rollNumber || student.id}</p>
+                    <p className="text-base font-bold text-gray-800 truncate">{student.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{batch.name}</p>
                 </div>
-                <div className="text-indigo-600">
+                <button onClick={() => onShowInfo(student)} className="text-indigo-600 hover:text-indigo-800 transition-colors p-1 ml-2 rounded-full flex-shrink-0">
                     <InfoIcon className="w-6 h-6" />
-                </div>
+                </button>
             </div>
             <div className="flex space-x-1.5">
                 {attendanceStatuses.map(s => (
@@ -72,6 +125,7 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
     const [error, setError] = React.useState<string | null>(null);
     const [savingError, setSavingError] = React.useState<string | null>(null);
     const [retryTrigger, setRetryTrigger] = React.useState(0);
+    const [selectedStudentForInfo, setSelectedStudentForInfo] = React.useState<Student | null>(null);
 
 
     const getFormattedDate = (date: Date) => {
@@ -80,6 +134,11 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     };
+    
+    const todayTimestamp = new Date().setHours(0, 0, 0, 0);
+    const currentTimestamp = new Date(currentDate).setHours(0, 0, 0, 0);
+    const isTodayOrFuture = currentTimestamp >= todayTimestamp;
+
 
     React.useEffect(() => {
         if (isDemoMode) {
@@ -197,7 +256,7 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
                         <ArrowLeftIcon className="w-5 h-5" />
                     </button>
                     <span className="font-bold text-lg">{formattedDate}</span>
-                    <button onClick={() => handleDateChange('next')} className="p-2 rounded-full hover:bg-indigo-800">
+                    <button onClick={() => handleDateChange('next')} className="p-2 rounded-full hover:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed" disabled={isTodayOrFuture}>
                         <ArrowRightIcon className="w-5 h-5" />
                     </button>
                 </div>
@@ -242,6 +301,7 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
                                 batch={batch}
                                 status={attendance[student.id] || 'Not Set'}
                                 onStatusChange={handleStatusChange}
+                                onShowInfo={setSelectedStudentForInfo}
                             />
                         ))}
                     </div>
@@ -252,6 +312,7 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
                     </div>
                 )}
             </main>
+            {selectedStudentForInfo && <StudentInfoModal student={selectedStudentForInfo} onClose={() => setSelectedStudentForInfo(null)} />}
         </div>
     );
 }

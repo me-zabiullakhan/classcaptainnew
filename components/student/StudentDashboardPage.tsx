@@ -36,7 +36,7 @@ const studentFeatures = [
 
 export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav, theme, onToggleTheme, onShowDevPopup }: StudentDashboardPageProps): React.ReactNode {
     
-    const placeholderPhoto = `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(student.name)}`;
+    const photoUrl = student.photo || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(student.name)}`;
 
     const getClickHandler = (name: string) => {
         switch (name) {
@@ -80,9 +80,9 @@ export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav
                 {/* Profile Card */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 flex items-center space-x-4">
                     <img
-                        src={student.photo || placeholderPhoto}
+                        src={photoUrl}
                         alt={student.name}
-                        className="w-16 h-16 rounded-full object-cover border-2 border-cyan-500"
+                        className="w-16 h-16 rounded-full object-cover border-2 border-cyan-500 bg-gray-200"
                     />
                     <div>
                         <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">{student.name.toUpperCase()}</h3>

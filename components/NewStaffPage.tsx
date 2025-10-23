@@ -1,10 +1,12 @@
 
+
 import React from 'react';
 import type { Staff } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { CameraIcon } from './icons/CameraIcon';
 import { ContactsIcon } from './icons/ContactsIcon';
 import { CalendarIcon } from './icons/CalendarIcon';
+import { ImageEditorModal } from './ImageEditorModal';
 
 interface NewStaffPageProps {
   onBack: () => void;
@@ -41,6 +43,7 @@ export function NewStaffPage({ onBack, onSave }: NewStaffPageProps): React.React
     const [isPhotoModalOpen, setIsPhotoModalOpen] = React.useState(false);
     const galleryInputRef = React.useRef<HTMLInputElement>(null);
     const cameraInputRef = React.useRef<HTMLInputElement>(null);
+    const [imageToEdit, setImageToEdit] = React.useState<string | null>(null);
 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,11 +63,12 @@ export function NewStaffPage({ onBack, onSave }: NewStaffPageProps): React.React
             const file = event.target.files[0];
             const reader = new FileReader();
             reader.onloadend = () => {
-                setFormData(prev => ({ ...prev, photo: reader.result as string }));
+                setImageToEdit(reader.result as string);
             };
             reader.readAsDataURL(file);
         }
         setIsPhotoModalOpen(false);
+        event.target.value = '';
     };
 
     const handleSave = () => {
@@ -174,6 +178,16 @@ export function NewStaffPage({ onBack, onSave }: NewStaffPageProps): React.React
                 </div>
             </div>
         </div>
+    )}
+    {imageToEdit && (
+        <ImageEditorModal
+            src={imageToEdit}
+            onSave={(croppedImage) => {
+                setFormData(prev => ({...prev, photo: croppedImage}));
+                setImageToEdit(null);
+            }}
+            onCancel={() => setImageToEdit(null)}
+        />
     )}
     </>
   );

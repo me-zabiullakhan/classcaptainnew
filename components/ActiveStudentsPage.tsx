@@ -40,18 +40,14 @@ const StudentCard: React.FC<{
         return studentBatches.some(batch => staffPermissions[batch.id]?.editStudents);
     }, [student.batches, batches, staffPermissions]);
 
+    const photoUrl = student.photo || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(student.name)}`;
+
 
     return (
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border-l-4 border-indigo-500 flex flex-col">
             <div className="flex justify-between items-start">
                 <div className="flex items-center space-x-3">
-                    {student.photo ? (
-                        <img src={student.photo} alt={student.name} className="w-12 h-12 rounded-full object-cover" />
-                    ) : (
-                        <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 flex items-center justify-center font-bold text-xl">
-                            {student.name.charAt(0)}
-                        </div>
-                    )}
+                    <img src={photoUrl} alt={student.name} className="w-12 h-12 rounded-full object-cover bg-gray-200" />
                     <div>
                         <h3 className="font-bold text-gray-800 dark:text-gray-100">{student.name}</h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400">{student.rollNumber || student.id}</p>

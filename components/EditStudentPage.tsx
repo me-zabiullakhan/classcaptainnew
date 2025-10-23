@@ -6,6 +6,7 @@ import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { CameraIcon } from './icons/CameraIcon';
 import { ContactsIcon } from './icons/ContactsIcon';
 import { CalendarIcon } from './icons/CalendarIcon';
+import { ImageEditorModal } from './ImageEditorModal';
 
 interface EditStudentPageProps {
   onBack: () => void;
@@ -34,6 +35,10 @@ export function EditStudentPage({ onBack, onUpdate, student, batches }: EditStud
         feeAmount: String(student.feeAmount || ''),
     });
     const [isBatchModalOpen, setBatchModalOpen] = React.useState(false);
+    const [isPhotoSourceModalOpen, setIsPhotoSourceModalOpen] = React.useState(false);
+    const [imageToEdit, setImageToEdit] = React.useState<string | null>(null);
+    const galleryInputRef = React.useRef<HTMLInputElement>(null);
+    const cameraInputRef = React.useRef<HTMLInputElement>(null);
 
     const selectableBatches = React.useMemo(() => 
         batches.filter(b => b.isActive || formData.batches.includes(b.name)), 
@@ -51,6 +56,19 @@ export function EditStudentPage({ onBack, onUpdate, student, batches }: EditStud
         } else if (name === 'feeType') {
             setFormData(prev => ({ ...prev, feeType: value as 'Monthly' | 'Yearly' }));
         }
+    };
+    
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.files && event.target.files[0]) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImageToEdit(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+        setIsPhotoSourceModalOpen(false);
+        event.target.value = '';
     };
 
     const handleBatchSelection = (batchName: string) => {
@@ -97,9 +115,20 @@ export function EditStudentPage({ onBack, onUpdate, student, batches }: EditStud
       <main className="flex-grow p-4 overflow-y-auto">
         <form id="edit-student-form" onSubmit={(e) => { e.preventDefault(); handleUpdate(); }} className="space-y-5">
             <div className="flex justify-center">
-                <button type="button" className="w-24 h-24 rounded-full border-2 border-indigo-400 bg-white flex items-center justify-center text-indigo-800 hover:bg-gray-100 transition" aria-label="Upload student photo">
-                    <CameraIcon className="w-12 h-12"/>
+                <button
+                    type="button"
+                    onClick={() => setIsPhotoSourceModalOpen(true)}
+                    className="w-24 h-24 rounded-full border-2 border-indigo-400 bg-white flex items-center justify-center text-indigo-800 hover:bg-gray-100 transition overflow-hidden"
+                    aria-label="Upload student photo"
+                >
+                    {formData.photo ? (
+                        <img src={formData.photo} alt="Student Preview" className="w-full h-full object-cover" />
+                    ) : (
+                        <CameraIcon className="w-12 h-12"/>
+                    )}
                 </button>
+                <input type="file" accept="image/*" ref={galleryInputRef} onChange={handleFileChange} className="hidden" />
+                <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} onChange={handleFileChange} className="hidden" />
             </div>
 
             <FormInput label="Roll Number / Student ID" id="rollNumber" name="rollNumber" placeholder="Unique ID for login" value={formData.rollNumber} onChange={handleChange} required readOnly />
@@ -232,6 +261,34 @@ export function EditStudentPage({ onBack, onUpdate, student, batches }: EditStud
                 </div>
             </div>
         </div>
+    )}
+    {isPhotoSourceModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in p-4">
+            <div className="bg-white rounded-lg shadow-xl m-4 w-full max-w-xs flex flex-col">
+                <h3 className="text-lg font-semibold p-4 border-b text-center">Select Photo Source</h3>
+                <div className="p-4 space-y-3">
+                    <button onClick={() => galleryInputRef.current?.click()} className="w-full bg-indigo-600 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-indigo-700 transition-colors">
+                        Choose from Gallery
+                    </button>
+                    <button onClick={() => cameraInputRef.current?.click()} className="w-full bg-sky-600 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-sky-700 transition-colors">
+                        Take Photo
+                    </button>
+                    <button onClick={() => setIsPhotoSourceModalOpen(false)} className="w-full bg-gray-200 text-gray-800 font-bold py-2.5 px-4 rounded-lg hover:bg-gray-300 transition-colors mt-2">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    )}
+    {imageToEdit && (
+        <ImageEditorModal
+            src={imageToEdit}
+            onSave={(croppedImage) => {
+                setFormData(prev => ({...prev, photo: croppedImage}));
+                setImageToEdit(null);
+            }}
+            onCancel={() => setImageToEdit(null)}
+        />
     )}
     </>
   );
