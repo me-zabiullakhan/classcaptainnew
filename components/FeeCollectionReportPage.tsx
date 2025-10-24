@@ -1,15 +1,21 @@
 
+
 import React from 'react';
 import type { FeeCollection } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { SearchIcon } from './icons/SearchIcon';
+import { PencilIcon } from './icons/PencilIcon';
+import { TrashIcon } from './icons/TrashIcon';
 
 interface FeeCollectionReportPageProps {
   onBack: () => void;
   feeCollections: FeeCollection[];
+  onDelete: (id: string) => Promise<void>;
+  onShowDevPopup: (featureName: string) => void;
+  isDemoMode: boolean;
 }
 
-export function FeeCollectionReportPage({ onBack, feeCollections }: FeeCollectionReportPageProps): React.ReactNode {
+export function FeeCollectionReportPage({ onBack, feeCollections, onDelete, onShowDevPopup, isDemoMode }: FeeCollectionReportPageProps): React.ReactNode {
   const [searchTerm, setSearchTerm] = React.useState('');
 
   const sortedCollections = [...feeCollections].sort((a, b) => b.paymentDate.toMillis() - a.paymentDate.toMillis());
@@ -18,6 +24,22 @@ export function FeeCollectionReportPage({ onBack, feeCollections }: FeeCollectio
     fc.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     fc.studentRollNumber.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleDelete = async (id: string) => {
+    if (isDemoMode) {
+        alert("Demo mode: Cannot delete data.");
+        return;
+    }
+    if (window.confirm("Are you sure you want to delete this fee record? This will also delete the corresponding income transaction and cannot be undone.")) {
+        try {
+            await onDelete(id);
+        } catch (error) {
+            console.error("Failed to delete fee record:", error);
+            alert("Failed to delete fee record. Please try again.");
+        }
+    }
+  };
+
 
   return (
     <div className="animate-fade-in flex flex-col h-full">
@@ -62,7 +84,25 @@ export function FeeCollectionReportPage({ onBack, feeCollections }: FeeCollectio
                         <div className="text-xs text-gray-600 mt-2 pt-2 border-t">
                             <p>Fee for: <span className="font-semibold">{monthDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</span></p>
                             {fc.discount > 0 && <p className="text-red-600">Discount: <span className="font-semibold">₹{fc.discount.toFixed(2)}</span></p>}
-                             <p>Mode: <span className="font-semibold">{fc.paymentMode}</span></p>
+                        </div>
+                        <div className="mt-2 pt-2 border-t flex justify-between items-center">
+                            <p className="text-xs text-gray-500">Mode: <span className="font-semibold">{fc.paymentMode}</span></p>
+                            <div className="flex space-x-2">
+                                <button
+                                  onClick={() => onShowDevPopup('Edit Fee Collection')}
+                                  className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                                >
+                                  <PencilIcon className="w-4 h-4" />
+                                  <span>Edit</span>
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(fc.id)}
+                                  className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors"
+                                >
+                                  <TrashIcon className="w-4 h-4" />
+                                  <span>Delete</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 );

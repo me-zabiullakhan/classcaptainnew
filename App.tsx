@@ -511,11 +511,38 @@ export default function App() {
         if (isDemoMode) {
             throw { code: 'demo-mode', message: 'This is a demo. Data cannot be saved.' };
         }
-        await addDoc(collection(db, `academies/${academy.id}/fees`), {
+        
+        const batch = writeBatch(db);
+        const feeCollectionRef = doc(collection(db, `academies/${academy.id}/fees`));
+        const transactionRef = doc(collection(db, `academies/${academy.id}/transactions`));
+        const paymentTimestamp = Timestamp.fromDate(new Date(paymentData.paymentDate as any));
+
+        // 1. Set the Fee Collection document with a link to the transaction
+        batch.set(feeCollectionRef, {
             ...paymentData,
-            paymentDate: Timestamp.fromDate(new Date(paymentData.paymentDate as any)),
+            paymentDate: paymentTimestamp,
+            createdAt: serverTimestamp(),
+            transactionId: transactionRef.id,
+        });
+
+        // 2. Set the corresponding Income Transaction document with a link to the fee collection
+        const feeForMonthDate = new Date(paymentData.feeForMonth + '-02');
+        const monthFormatted = feeForMonthDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+        const transactionData: Omit<Transaction, 'id' | 'createdAt' | 'attachmentUrl'> & { feeCollectionId?: string } = {
+            type: 'Income',
+            category: 'Tuition Fees',
+            amount: paymentData.amountPaid,
+            paymentMethod: paymentData.paymentMode as Transaction['paymentMethod'],
+            description: `Fee from ${paymentData.studentName} (${paymentData.studentRollNumber}) for ${monthFormatted}`,
+            date: paymentTimestamp,
+            feeCollectionId: feeCollectionRef.id,
+        };
+        batch.set(transactionRef, {
+            ...transactionData,
             createdAt: serverTimestamp()
         });
+
+        await batch.commit();
     };
     
      const handleSaveStaff = async (staffData: Omit<Staff, 'id'>) => {
@@ -602,9 +629,34 @@ export default function App() {
     };
 
     const handleDeleteTransaction = async (transactionId: string) => {
-        if (!academy || isDemoMode) { throw new Error("Demo mode: Cannot save data."); }
+        if (!academy || isDemoMode) { throw new Error("Demo mode: Cannot delete data."); }
         const transactionRef = doc(db, `academies/${academy.id}/transactions`, transactionId);
         await deleteDoc(transactionRef);
+    };
+
+    const handleDeleteFeeCollection = async (feeCollectionId: string) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode: Cannot delete data."); }
+
+        const batch = writeBatch(db);
+        const feeCollectionRef = doc(db, `academies/${academy.id}/fees`, feeCollectionId);
+        const feeCollectionSnap = await getDoc(feeCollectionRef);
+        
+        if (feeCollectionSnap.exists()) {
+            const feeCollectionData = feeCollectionSnap.data() as FeeCollection;
+            
+            // 1. Queue the Fee Collection for deletion
+            batch.delete(feeCollectionRef);
+
+            // 2. If there's a linked transaction, queue it for deletion too
+            if (feeCollectionData.transactionId) {
+                const transactionRef = doc(db, `academies/${academy.id}/transactions`, feeCollectionData.transactionId);
+                batch.delete(transactionRef);
+            }
+            
+            await batch.commit();
+        } else {
+            throw new Error("Fee collection record not found.");
+        }
     };
 
 
@@ -686,7 +738,7 @@ export default function App() {
                     case 'select-batch-for-fees': return <SelectBatchForFeesPage onBack={() => setPage('fees-options')} batches={batches} onSelectBatch={(batchId) => handleNavigate('select-student-for-fees', { batchId })} />;
                     case 'select-student-for-fees': return selectedBatch ? <SelectStudentForFeesPage onBack={() => setPage('select-batch-for-fees')} batch={selectedBatch} students={students.filter(s => s.batches.includes(selectedBatch.name))} onSelectStudent={(studentId) => handleNavigate('student-fee-details', { studentId })} /> : <p>Batch not found</p>;
                     case 'student-fee-details': return selectedStudent ? <StudentFeeDetailsPage onBack={() => handleNavigate('select-student-for-fees', { batchId: selectedBatchId })} student={selectedStudent} feeCollections={feeCollections.filter(fc => fc.studentId === selectedStudent.id)} onSavePayment={handleSavePayment} /> : <p>Student not found</p>;
-                    case 'fee-collection-report': return <FeeCollectionReportPage onBack={() => setPage('fees-options')} feeCollections={feeCollections} />;
+                    case 'fee-collection-report': return <FeeCollectionReportPage onBack={() => setPage('fees-options')} feeCollections={feeCollections} onDelete={handleDeleteFeeCollection} onShowDevPopup={setShowDevPopup} isDemoMode={isDemoMode} />;
                     case 'fee-dues-list': return <FeeDuesListPage onBack={() => setPage('fees-options')} students={students} batches={batches} feeCollections={feeCollections} />;
                     case 'select-batch-attendance': return <SelectBatchForAttendancePage onBack={() => setPage('dashboard')} batches={batches} onSelectBatch={(batchId) => handleNavigate('take-attendance', { batchId })} />;
                     case 'take-attendance': return selectedBatch ? <TakeAttendancePage onBack={() => setPage('select-batch-attendance')} batch={selectedBatch} students={students.filter(s => s.isActive && s.batches.includes(selectedBatch.name))} academyId={academy!.id} isDemoMode={isDemoMode} /> : <p>Batch not found.</p>;

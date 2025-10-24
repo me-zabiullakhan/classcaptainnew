@@ -132,6 +132,7 @@ export interface FeeCollection {
   paymentMode: 'Cash' | 'UPI' | 'Card' | 'Other';
   collectedBy?: string; // admin's email or ID
   createdAt: Timestamp;
+  transactionId?: string; // ID of the corresponding transaction
 }
 
 export interface ClassScheduleItem {
@@ -165,9 +166,10 @@ export interface Transaction {
   type: 'Income' | 'Expense';
   category: string;
   amount: number;
-  paymentMethod: 'Cash' | 'UPI' | 'Bank Transfer' | 'Other';
+  paymentMethod: 'Cash' | 'UPI' | 'Bank Transfer' | 'Card' | 'Other';
   description: string;
   date: Timestamp;
   attachmentUrl?: string;
   createdAt: Timestamp;
+  feeCollectionId?: string; // ID of the corresponding fee collection
 }

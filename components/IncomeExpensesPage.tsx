@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import type { Transaction } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -20,7 +21,7 @@ const CATEGORIES = {
     Expense: ["Salary", "Rent", "Electricity Bill", "Maintenance", "Stationery Purchase", "Other Expense"]
 };
 
-const PAYMENT_METHODS: Transaction['paymentMethod'][] = ['Cash', 'UPI', 'Bank Transfer', 'Other'];
+const PAYMENT_METHODS: Transaction['paymentMethod'][] = ['Cash', 'UPI', 'Bank Transfer', 'Card', 'Other'];
 
 const TransactionForm = ({ onSave, onCancel, initialData, isDemoMode }: { 
     onSave: (data: any) => Promise<void>; 
@@ -155,9 +156,22 @@ export function IncomeExpensesPage({ onBack, transactions, onSave, onUpdate, onD
         setEditingTransaction(null);
     };
 
-    const handleDelete = async (id: string) => {
-        if(window.confirm("Are you sure you want to delete this transaction?")) {
-            await onDelete(id);
+    const handleDelete = async (tx: Transaction) => {
+        if (isDemoMode) {
+            alert("Demo mode: Cannot delete data.");
+            return;
+        }
+        if (tx.feeCollectionId) {
+            alert("This is an income transaction linked to a fee payment. Please delete it from the 'Fee Collection Report' page to ensure data consistency.");
+            return;
+        }
+        if (window.confirm("Are you sure you want to delete this transaction?")) {
+            try {
+                await onDelete(tx.id);
+            } catch (error) {
+                console.error("Failed to delete transaction:", error);
+                alert("Failed to delete transaction. Please try again.");
+            }
         }
     };
     
@@ -207,7 +221,7 @@ export function IncomeExpensesPage({ onBack, transactions, onSave, onUpdate, onD
                                     <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">{tx.paymentMethod}</p>
                                     <div className="flex gap-2">
                                         <button onClick={() => setEditingTransaction(tx)} className="p-1.5 text-blue-600 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/40"><PencilIcon className="w-4 h-4"/></button>
-                                        <button onClick={() => handleDelete(tx.id)} className="p-1.5 text-red-600 rounded-full hover:bg-red-100 dark:hover:bg-red-900/40"><TrashIcon className="w-4 h-4"/></button>
+                                        <button onClick={() => handleDelete(tx)} className="p-1.5 text-red-600 rounded-full hover:bg-red-100 dark:hover:bg-red-900/40"><TrashIcon className="w-4 h-4"/></button>
                                     </div>
                                 </div>
                             </div>
