@@ -4,15 +4,16 @@ import { EmailIcon } from '../icons/EmailIcon';
 import { LockIcon } from '../icons/LockIcon';
 import { UserIcon } from '../icons/UserIcon';
 import { BookIcon } from '../icons/BookIcon';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../../firebaseConfig';
 import type { CurrentUser, Student, Staff, Academy } from '../../types';
 import { demoStudents, demoStaff } from '../../demoData';
 import { GoogleIcon } from '../icons/GoogleIcon';
 import firebase from 'firebase/compat/app';
 import { XMarkIcon } from '../icons/XMarkIcon';
-import { signOut } from 'firebase/auth';
 import { AuthLayout, AuthCard, FormInput } from './AuthComponents';
+import { CalendarIcon } from '../icons/CalendarIcon';
+import { AuthErrorModal } from './AuthErrorModal';
 
 
 type Role = 'academy' | 'student' | 'staff';
@@ -160,7 +161,7 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { 
 
         if (rawEmail === 'demo@classcaptain.com' && rawPassword === 'demo123') {
             const demoAcademy: Academy = {
-                id: 'demo-academy-id', academyId: 'ACDEMO', name: 'Demo Academy',
+                id: 'demo-academy-id', academyId: 'DEMO', name: 'Demo Academy',
                 adminUid: 'demo-admin-uid', adminEmail: 'demo@classcaptain.com', status: 'active',
             };
             onLogin({ role: 'admin', data: demoAcademy });
@@ -226,180 +227,114 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { 
     );
 };
 
-const StudentLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (l:boolean)=>void, setError: (e:string)=>void, onLogin: (user: CurrentUser) => void }) => {
-    const handleStudentLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
-        setIsLoading(true);
-        const form = e.target as HTMLFormElement;
-        const academyId = (form.elements.namedItem('academyId') as HTMLInputElement).value.trim().toUpperCase();
-        const rollNumber = (form.elements.namedItem('rollNumber') as HTMLInputElement).value.trim().toUpperCase();
-        const password = (form.elements.namedItem('password') as HTMLInputElement).value;
+// Extracted shared login logic for Student and Staff
+const handleNonAdminLogin = async (
+    e: React.FormEvent,
+    role: 'student' | 'staff',
+    { setIsLoading, setError, onLogin, setShowConfigError }: any
+) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
 
-        if (academyId === 'ACDEMO') {
-            const demoStudent = demoStudents.find(s => s.rollNumber === rollNumber && s.password === password);
-            if (demoStudent) {
-                onLogin({ role: 'student', data: demoStudent, academyId, academyName: 'Demo Academy' });
-            } else {
-                setError("Invalid demo credentials.");
-            }
-            setIsLoading(false);
-            return;
+    const form = e.target as HTMLFormElement;
+    const academyId = (form.elements.namedItem('academyId') as HTMLInputElement).value.trim().toUpperCase();
+    const userId = (form.elements.namedItem(role === 'student' ? 'rollNumber' : 'staffId') as HTMLInputElement).value.trim().toUpperCase();
+    const dob = (form.elements.namedItem('dob') as HTMLInputElement).value;
+
+    const collectionName = role === 'student' ? 'students' : 'staff';
+    const idFieldName = role === 'student' ? 'rollNumber' : 'staffId';
+    const demoData = role === 'student' ? demoStudents : demoStaff;
+
+    if (academyId === 'DEMO') {
+        const demoUser = (demoData as any[]).find(u => u[idFieldName] === userId && u.dob === dob);
+        if (demoUser) {
+            onLogin({ role, data: demoUser, academyId, academyName: 'Demo Academy' });
+        } else {
+            setError("Invalid demo credentials.");
+        }
+        setIsLoading(false);
+        return;
+    }
+
+    let hadConfigError = false;
+    let loginSucceeded = false;
+    try {
+        if (!auth.currentUser || !auth.currentUser.isAnonymous) {
+            await auth.signInAnonymously();
         }
 
-        try {
-            // Ensure we have an anonymous user session to perform reads, if not already present.
-            if (!auth.currentUser || !auth.currentUser.isAnonymous) {
-                await auth.signInAnonymously();
-            }
+        const academyQuery = query(collection(db, 'academies'), where('academyId', '==', academyId));
+        const academySnapshot = await getDocs(academyQuery);
 
-            const q = query(
-                collection(db, 'academies'),
-                where('academyId', '==', academyId)
-            );
-            const academySnapshot = await getDocs(q);
-
-            if (academySnapshot.empty) {
-                setError(`Academy with ID ${academyId} not found.`);
-                return;
-            }
+        if (academySnapshot.empty) {
+            setError(`Academy with ID ${academyId} not found.`);
+        } else {
             const academyDoc = academySnapshot.docs[0];
             const firestoreAcademyId = academyDoc.id;
             const academyName = academyDoc.data().name;
 
-            const studentQuery = query(
-                collection(db, `academies/${firestoreAcademyId}/students`),
-                where('rollNumber', '==', rollNumber)
-            );
-            const studentSnapshot = await getDocs(studentQuery);
-
-            if (studentSnapshot.empty) {
-                setError('Student not found with that Roll Number.');
-                return;
-            }
-
-            const studentDoc = studentSnapshot.docs[0];
-            const studentData = { id: studentDoc.id, ...studentDoc.data() } as Student;
-
-            if (studentData.password === password) {
-                // Login success: Do not sign out the anonymous user.
-                // The session will persist until the user logs out of the app.
-                onLogin({ role: 'student', data: studentData, academyId: firestoreAcademyId, academyName: academyName });
+            const userQuery = query(collection(db, `academies/${firestoreAcademyId}/${collectionName}`), where(idFieldName, '==', userId));
+            const userSnapshot = await getDocs(userQuery);
+    
+            if (userSnapshot.empty) {
+                setError(`${role.charAt(0).toUpperCase() + role.slice(1)} not found with that ID.`);
             } else {
-                setError('Incorrect password.');
+                const userDoc = userSnapshot.docs[0];
+                const userData = { id: userDoc.id, ...userDoc.data() } as Student | Staff;
+        
+                if (userData.dob === dob) {
+                    loginSucceeded = true;
+                    onLogin({ role, data: userData, academyId: firestoreAcademyId, academyName: academyName });
+                } else {
+                    setError('Incorrect Date of Birth.');
+                }
             }
-        } catch (error: any) {
-            console.error(error);
-            if (error.code === 'auth/operation-not-allowed') {
-                 setError('Anonymous sign-in is not enabled in your Firebase project. Please contact the developer.');
-            } else if (error.code === 'permission-denied' || error.code === 'missing-permission') {
-                setError('Permission denied. Please check your Firestore security rules.');
-            } else {
-                setError('An error occurred during login. Please try again.');
-            }
-        } finally {
-            setIsLoading(false);
         }
-    };
+    } catch (error: any) {
+        console.error(error);
+        if (error.code === 'auth/operation-not-allowed' || error.code === 'auth/admin-restricted-operation' || error.code === 'permission-denied' || error.code === 'missing-permission') {
+            setShowConfigError(true);
+            hadConfigError = true;
+        } else {
+            setError('An error occurred during login. Please try again.');
+        }
+    } finally {
+        if (!hadConfigError && !loginSucceeded) {
+             setIsLoading(false);
+        }
+    }
+};
+
+
+const StudentLoginForm = (props: any) => {
+    const handleSubmit = (e: React.FormEvent) => handleNonAdminLogin(e, 'student', props);
 
     return (
-        <form onSubmit={handleStudentLogin}>
-            <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Academy ID" type="text" name="academyId" placeholder="e.g. AC0001" required autoCapitalize="characters" />
+        <form onSubmit={handleSubmit}>
+            <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Academy ID" type="text" name="academyId" placeholder="e.g. SUNSHINE" required autoCapitalize="characters" />
             <FormInput icon={<UserIcon className="w-5 h-5" />} label="Roll Number" type="text" name="rollNumber" placeholder="e.g. S001" required autoCapitalize="characters" />
-            <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" name="password" placeholder="Enter your password" required />
+            <FormInput icon={<CalendarIcon className="w-5 h-5" />} label="Date of Birth" type="date" name="dob" required />
             <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4">
                 Sign in
             </button>
-            <DemoCredentials credentials={{ "Academy ID": "ACDEMO", "Roll Number": "S001", "Password": "alice123" }} />
+            <DemoCredentials credentials={{ "Academy ID": "DEMO", "Roll Number": "S001", "Date of Birth": "2006-05-15" }} />
         </form>
     );
 };
 
-const StaffLoginForm = ({ setIsLoading, setError, onLogin }: { setIsLoading: (l:boolean)=>void, setError: (e:string)=>void, onLogin: (user: CurrentUser) => void }) => {
-    const handleStaffLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
-        setIsLoading(true);
-        const form = e.target as HTMLFormElement;
-        const academyId = (form.elements.namedItem('academyId') as HTMLInputElement).value.trim().toUpperCase();
-        const staffId = (form.elements.namedItem('staffId') as HTMLInputElement).value.trim().toUpperCase();
-        const password = (form.elements.namedItem('password') as HTMLInputElement).value;
-
-        if (academyId === 'ACDEMO') {
-            const demoStaffMember = demoStaff.find(s => s.staffId === staffId && s.password === password);
-            if (demoStaffMember) {
-                onLogin({ role: 'staff', data: demoStaffMember, academyId, academyName: 'Demo Academy' });
-            } else {
-                setError("Invalid demo credentials for staff.");
-            }
-            setIsLoading(false);
-            return;
-        }
-
-        try {
-            // Ensure we have an anonymous user session to perform reads, if not already present.
-            if (!auth.currentUser || !auth.currentUser.isAnonymous) {
-                await auth.signInAnonymously();
-            }
-
-            const q = query(
-                collection(db, 'academies'),
-                where('academyId', '==', academyId)
-            );
-            const academySnapshot = await getDocs(q);
-
-            if (academySnapshot.empty) {
-                setError(`Academy with ID ${academyId} not found.`);
-                return;
-            }
-            const academyDoc = academySnapshot.docs[0];
-            const firestoreAcademyId = academyDoc.id;
-            const academyName = academyDoc.data().name;
-
-            const staffQuery = query(
-                collection(db, `academies/${firestoreAcademyId}/staff`),
-                where('staffId', '==', staffId)
-            );
-            const staffSnapshot = await getDocs(staffQuery);
-
-            if (staffSnapshot.empty) {
-                setError('Staff member not found with that ID.');
-                return;
-            }
-
-            const staffDoc = staffSnapshot.docs[0];
-            const staffData = { id: staffDoc.id, ...staffDoc.data() } as Staff;
-
-            if (staffData.password === password) {
-                // Login success: Do not sign out the anonymous user.
-                // The session will persist until the user logs out of the app.
-                onLogin({ role: 'staff', data: staffData, academyId: firestoreAcademyId, academyName });
-            } else {
-                setError('Incorrect password.');
-            }
-        } catch (error: any) {
-            console.error(error);
-            if (error.code === 'auth/operation-not-allowed') {
-                 setError('Anonymous sign-in is not enabled in your Firebase project. Please contact the developer.');
-            } else if (error.code === 'permission-denied' || error.code === 'missing-permission') {
-                setError('Permission denied. Please check your Firestore security rules.');
-            } else {
-                setError('An error occurred during login. Please try again.');
-            }
-        } finally {
-            setIsLoading(false);
-        }
-    };
+const StaffLoginForm = (props: any) => {
+    const handleSubmit = (e: React.FormEvent) => handleNonAdminLogin(e, 'staff', props);
 
     return (
-        <form onSubmit={handleStaffLogin}>
-            <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Academy ID" type="text" name="academyId" placeholder="e.g. AC0001" required autoCapitalize="characters" />
-            <FormInput icon={<BookIcon className="w-5 h-5" />} label="Staff ID" type="text" name="staffId" placeholder="e.g. T01" required autoCapitalize="characters" />
-            <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" name="password" placeholder="Enter your password" required />
+        <form onSubmit={handleSubmit}>
+            <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Academy ID" type="text" name="academyId" placeholder="e.g. SUNSHINE" required autoCapitalize="characters" />
+            <FormInput icon={<BookIcon className="w-5 h-5" />} label="Staff ID" type="text" name="staffId" placeholder="e.g. ALAN" required autoCapitalize="characters" />
+            <FormInput icon={<CalendarIcon className="w-5 h-5" />} label="Date of Birth" type="date" name="dob" required />
             <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4">
                 Sign in
             </button>
-            <DemoCredentials credentials={{ "Academy ID": "ACDEMO", "Staff ID": "T01", "Password": "demostaff" }} />
+            <DemoCredentials credentials={{ "Academy ID": "DEMO", "Staff ID": "T01", "Date of Birth": "1970-03-15" }} />
         </form>
     );
 };
@@ -410,6 +345,7 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
     const [error, setError] = React.useState('');
     const [showAcademyNotFound, setShowAcademyNotFound] = React.useState(false);
     const [isSuperAdminModalOpen, setIsSuperAdminModalOpen] = React.useState(false);
+    const [showConfigError, setShowConfigError] = React.useState(false);
 
     React.useEffect(() => {
         if (externalError) {
@@ -427,16 +363,20 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
         setError('');
         clearExternalError();
     };
+    
+    const nonAdminLoginProps = { setIsLoading, setError: handleSetError, onLogin, setShowConfigError };
 
     return (
         <>
+        {showConfigError && <AuthErrorModal onClose={() => { setShowConfigError(false); setIsLoading(false); }} />}
+
         <AuthLayout title="Welcome Back!" subtitle="Please sign in to continue">
             <AuthCard>
                 <RoleSwitcher activeRole={role} onRoleChange={handleRoleChange} />
                 
                 {role === 'academy' && <AcademyLoginForm setIsLoading={setIsLoading} setError={handleSetError} onLoginFailed={() => setShowAcademyNotFound(true)} onLogin={onLogin} />}
-                {role === 'student' && <StudentLoginForm setIsLoading={setIsLoading} setError={handleSetError} onLogin={onLogin} />}
-                {role === 'staff' && <StaffLoginForm setIsLoading={setIsLoading} setError={handleSetError} onLogin={onLogin} />}
+                {role === 'student' && <StudentLoginForm {...nonAdminLoginProps} />}
+                {role === 'staff' && <StaffLoginForm {...nonAdminLoginProps} />}
 
                 {error && <p className="text-red-500 text-sm text-center mt-4">{error}</p>}
                 

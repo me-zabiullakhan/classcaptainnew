@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { Student } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -104,6 +105,7 @@ export function RegistrationFormViewPage({ onBack, student }: { onBack: () => vo
                         <h3 className="text-lg font-semibold text-indigo-700 mb-2 border-b pb-1">Academic Details</h3>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
                             <FormRow label="Admission Date" value={formatDate(student.admissionDate)} />
+                            <FormRow label="School/College" value={student.schoolOrCollege} />
                             <FormRow label="Enrolled Batches" value={student.batches.join(', ')} />
                             <FormRow label="Fee Type" value={student.feeType} />
                             <FormRow label="Fee Amount" value={`₹${student.feeAmount}`} />

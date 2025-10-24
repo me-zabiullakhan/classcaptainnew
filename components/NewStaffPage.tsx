@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import type { Staff } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -29,7 +27,7 @@ const FormInput = ({ label, id, children, containerClassName, ...props }: { labe
 
 export function NewStaffPage({ onBack, onSave }: NewStaffPageProps): React.ReactNode {
     const [formData, setFormData] = React.useState<Omit<Staff, 'id' | 'batchAccess' | 'isActive'>>({
-        staffId: `STF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+        staffId: '',
         name: '',
         dob: '',
         mobile: '',
@@ -37,13 +35,20 @@ export function NewStaffPage({ onBack, onSave }: NewStaffPageProps): React.React
         gender: 'Male',
         address: '',
         joiningDate: '',
-        password: `PASS${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
         photo: '',
     });
     const [isPhotoModalOpen, setIsPhotoModalOpen] = React.useState(false);
     const galleryInputRef = React.useRef<HTMLInputElement>(null);
     const cameraInputRef = React.useRef<HTMLInputElement>(null);
     const [imageToEdit, setImageToEdit] = React.useState<string | null>(null);
+
+    React.useEffect(() => {
+        // Suggest a staff ID based on the name if the ID field is empty
+        if (!formData.staffId && formData.name) {
+            const suggestedId = formData.name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().substring(0, 8);
+            setFormData(prev => ({...prev, staffId: suggestedId}));
+        }
+    }, [formData.name]);
 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,7 +77,7 @@ export function NewStaffPage({ onBack, onSave }: NewStaffPageProps): React.React
     };
 
     const handleSave = () => {
-        if (!formData.name.trim() || !formData.dob || !formData.mobile || !formData.address || !formData.joiningDate || !formData.staffId || !formData.password) {
+        if (!formData.name.trim() || !formData.dob || !formData.mobile || !formData.address || !formData.joiningDate || !formData.staffId) {
             alert("Please fill all required fields.");
             return;
         }
@@ -114,6 +119,7 @@ export function NewStaffPage({ onBack, onSave }: NewStaffPageProps): React.React
             </div>
 
             <FormInput label="Full Name" id="name" name="name" value={formData.name} onChange={handleChange} required containerClassName="border-indigo-500 border-2" />
+            <FormInput label="Staff ID" id="staffId" name="staffId" value={formData.staffId} onChange={handleChange} placeholder="e.g. JOHNDOE" required />
             <FormInput label="Date of Birth" id="dob" name="dob" type="date" value={formData.dob} onChange={handleChange} required>
                 <CalendarIcon className="w-6 h-6 text-indigo-600" />
             </FormInput>
@@ -138,8 +144,6 @@ export function NewStaffPage({ onBack, onSave }: NewStaffPageProps): React.React
                 <CalendarIcon className="w-6 h-6 text-indigo-600" />
             </FormInput>
 
-            <FormInput label="Staff ID" id="staffId" name="staffId" value={formData.staffId} readOnly />
-            <FormInput label="Password" id="password" name="password" value={formData.password} readOnly />
         </form>
       </main>
       

@@ -22,6 +22,42 @@ const CATEGORIES = {
 
 const PAYMENT_METHODS: Transaction['paymentMethod'][] = ['Cash', 'UPI', 'Bank Transfer', 'Card', 'Other'];
 
+const DeleteConfirmationModal = ({ onConfirm, onCancel, isDeleting, transaction }: { onConfirm: () => void; onCancel: () => void; isDeleting: boolean; transaction: Transaction | null; }) => {
+    if (!transaction) return null;
+    const confirmMessage = transaction.feeCollectionId
+        ? "This will permanently delete the transaction and its linked fee payment record. This action cannot be undone."
+        : "This will permanently delete the transaction. This action cannot be undone.";
+
+    return (
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fade-in p-4">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg max-w-sm mx-auto text-center">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 dark:bg-red-900/40 mb-5">
+                <TrashIcon className="h-9 w-9 text-red-600 dark:text-red-400" />
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100 mb-3">Are you sure?</h2>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6">
+                {confirmMessage}
+            </p>
+            <div className="flex flex-col sm:flex-row-reverse gap-3">
+                <button
+                    onClick={onConfirm}
+                    disabled={isDeleting}
+                    className="w-full sm:w-auto flex-1 bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition-colors shadow-md disabled:bg-red-300"
+                >
+                    {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+                <button
+                    onClick={onCancel}
+                    disabled={isDeleting}
+                    className="w-full sm:w-auto flex-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-bold py-3 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+)};
+
 const TransactionForm = ({ onSave, onCancel, initialData, isDemoMode }: { 
     onSave: (data: any) => Promise<void>; 
     onCancel: () => void;
@@ -119,6 +155,8 @@ export function IncomeExpensesPage({ onBack, transactions, onSave, onUpdate, onD
         endDate: '',
         category: 'all'
     });
+    const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
     
     const sortedTransactions = useMemo(() => [...transactions].sort((a, b) => b.date.toMillis() - a.date.toMillis()), [transactions]);
     
@@ -158,26 +196,30 @@ export function IncomeExpensesPage({ onBack, transactions, onSave, onUpdate, onD
         setEditingTransaction(null);
     };
 
-    const handleDelete = async (tx: Transaction) => {
+    const handleDeleteClick = (tx: Transaction) => {
         if (isDemoMode) {
             alert("Demo mode: Cannot delete data.");
             return;
         }
-        if (tx.feeCollectionId) {
-            alert("This is an income transaction linked to a fee payment. Please delete it from the 'Fee Collection Report' page to ensure data consistency.");
-            return;
-        }
-        if (window.confirm("Are you sure you want to delete this transaction?")) {
-            try {
-                await onDelete(tx.id);
-            } catch (error) {
-                console.error("Failed to delete transaction:", error);
-                alert("Failed to delete transaction. Please try again.");
-            }
+        setTransactionToDelete(tx);
+    };
+
+    const confirmDelete = async () => {
+        if (!transactionToDelete) return;
+        setIsDeleting(true);
+        try {
+            await onDelete(transactionToDelete.id);
+            setTransactionToDelete(null);
+        } catch (error) {
+            console.error("Failed to delete transaction:", error);
+            alert("Failed to delete transaction. Please try again.");
+        } finally {
+            setIsDeleting(false);
         }
     };
     
     return (
+        <>
         <div className="animate-fade-in flex flex-col h-full bg-gray-100 dark:bg-gray-900">
             <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md flex-shrink-0 sticky top-0 z-10">
                 <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back">
@@ -222,8 +264,8 @@ export function IncomeExpensesPage({ onBack, transactions, onSave, onUpdate, onD
                                 <div className="flex justify-between items-center mt-3 pt-2 border-t dark:border-gray-700">
                                     <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">{tx.paymentMethod}</p>
                                     <div className="flex gap-2">
-                                        <button onClick={() => setEditingTransaction(tx)} className="p-1.5 text-blue-600 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/40"><PencilIcon className="w-4 h-4"/></button>
-                                        <button onClick={() => handleDelete(tx)} className="p-1.5 text-red-600 rounded-full hover:bg-red-100 dark:hover:bg-red-900/40"><TrashIcon className="w-4 h-4"/></button>
+                                        <button onClick={() => setEditingTransaction(tx)} className="p-1.5 text-blue-600 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/40" disabled={!!tx.feeCollectionId}><PencilIcon className="w-4 h-4"/></button>
+                                        <button onClick={() => handleDeleteClick(tx)} className="p-1.5 text-red-600 rounded-full hover:bg-red-100 dark:hover:bg-red-900/40"><TrashIcon className="w-4 h-4"/></button>
                                     </div>
                                 </div>
                             </div>
@@ -254,5 +296,14 @@ export function IncomeExpensesPage({ onBack, transactions, onSave, onUpdate, onD
                 )}
             </main>
         </div>
+        {transactionToDelete && (
+            <DeleteConfirmationModal
+                transaction={transactionToDelete}
+                onConfirm={confirmDelete}
+                onCancel={() => setTransactionToDelete(null)}
+                isDeleting={isDeleting}
+            />
+        )}
+        </>
     );
 }

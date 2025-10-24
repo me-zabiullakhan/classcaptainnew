@@ -91,6 +91,8 @@ export function Dashboard({ onNavigate, academy, students, batches, staff, onSho
         return () => onNavigate('manage-exams');
       case 'Enquiry Manager':
         return () => onNavigate('enquiry-manager');
+      case 'Reports':
+        return () => onNavigate('reports-options');
       default:
         return () => onShowDevPopup(name);
     }

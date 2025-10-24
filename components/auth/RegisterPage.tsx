@@ -1,24 +1,41 @@
-
-
 import React from 'react';
 import { BuildingIcon } from '../icons/BuildingIcon';
 import { EmailIcon } from '../icons/EmailIcon';
 import { LockIcon } from '../icons/LockIcon';
-import { auth } from '../../firebaseConfig';
+import { auth, db } from '../../firebaseConfig';
 import { GoogleIcon } from '../icons/GoogleIcon';
 import firebase from 'firebase/compat/app';
 import { AuthLayout, AuthCard, FormInput, InfoNote } from './AuthComponents';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 
 interface RegisterPageProps {
     onNavigateToLogin: () => void;
 }
 
+const useDebounce = (value: string, delay: number) => {
+    const [debouncedValue, setDebouncedValue] = React.useState(value);
+    React.useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [value, delay]);
+    return debouncedValue;
+};
+
+
 export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
     const [error, setError] = React.useState('');
     const [isLoading, setIsLoading] = React.useState(false);
     const [email, setEmail] = React.useState('');
-    const instituteNameRef = React.useRef<HTMLInputElement>(null);
+    const [instituteName, setInstituteName] = React.useState('');
+    const [academyId, setAcademyId] = React.useState('');
+    const [idStatus, setIdStatus] = React.useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+    const debouncedAcademyId = useDebounce(academyId, 500);
+
 
     React.useEffect(() => {
         const prefilledEmail = sessionStorage.getItem('registration_email');
@@ -26,12 +43,46 @@ export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
             setEmail(prefilledEmail);
         }
     }, []);
+    
+    React.useEffect(() => {
+        if (instituteName && !academyId) {
+            const suggestedId = instituteName
+                .split(' ')
+                .map(word => word.replace(/[^a-zA-Z0-9]/g, ''))
+                .join('')
+                .substring(0, 10)
+                .toUpperCase();
+            if (suggestedId) {
+                setAcademyId(suggestedId);
+            }
+        }
+    }, [instituteName]);
+    
+    React.useEffect(() => {
+        if (debouncedAcademyId.length < 3) {
+            setIdStatus('idle');
+            return;
+        }
+
+        const checkId = async () => {
+            setIdStatus('checking');
+            const q = query(collection(db, "academies"), where("academyId", "==", debouncedAcademyId));
+            const querySnapshot = await getDocs(q);
+            setIdStatus(querySnapshot.empty ? 'available' : 'taken');
+        };
+
+        checkId();
+    }, [debouncedAcademyId]);
+
 
     const handleGoogleRegister = async () => {
         setError('');
-        const instituteName = instituteNameRef.current?.value;
-        if (!instituteName || instituteName.trim() === '') {
-            setError("Please enter your institute's name before signing up.");
+        if (!instituteName.trim() || !academyId.trim()) {
+            setError("Please enter your institute's name and choose an Academy ID.");
+            return;
+        }
+        if (idStatus !== 'available') {
+            setError("Please choose an available Academy ID.");
             return;
         }
 
@@ -39,6 +90,7 @@ export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
         try {
             sessionStorage.setItem('google_reg_flow', 'true');
             sessionStorage.setItem('google_reg_institute_name', instituteName);
+            sessionStorage.setItem('google_reg_academy_id', academyId);
             const provider = new firebase.auth.GoogleAuthProvider();
             await auth.signInWithPopup(provider);
             // The onAuthStateChanged listener in App.tsx will now handle academy creation.
@@ -52,10 +104,15 @@ export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        
+        if (idStatus !== 'available') {
+            setError("Please choose an available Academy ID before creating an account.");
+            return;
+        }
+
         setIsLoading(true);
 
         const form = e.target as HTMLFormElement;
-        const instituteName = (form.elements.namedItem('instituteName') as HTMLInputElement).value;
         const password = (form.elements.namedItem('password') as HTMLInputElement).value;
         const confirmPassword = (form.elements.namedItem('confirmPassword') as HTMLInputElement).value;
 
@@ -66,18 +123,14 @@ export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
         }
 
         try {
-            // Store institute name for the onAuthStateChanged listener to pick up
+            // Store details for the onAuthStateChanged listener to pick up
             sessionStorage.setItem('registration_institute_name', instituteName);
+            sessionStorage.setItem('registration_academy_id', academyId);
             
-            // Attempt to create the user.
             await auth.createUserWithEmailAndPassword(email, password);
-            
-            // If successful, the onAuthStateChanged listener in App.tsx will take over.
-            // It will see the new user, find no academy document, and then create one
-            // using the instituteName from sessionStorage.
+            // Listener in App.tsx will take over.
             
         } catch (err: any) {
-            // Handle specific errors from createUserWithEmailAndPassword
             if (err.code === 'auth/email-already-in-use') {
                 setError("This email address is already registered. Please try logging in.");
             } else {
@@ -85,9 +138,19 @@ export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
                 setError(err.message || "An unexpected error occurred during registration.");
             }
             
-            // Clean up sessionStorage if any part of the registration fails
             sessionStorage.removeItem('registration_institute_name');
+            sessionStorage.removeItem('registration_academy_id');
             setIsLoading(false);
+        }
+    };
+    
+    const renderIdStatus = () => {
+        if (debouncedAcademyId.length < 3) return <p className="text-xs text-gray-500 mt-1 pl-1">ID must be at least 3 characters.</p>;
+        switch(idStatus) {
+            case 'checking': return <p className="text-xs text-gray-500 mt-1 pl-1">Checking availability...</p>;
+            case 'available': return <p className="text-xs text-green-600 mt-1 pl-1">✓ Available!</p>;
+            case 'taken': return <p className="text-xs text-red-600 mt-1 pl-1">This ID is already taken.</p>;
+            default: return null;
         }
     };
 
@@ -95,7 +158,11 @@ export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
         <AuthLayout title="Create Your Account" subtitle="Register your coaching institute with Class Captain">
             <AuthCard>
                 <form onSubmit={handleRegister} className="space-y-4">
-                    <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Institute Name" type="text" name="instituteName" placeholder="Enter institute name" required ref={instituteNameRef} />
+                    <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Institute Name" type="text" name="instituteName" placeholder="Enter institute name" required value={instituteName} onChange={e => setInstituteName(e.target.value)} />
+                    <div>
+                        <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Academy ID" type="text" name="academyId" placeholder="e.g. SUNSHINE" required value={academyId} onChange={e => setAcademyId(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} />
+                        {renderIdStatus()}
+                    </div>
                     <FormInput
                         icon={<EmailIcon className="w-5 h-5" />}
                         label="Email Address"
@@ -111,7 +178,7 @@ export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
                     
                     {error && <p className="text-red-500 text-sm text-center -mt-2 mb-2">{error}</p>}
 
-                    <button type="submit" disabled={isLoading} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md disabled:bg-indigo-300">
+                    <button type="submit" disabled={isLoading || idStatus !== 'available'} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md disabled:bg-indigo-300">
                         {isLoading ? 'Creating Account...' : 'Create Account'}
                     </button>
                 </form>
@@ -125,7 +192,7 @@ export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
                     </div>
                 </div>
 
-                <button type="button" onClick={handleGoogleRegister} disabled={isLoading} className="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors shadow-sm disabled:opacity-50">
+                <button type="button" onClick={handleGoogleRegister} disabled={isLoading || idStatus !== 'available'} className="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors shadow-sm disabled:opacity-50">
                     <GoogleIcon className="w-5 h-5" />
                     Sign up with Google
                 </button>
@@ -140,7 +207,7 @@ export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
                 </div>
                 
                 <InfoNote>
-                    After registration, you'll receive a unique Academy ID that students and teachers will use to join your institute. Students and teachers cannot register directly - they must be added by the academy admin.
+                    Your Academy ID is a unique, memorable code your students and staff will use to log in.
                 </InfoNote>
             </AuthCard>
         </AuthLayout>

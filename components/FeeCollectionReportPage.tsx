@@ -1,22 +1,138 @@
-
-
-import React from 'react';
+import React, { useState } from 'react';
 import type { FeeCollection } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { SearchIcon } from './icons/SearchIcon';
 import { PencilIcon } from './icons/PencilIcon';
 import { TrashIcon } from './icons/TrashIcon';
+import { CalendarIcon } from './icons/CalendarIcon';
 
 interface FeeCollectionReportPageProps {
   onBack: () => void;
   feeCollections: FeeCollection[];
   onDelete: (id: string) => Promise<void>;
-  onShowDevPopup: (featureName: string) => void;
+  onUpdate: (id: string, data: { paymentDate: string; paymentMode: FeeCollection['paymentMode']; discount: number; }) => Promise<void>;
   isDemoMode: boolean;
 }
 
-export function FeeCollectionReportPage({ onBack, feeCollections, onDelete, onShowDevPopup, isDemoMode }: FeeCollectionReportPageProps): React.ReactNode {
+const EditFeeModal = ({ fee, onSave, onClose, isDemoMode }: { fee: FeeCollection; onSave: (id: string, data: any) => Promise<void>; onClose: () => void; isDemoMode: boolean; }) => {
+    const [formData, setFormData] = useState({
+        paymentDate: fee.paymentDate.toDate().toISOString().split('T')[0],
+        paymentMode: fee.paymentMode,
+        discount: String(fee.discount),
+    });
+    const [isSaving, setIsSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    const totalAmount = fee.totalAmount;
+    const discountAmount = parseFloat(formData.discount) || 0;
+    const finalAmount = Math.max(0, totalAmount - discountAmount);
+    
+    const monthFormatted = new Date(fee.feeForMonth + '-02').toLocaleString('default', { month: 'long', year: 'numeric' });
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (isDemoMode) {
+            alert("Demo mode: Cannot update data.");
+            return;
+        }
+        setIsSaving(true);
+        setError('');
+        try {
+            await onSave(fee.id, {
+                ...formData,
+                discount: parseFloat(formData.discount)
+            });
+            onClose();
+        } catch (err) {
+            setError("Failed to update record. Please try again.");
+            console.error(err);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+    
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in p-4">
+            <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-lg shadow-xl m-4 w-full max-w-sm flex flex-col">
+                <h3 className="text-lg font-bold p-4 border-b dark:border-gray-700 text-center bg-gray-50 dark:bg-gray-700/50 rounded-t-lg">Edit Fee for {monthFormatted}</h3>
+                <div className="p-4 space-y-4">
+                    <div>
+                        <label htmlFor="paymentDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Payment Date</label>
+                        <div className="relative mt-1">
+                            <input id="paymentDate" name="paymentDate" type="date" value={formData.paymentDate} onChange={handleChange} className="block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700" required />
+                             <label htmlFor="paymentDate" className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer text-gray-400">
+                                <CalendarIcon className="w-5 h-5" />
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Payment Mode</label>
+                        <select name="paymentMode" value={formData.paymentMode} onChange={handleChange} className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700">
+                            <option>Cash</option> <option>UPI</option> <option>Card</option> <option>Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Discount (₹)</label>
+                        <input type="number" name="discount" value={formData.discount} onChange={handleChange} className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700" placeholder="0" />
+                    </div>
+                     <div className="border-t dark:border-gray-700 pt-3 mt-3 space-y-2 text-sm">
+                        <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-400">Total Amount:</span> <span className="font-semibold text-gray-800 dark:text-gray-100">₹{totalAmount.toFixed(2)}</span></div>
+                        <div className="flex justify-between text-red-600"><span className="text-gray-600 dark:text-gray-400">Discount:</span> <span className="font-semibold">- ₹{discountAmount.toFixed(2)}</span></div>
+                        <div className="flex justify-between text-lg font-bold text-indigo-700 dark:text-indigo-400"><span className="text-gray-800 dark:text-gray-100">Final Amount:</span> <span>₹{finalAmount.toFixed(2)}</span></div>
+                    </div>
+                    {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+                </div>
+                 <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-b-lg grid grid-cols-2 gap-3">
+                    <button type="button" onClick={onClose} disabled={isSaving} className="w-full bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500 transition-colors">Cancel</button>
+                    <button type="submit" disabled={isSaving} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-indigo-300">
+                        {isSaving ? 'Updating...' : 'Update Fee'}
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
+};
+
+const DeleteConfirmationModal = ({ onConfirm, onCancel, isDeleting }: { onConfirm: () => void; onCancel: () => void; isDeleting: boolean; }) => (
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fade-in p-4">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg max-w-sm mx-auto text-center">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 dark:bg-red-900/40 mb-5">
+                <TrashIcon className="h-9 w-9 text-red-600 dark:text-red-400" />
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100 mb-3">Are you sure?</h2>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6">
+                This will permanently delete the fee record and its associated income transaction. This action cannot be undone.
+            </p>
+            <div className="flex flex-col sm:flex-row-reverse gap-3">
+                <button
+                    onClick={onConfirm}
+                    disabled={isDeleting}
+                    className="w-full sm:w-auto flex-1 bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition-colors shadow-md disabled:bg-red-300"
+                >
+                    {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+                <button
+                    onClick={onCancel}
+                    disabled={isDeleting}
+                    className="w-full sm:w-auto flex-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-bold py-3 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+);
+
+
+export function FeeCollectionReportPage({ onBack, feeCollections, onDelete, onUpdate, isDemoMode }: FeeCollectionReportPageProps): React.ReactNode {
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [editingFee, setEditingFee] = React.useState<FeeCollection | null>(null);
+  const [deletingFee, setDeletingFee] = React.useState<FeeCollection | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const sortedCollections = [...feeCollections].sort((a, b) => b.paymentDate.toMillis() - a.paymentDate.toMillis());
 
@@ -25,23 +141,32 @@ export function FeeCollectionReportPage({ onBack, feeCollections, onDelete, onSh
     fc.studentRollNumber.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteClick = (fee: FeeCollection) => {
     if (isDemoMode) {
         alert("Demo mode: Cannot delete data.");
         return;
     }
-    if (window.confirm("Are you sure you want to delete this fee record? This will also delete the corresponding income transaction and cannot be undone.")) {
-        try {
-            await onDelete(id);
-        } catch (error) {
-            console.error("Failed to delete fee record:", error);
-            alert("Failed to delete fee record. Please try again.");
-        }
+    setDeletingFee(fee);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingFee) return;
+
+    setIsDeleting(true);
+    try {
+        await onDelete(deletingFee.id);
+        setDeletingFee(null); // Close modal on success
+    } catch (error) {
+        console.error("Failed to delete fee record:", error);
+        alert("Failed to delete fee record. Please try again.");
+    } finally {
+        setIsDeleting(false);
     }
   };
 
 
   return (
+    <>
     <div className="animate-fade-in flex flex-col h-full">
       <header className="bg-indigo-700 text-white p-3 flex items-center justify-between shadow-md flex-shrink-0 sticky top-0 z-10">
         <div className="flex items-center">
@@ -89,14 +214,14 @@ export function FeeCollectionReportPage({ onBack, feeCollections, onDelete, onSh
                             <p className="text-xs text-gray-500">Mode: <span className="font-semibold">{fc.paymentMode}</span></p>
                             <div className="flex space-x-2">
                                 <button
-                                  onClick={() => onShowDevPopup('Edit Fee Collection')}
+                                  onClick={() => setEditingFee(fc)}
                                   className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
                                 >
                                   <PencilIcon className="w-4 h-4" />
                                   <span>Edit</span>
                                 </button>
                                 <button
-                                  onClick={() => handleDelete(fc.id)}
+                                  onClick={() => handleDeleteClick(fc)}
                                   className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors"
                                 >
                                   <TrashIcon className="w-4 h-4" />
@@ -116,5 +241,21 @@ export function FeeCollectionReportPage({ onBack, feeCollections, onDelete, onSh
         )}
       </main>
     </div>
+    {editingFee && (
+        <EditFeeModal 
+          fee={editingFee}
+          onSave={onUpdate}
+          onClose={() => setEditingFee(null)}
+          isDemoMode={isDemoMode}
+        />
+    )}
+    {deletingFee && (
+        <DeleteConfirmationModal
+            onConfirm={confirmDelete}
+            onCancel={() => setDeletingFee(null)}
+            isDeleting={isDeleting}
+        />
+    )}
+    </>
   );
 }

@@ -32,6 +32,7 @@ const FormInput = ({ label, id, children, containerClassName, ...props }: { labe
 export function EditStudentPage({ onBack, onUpdate, student, batches }: EditStudentPageProps): React.ReactNode {
     const [formData, setFormData] = React.useState<Omit<Student, 'id' | 'feeAmount' | 'isActive'> & { feeAmount: string }>({
         ...student,
+        schoolOrCollege: student.schoolOrCollege || '',
         feeAmount: String(student.feeAmount || ''),
     });
     const [isBatchModalOpen, setBatchModalOpen] = React.useState(false);
@@ -135,6 +136,7 @@ export function EditStudentPage({ onBack, onUpdate, student, batches }: EditStud
             <FormInput label="Student Name" id="studentName" name="name" value={formData.name} onChange={handleChange} required containerClassName="border-indigo-500 border-2" />
             <FormInput label="Father Name" id="fatherName" name="fatherName" value={formData.fatherName} onChange={handleChange} required />
             <FormInput label="Mother Name" id="motherName" name="motherName" value={formData.motherName} onChange={handleChange} required />
+            <FormInput label="School / College (Optional)" id="schoolOrCollege" name="schoolOrCollege" value={formData.schoolOrCollege} onChange={handleChange} />
             <FormInput label="Date of birth" id="dob" name="dob" type="date" value={formData.dob} onChange={handleChange} required>
                 <CalendarIcon className="w-6 h-6 text-indigo-600" />
             </FormInput>
@@ -206,8 +208,6 @@ export function EditStudentPage({ onBack, onUpdate, student, batches }: EditStud
                     />
                 </div>
             </div>
-
-            <FormInput label="Password" id="password" name="password" value={formData.password || ''} readOnly />
 
             <div className="relative bg-white rounded-lg border border-gray-300">
                 <select id="transport" name="transport" value={formData.transport} onChange={handleChange} className="w-full appearance-none bg-white p-3 pr-8 rounded-lg text-gray-800 outline-none border-2 border-indigo-500">

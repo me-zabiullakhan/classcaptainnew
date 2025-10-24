@@ -23,7 +23,7 @@ const StudentCreationSuccessModal: React.FC<{ student: Student, academyId: strin
     const [copied, setCopied] = React.useState(false);
 
     const handleCopy = () => {
-        const textToCopy = `Student Login Details:\nAcademy ID: ${academyId}\nRoll Number: ${student.rollNumber}\nPassword: ${student.password}`;
+        const textToCopy = `Student Login Details:\nAcademy ID: ${academyId}\nRoll Number: ${student.rollNumber}\nDate of Birth: ${student.dob}`;
         navigator.clipboard.writeText(textToCopy).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
@@ -38,7 +38,7 @@ const StudentCreationSuccessModal: React.FC<{ student: Student, academyId: strin
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100 mb-3">Student Added Successfully!</h2>
                 <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6">
-                    Please share the following login credentials with the student.
+                    The student can now log in using their Academy ID, Roll Number, and Date of Birth.
                 </p>
                 
                 <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-left space-y-2 mb-6 border border-gray-200 dark:border-gray-600">
@@ -51,8 +51,8 @@ const StudentCreationSuccessModal: React.FC<{ student: Student, academyId: strin
                         <span className="font-mono font-bold text-gray-800 dark:text-gray-100">{student.rollNumber}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                        <span className="font-medium text-gray-500 dark:text-gray-400 text-sm">Password:</span>
-                        <span className="font-mono font-bold text-gray-800 dark:text-gray-100">{student.password}</span>
+                        <span className="font-medium text-gray-500 dark:text-gray-400 text-sm">Date of Birth:</span>
+                        <span className="font-mono font-bold text-gray-800 dark:text-gray-100">{student.dob}</span>
                     </div>
                 </div>
 
@@ -98,11 +98,11 @@ export function NewStudentPage({ onBack, onSave, batches, academyId, enquiryData
         dob: '',
         mobile1: '',
         email: '',
+        schoolOrCollege: '',
         gender: 'Male',
         address: '',
         admissionDate: '',
         batches: [],
-        password: `MTQCJ${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
         transport: 'NO_TRANSPORT_USE',
         feeType: 'Monthly',
         feeAmount: '',
@@ -253,6 +253,7 @@ export function NewStudentPage({ onBack, onSave, batches, academyId, enquiryData
             <FormInput label="Student Name" id="studentName" name="name" value={formData.name} onChange={handleChange} required containerClassName="border-indigo-500 border-2" />
             <FormInput label="Father Name" id="fatherName" name="fatherName" value={formData.fatherName} onChange={handleChange} required />
             <FormInput label="Mother Name" id="motherName" name="motherName" value={formData.motherName} onChange={handleChange} required />
+            <FormInput label="School / College (Optional)" id="schoolOrCollege" name="schoolOrCollege" value={formData.schoolOrCollege} onChange={handleChange} />
             <FormInput label="Date of birth" id="dob" name="dob" type="date" value={formData.dob} onChange={handleChange} required>
                 <CalendarIcon className="w-6 h-6 text-indigo-600" />
             </FormInput>
@@ -322,8 +323,6 @@ export function NewStudentPage({ onBack, onSave, batches, academyId, enquiryData
                     />
                 </div>
             </div>
-
-            <FormInput label="Password" id="password" name="password" value={formData.password} readOnly />
 
             <div className="relative bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600">
                 <select id="transport" name="transport" value={formData.transport} onChange={handleChange} className="w-full appearance-none bg-white dark:bg-gray-800 p-3 pr-8 rounded-lg text-gray-800 dark:text-gray-100 outline-none border-2 border-indigo-500">

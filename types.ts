@@ -58,7 +58,7 @@ export interface Student {
     address: string;
     admissionDate: string;
     batches: string[]; // Array of batch names
-    password?: string;
+    schoolOrCollege?: string;
     transport: string;
     idNumber?: string;
     field1?: string;
@@ -90,7 +90,6 @@ export interface Staff {
     gender: 'Male' | 'Female' | 'Other';
     address: string;
     joiningDate: string;
-    password?: string;
     photo?: string; // a base64 string or URL
     batchAccess: Record<string, BatchAccessPermissions>;
     isActive: boolean;

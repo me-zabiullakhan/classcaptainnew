@@ -1,10 +1,10 @@
 
 
-
 import React, { useState, useEffect, useCallback } from 'react';
 // Firebase
 import { auth, db, firebaseConfig } from './firebaseConfig';
-import { onAuthStateChanged, signOut, User } from 'firebase/auth';
+// FIX: Replaced V9 modular 'firebase/auth' imports with the V8 compat 'firebase/compat/app' to match the auth instance setup.
+import firebase from 'firebase/compat/app';
 import { collection, doc, onSnapshot, addDoc, updateDoc, setDoc, getDoc, query, where, getDocs, writeBatch, serverTimestamp, Timestamp, runTransaction, deleteDoc } from 'firebase/firestore';
 
 // Types
@@ -56,6 +56,8 @@ import { CreateExamPage } from './components/CreateExamPage';
 import { RecordMarksPage } from './components/RecordMarksPage';
 import { EnquiryManagerPage } from './components/EnquiryManagerPage';
 import { NewEnquiryPage } from './components/NewEnquiryPage';
+import { ReportsPage } from './components/ReportsPage';
+import { AttendanceReportPage } from './components/AttendanceReportPage';
 // Student view components
 import { StudentDashboardPage } from './components/student/StudentDashboardPage';
 import { StudentFeeStatusPage } from './components/student/StudentFeeStatusPage';
@@ -101,9 +103,16 @@ const DevInProgressPopup: React.FC<{ featureName: string; onClose: () => void }>
     </div>
 );
 
-const createAcademyInFirestore = async (user: User, instituteName: string): Promise<Academy> => {
+// FIX: Replaced V9 'User' type with V8 compat 'firebase.User'.
+const createAcademyInFirestore = async (user: firebase.User, instituteName: string, academyId: string): Promise<Academy> => {
+    // Final server-side-like check for uniqueness before creation
+    const q = query(collection(db, "academies"), where("academyId", "==", academyId));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+        throw new Error(`Academy ID "${academyId}" is already taken. Please go back and choose another one.`);
+    }
+
     const newAcademyRef = doc(collection(db, 'academies'));
-    const academyId = `AC${newAcademyRef.id.substring(0, 6).toUpperCase()}`;
 
     const academyData = {
         name: instituteName,
@@ -116,7 +125,6 @@ const createAcademyInFirestore = async (user: User, instituteName: string): Prom
         trialEndsAt: Timestamp.fromMillis(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
     };
 
-    // Create a mapping document in a 'users' collection to link UID to academy doc ID
     const userDocRef = doc(db, 'users', user.uid);
     const userMappingData = {
         academyId: newAcademyRef.id,
@@ -124,13 +132,11 @@ const createAcademyInFirestore = async (user: User, instituteName: string): Prom
     };
 
     try {
-        // Use a batch write to ensure both documents are created atomically
         const batch = writeBatch(db);
         batch.set(newAcademyRef, academyData);
         batch.set(userDocRef, userMappingData);
         await batch.commit();
 
-        // Verification step
         const docSnap = await getDoc(newAcademyRef);
         if (!docSnap.exists()) {
             throw new Error("Failed to verify academy creation in database.");
@@ -189,7 +195,7 @@ export default function App() {
     const [showDevPopup, setShowDevPopup] = useState<string | null>(null);
 
     const isDemoMode = (currentUser?.role === 'admin' && currentUser.data.id === 'demo-academy-id') ||
-        ((currentUser?.role === 'student' || currentUser?.role === 'staff') && currentUser.academyId === 'ACDEMO');
+        ((currentUser?.role === 'student' || currentUser?.role === 'staff') && currentUser.academyId === 'DEMO');
 
     // Theme effect
     useEffect(() => {
@@ -231,7 +237,8 @@ export default function App() {
             return;
         }
 
-        const unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
+        // FIX: Replaced V9 'onAuthStateChanged(auth, ...)' with V8 'auth.onAuthStateChanged(...)' and updated 'User' type.
+        const unsubscribe = auth.onAuthStateChanged(async (user: firebase.User | null) => {
             if (user) {
                 if (user.isAnonymous) {
                     // This is a temporary session used by the student/staff login form
@@ -263,25 +270,31 @@ export default function App() {
                     } else {
                         // User exists but is not an admin (student/staff). For admin login, this is an error.
                         setAuthError("Your account is not configured as an admin account.");
-                        await signOut(auth);
+                        // FIX: Replaced V9 'signOut(auth)' with V8 'auth.signOut()'.
+                        await auth.signOut();
                     }
                 } else {
                     // NO USER MAPPING FOUND.
                     const instituteName = sessionStorage.getItem('google_reg_institute_name') || sessionStorage.getItem('registration_institute_name');
-                    if (instituteName) {
+                    const academyId = sessionStorage.getItem('google_reg_academy_id') || sessionStorage.getItem('registration_academy_id');
+
+                    if (instituteName && academyId) {
                         // NEW REGISTRATION FLOW
                         try {
-                            const newAcademy = await createAcademyInFirestore(user, instituteName);
+                            const newAcademy = await createAcademyInFirestore(user, instituteName, academyId);
                             alert(`Registration successful! Your Academy ID is ${newAcademy.academyId}. Please save it for your students and staff to log in.`);
                             handleRegisterSuccess(newAcademy);
-                        } catch (error) {
+                        } catch (error: any) {
                             console.error("Error creating academy:", error);
-                            setAuthError("Failed to create your academy account. This can happen due to permission issues. Please check your Firestore security rules and try again.");
-                            await signOut(auth);
+                            setAuthError(error.message || "Failed to create your academy account. This can happen due to permission issues or a duplicate Academy ID. Please check your Firestore security rules and try again.");
+                            // FIX: Replaced V9 'signOut(auth)' with V8 'auth.signOut()'.
+                            await auth.signOut();
                         } finally {
                             sessionStorage.removeItem('google_reg_flow');
                             sessionStorage.removeItem('google_reg_institute_name');
+                            sessionStorage.removeItem('google_reg_academy_id');
                             sessionStorage.removeItem('registration_institute_name');
+                            sessionStorage.removeItem('registration_academy_id');
                         }
                     } else {
                         // ORPHANED AUTH USER: Logged in, but no data and not in reg flow. Go to complete registration.
@@ -309,7 +322,7 @@ export default function App() {
     useEffect(() => {
         if (!currentUser || isPlaceholderConfig || isDemoMode) {
             if (isDemoMode) {
-                setAcademy({ id: 'demo-academy-id', academyId: 'ACDEMO', name: 'Demo Academy', adminUid: 'demo-admin-uid', adminEmail: 'demo@classcaptain.com', status: 'active', subscriptionStatus: 'active' });
+                setAcademy({ id: 'demo-academy-id', academyId: 'DEMO', name: 'Demo Academy', adminUid: 'demo-admin-uid', adminEmail: 'demo@classcaptain.com', status: 'active', subscriptionStatus: 'active' });
                 setStudents(demoStudents);
                 setBatches(demoBatches);
                 setStaff(demoStaff);
@@ -419,7 +432,8 @@ export default function App() {
         setIsNavOpen(false);
         if(!isDemoMode) {
              try {
-                await signOut(auth);
+                // FIX: Replaced V9 'signOut(auth)' with V8 'auth.signOut()'.
+                await auth.signOut();
             } catch (error) {
                 console.error("Logout Error:", error);
             }
@@ -433,13 +447,15 @@ export default function App() {
         const user = auth.currentUser;
         if (user) {
             try {
-                const newAcademy = await createAcademyInFirestore(user, instituteName);
-                alert(`Registration successful! Your Academy ID is ${newAcademy.academyId}. Please save it for your students and staff to log in.`);
-                handleRegisterSuccess(newAcademy);
+                // For simplified flow, we'll ask them to retry registration if academyId is missing
+                alert("Please restart the registration process and choose an Academy ID.");
+                // FIX: Replaced V9 'signOut(auth)' with V8 'auth.signOut()'.
+                await auth.signOut();
             } catch (error) {
-                console.error("Error creating academy:", error);
+                console.error("Error during incomplete registration flow:", error);
                 setAuthError("Failed to complete your academy account. Please try again.");
-                await signOut(auth);
+                // FIX: Replaced V9 'signOut(auth)' with V8 'auth.signOut()'.
+                await auth.signOut();
             }
         } else {
             setAuthError("You are not signed in. Please log in again.");
@@ -504,7 +520,7 @@ export default function App() {
             });
             await Promise.all(batchUpdatePromises);
             
-            return studentWithDefaults;
+            return studentWithDefaults as Student;
         } catch (error) {
             console.error("Error saving student:", error);
             alert("Failed to save student. Please try again.");
@@ -567,6 +583,13 @@ export default function App() {
     
      const handleSaveStaff = async (staffData: Omit<Staff, 'id'>) => {
         if (!academy || isDemoMode) { alert("Demo mode."); return; }
+        // Uniqueness check
+        const q = query(collection(db, `academies/${academy.id}/staff`), where('staffId', '==', staffData.staffId));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            alert(`Staff ID "${staffData.staffId}" is already in use. Please choose a unique ID.`);
+            return;
+        }
         await addDoc(collection(db, `academies/${academy.id}/staff`), staffData);
         setPage('staff-manager');
     };
@@ -605,376 +628,285 @@ export default function App() {
                 if (!scheduleDoc.exists()) {
                     transaction.set(scheduleRef, { [batchId]: scheduleItems });
                 } else {
-                    transaction.update(scheduleRef, { [batchId]: scheduleItems });
+                    transaction.set(scheduleRef, { [batchId]: scheduleItems }, { merge: true });
                 }
             });
-        } catch (e) {
-            console.error("Error saving schedule:", e);
-            throw new Error("Failed to save schedule. Please try again.");
+        } catch (error) {
+            console.error("Error saving daily schedule:", error);
+            alert("Failed to save schedule.");
+            throw error;
         }
     };
     
-    const handleSubscribe = async (plan: 'monthly' | 'quarterly' | 'yearly', months: number) => {
-        if (!academy || isDemoMode) { alert("Demo mode."); return; }
-
-        const newExpiryDate = new Date();
-        newExpiryDate.setMonth(newExpiryDate.getMonth() + months);
-
-        const academyRef = doc(db, 'academies', academy.id);
-        await updateDoc(academyRef, {
-            subscriptionStatus: 'active',
-            subscriptionEndsAt: Timestamp.fromDate(newExpiryDate),
-            plan: plan
-        });
-        // The onSnapshot listener will update the academy state, and re-render the app
-    };
-
-    const handleSaveTransaction = async (transactionData: Omit<Transaction, 'id' | 'createdAt' | 'attachmentUrl'>) => {
-        if (!academy || isDemoMode) { throw new Error("Demo mode: Cannot save data."); }
+    const handleSaveTransaction = async (data: Omit<Transaction, 'id' | 'createdAt' | 'attachmentUrl'>) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode"); }
         await addDoc(collection(db, `academies/${academy.id}/transactions`), {
-            ...transactionData,
-            date: Timestamp.fromDate(new Date(transactionData.date as any)),
+            ...data,
+            date: Timestamp.fromDate(new Date(data.date as any)),
             createdAt: serverTimestamp()
         });
     };
-    
-    const handleUpdateTransaction = async (transactionId: string, transactionData: Partial<Omit<Transaction, 'id' | 'createdAt'>>) => {
-        if (!academy || isDemoMode) { throw new Error("Demo mode: Cannot save data."); }
-        const transactionRef = doc(db, `academies/${academy.id}/transactions`, transactionId);
-        const dataToUpdate: { [key: string]: any } = { ...transactionData };
-        if (transactionData.date) {
-            dataToUpdate.date = Timestamp.fromDate(new Date(transactionData.date as any));
+
+    const handleUpdateTransaction = async (id: string, data: Partial<Omit<Transaction, 'id' | 'createdAt'>>) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode"); }
+        const txRef = doc(db, `academies/${academy.id}/transactions`, id);
+        const updateData: any = { ...data };
+        if (data.date) {
+            updateData.date = Timestamp.fromDate(new Date(data.date as any));
         }
-        await updateDoc(transactionRef, dataToUpdate);
+        await updateDoc(txRef, updateData);
     };
 
-    const handleDeleteTransaction = async (transactionId: string) => {
-        if (!academy || isDemoMode) { throw new Error("Demo mode: Cannot delete data."); }
-        const transactionRef = doc(db, `academies/${academy.id}/transactions`, transactionId);
-        await deleteDoc(transactionRef);
+    const handleDeleteTransaction = async (txId: string) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode"); }
+        const txRef = doc(db, `academies/${academy.id}/transactions`, txId);
+        const txSnap = await getDoc(txRef);
+        if (txSnap.exists() && txSnap.data().feeCollectionId) {
+            alert("This transaction is linked to a fee payment. Please delete it from the Fee Collection Report to ensure data consistency.");
+            throw new Error("Cannot delete fee-linked transaction.");
+        }
+        await deleteDoc(txRef);
     };
 
-    const handleDeleteFeeCollection = async (feeCollectionId: string) => {
-        if (!academy || isDemoMode) { throw new Error("Demo mode: Cannot delete data."); }
+    const handleDeleteFeeCollection = async (feeId: string) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode"); }
+        const feeRef = doc(db, `academies/${academy.id}/fees`, feeId);
+        const feeSnap = await getDoc(feeRef);
+        if (!feeSnap.exists()) return;
+        const feeData = feeSnap.data() as FeeCollection;
 
         const batch = writeBatch(db);
-        const feeCollectionRef = doc(db, `academies/${academy.id}/fees`, feeCollectionId);
-        const feeCollectionSnap = await getDoc(feeCollectionRef);
-        
-        if (feeCollectionSnap.exists()) {
-            const feeCollectionData = feeCollectionSnap.data() as FeeCollection;
-            
-            // 1. Queue the Fee Collection for deletion
-            batch.delete(feeCollectionRef);
-
-            // 2. If there's a linked transaction, queue it for deletion too
-            if (feeCollectionData.transactionId) {
-                const transactionRef = doc(db, `academies/${academy.id}/transactions`, feeCollectionData.transactionId);
-                batch.delete(transactionRef);
-            }
-            
-            await batch.commit();
-        } else {
-            throw new Error("Fee collection record not found.");
+        batch.delete(feeRef);
+        if (feeData.transactionId) {
+            const txRef = doc(db, `academies/${academy.id}/transactions`, feeData.transactionId);
+            batch.delete(txRef);
         }
+        await batch.commit();
+    };
+
+    const handleUpdateFeeCollection = async (feeId: string, data: { paymentDate: string; paymentMode: FeeCollection['paymentMode']; discount: number; }) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode"); }
+        const feeRef = doc(db, `academies/${academy.id}/fees`, feeId);
+        const feeSnap = await getDoc(feeRef);
+        if (!feeSnap.exists()) return;
+        const feeData = feeSnap.data() as FeeCollection;
+        
+        const newAmountPaid = feeData.totalAmount - data.discount;
+
+        const batch = writeBatch(db);
+        batch.update(feeRef, {
+            ...data,
+            amountPaid: newAmountPaid,
+            paymentDate: Timestamp.fromDate(new Date(data.paymentDate))
+        });
+        
+        if (feeData.transactionId) {
+            const txRef = doc(db, `academies/${academy.id}/transactions`, feeData.transactionId);
+            batch.update(txRef, {
+                amount: newAmountPaid,
+                paymentMethod: data.paymentMode,
+                date: Timestamp.fromDate(new Date(data.paymentDate))
+            });
+        }
+        await batch.commit();
     };
 
     const handleSaveExam = async (examData: Omit<Exam, 'id'>) => {
-        if (!academy || isDemoMode) { 
-            alert("Demo mode: Cannot save data.");
-            return Promise.reject(new Error("Demo mode"));
-        }
-        try {
-            await addDoc(collection(db, `academies/${academy.id}/exams`), examData);
-            setPage('manage-exams');
-        } catch (error) {
-            console.error("Error saving exam:", error);
-            throw new Error("Failed to save exam.");
-        }
-    };
-
-    const handleUpdateExam = async (examData: Omit<Exam, 'id'>) => {
-        if (!academy || !selectedExamId || isDemoMode) {
-            alert("Demo mode or error.");
-            return Promise.reject(new Error("Demo mode or error"));
-        }
-        try {
+        if (!academy || isDemoMode) { throw new Error("Demo mode"); }
+        if (selectedExamId) { // Update
             const examRef = doc(db, `academies/${academy.id}/exams`, selectedExamId);
-            await updateDoc(examRef, examData as any); // The type mismatch is because of Timestamp, updateDoc handles it.
-            setPage('manage-exams');
-        } catch (error) {
-            console.error("Error updating exam:", error);
-            throw new Error("Failed to update exam.");
+            await updateDoc(examRef, examData);
+        } else { // Create
+            await addDoc(collection(db, `academies/${academy.id}/exams`), examData);
         }
+        setPage('manage-exams');
+        setSelectedExamId(null);
     };
 
-    const handlePublishExam = async (examId: string, status: 'Published' | 'Draft') => {
-        if (!academy || isDemoMode) {
-            alert("Demo mode.");
-            return;
-        }
+    const handlePublishExamResults = async (examId: string, status: 'Published' | 'Draft') => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode"); }
         const examRef = doc(db, `academies/${academy.id}/exams`, examId);
-        try {
-            await updateDoc(examRef, { resultStatus: status });
-        } catch (error) {
-            console.error("Error updating exam status:", error);
-            alert("Failed to update exam status.");
+        await updateDoc(examRef, { resultStatus: status });
+    };
+    
+    const handleSaveEnquiry = async (data: any) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode"); }
+        if (data.enquiryId) { // Update from NewEnquiryPage
+             const enquiryRef = doc(db, `academies/${academy.id}/enquiries`, data.enquiryId);
+             await updateDoc(enquiryRef, data.data);
+        } else { // Create from NewEnquiryPage
+             await addDoc(collection(db, `academies/${academy.id}/enquiries`), data);
         }
+        setPage('enquiry-manager');
+        setSelectedEnquiryId(null);
     };
 
-    const handleSaveEnquiry = async (enquiryData: Omit<Enquiry, 'id'>) => {
-        if (!academy || isDemoMode) { 
-            alert("Demo mode: Cannot save data.");
-            return Promise.reject(new Error("Demo mode"));
-        }
-        try {
-            await addDoc(collection(db, `academies/${academy.id}/enquiries`), enquiryData);
-            setPage('enquiry-manager');
-        } catch (error) {
-            console.error("Error saving enquiry:", error);
-            throw new Error("Failed to save enquiry.");
-        }
-    };
-
-    const handleUpdateEnquiry = async (enquiryId: string, data: Partial<Enquiry>) => {
-        if (!academy || isDemoMode) { 
-            alert("Demo mode: Cannot save data.");
-            return Promise.reject(new Error("Demo mode"));
-        }
-        try {
-            const enquiryRef = doc(db, `academies/${academy.id}/enquiries`, enquiryId);
-            await updateDoc(enquiryRef, data);
-            setPage('enquiry-manager');
-        } catch (error) {
-            console.error("Error updating enquiry:", error);
-            throw new Error("Failed to update enquiry.");
-        }
+    const handleUpdateEnquiryStatus = async (enquiryId: string, data: Partial<Enquiry>) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode"); }
+        const enquiryRef = doc(db, `academies/${academy.id}/enquiries`, enquiryId);
+        await updateDoc(enquiryRef, data);
     };
 
     const handleDeleteEnquiry = async (enquiryId: string) => {
-        if (!academy || isDemoMode) {
-            alert("Demo mode: Cannot delete data.");
-            return Promise.reject(new Error("Demo mode"));
-        }
-        try {
-            await deleteDoc(doc(db, `academies/${academy.id}/enquiries`, enquiryId));
-        } catch (error) {
-            console.error("Error deleting enquiry:", error);
-            throw new Error("Failed to delete enquiry.");
-        }
+        if (!academy || isDemoMode) { throw new Error("Demo mode"); }
+        await deleteDoc(doc(db, `academies/${academy.id}/enquiries`, enquiryId));
     };
 
-
-    // Navigation handler
-    const handleNavigate = (targetPage: string, params?: { [key: string]: any }) => {
-        if (params?.batchId) setSelectedBatchId(params.batchId);
-        if (params?.studentId) setSelectedStudentId(params.studentId);
-        if (params?.staffId) setSelectedStaffId(params.staffId);
-        if (params?.examId) setSelectedExamId(params.examId);
-        if (params?.enquiryId) setSelectedEnquiryId(params.enquiryId);
-        if (params?.filter) setStudentListFilter(params.filter);
-        setPage(targetPage);
-        setIsNavOpen(false);
+    const handleNavigate = (page: string, params: { [key: string]: any } = {}) => {
+        if (params.batchId !== undefined) setSelectedBatchId(params.batchId);
+        if (params.studentId !== undefined) setSelectedStudentId(params.studentId);
+        if (params.batchName !== undefined) setStudentListFilter(params.batchName);
+        if (params.staffId !== undefined) setSelectedStaffId(params.staffId);
+        if (params.examId !== undefined) setSelectedExamId(params.examId);
+        if (params.enquiryId !== undefined) setSelectedEnquiryId(params.enquiryId);
+        setPage(page);
     };
 
-    // Render logic
-    if (isLoading) return <SplashScreen />;
+    if (isPlaceholderConfig) {
+        return <ConfigurationWarning />;
+    }
 
-    if (showConsent) {
+    if (isLoading) {
+        return <SplashScreen />;
+    }
+    
+    if (showConsent && !isDemoMode) {
         return <DataConsentModal onAccept={() => {
             localStorage.setItem('dataConsentAccepted', 'true');
             setShowConsent(false);
         }} />;
     }
-    
-    // Auth screens
-    if (!currentUser) {
-        return (
-            <div className={`font-sans antialiased text-gray-900 bg-gray-50 dark:bg-gray-900 ${theme}`}>
-                {isPlaceholderConfig && <ConfigurationWarning />}
-                {page === 'register' ? (
-                    <RegisterPage onNavigateToLogin={() => setPage('login')} />
-                ) : page === 'complete-registration' && auth.currentUser ? (
-                    <CompleteRegistrationPage
-                        onComplete={handleCompleteRegistration}
-                        onLogout={handleLogout}
-                        userEmail={auth.currentUser.email!}
-                        externalError={authError}
-                        clearExternalError={() => setAuthError(null)}
-                    />
-                ) : (
-                    <LoginPage onLogin={handleLogin} onNavigateToRegister={() => setPage('register')} externalError={authError} clearExternalError={() => setAuthError(null)} />
-                )}
-            </div>
-        );
-    }
-    
-    const isSubscriptionExpired = currentUser?.role === 'admin' && academy?.subscriptionStatus === 'expired';
-    if (isSubscriptionExpired) {
+
+    if (currentUser?.role === 'admin' && academy?.subscriptionStatus === 'expired') {
         return <SubscriptionExpiredPage onNavigate={handleNavigate} onLogout={handleLogout} />;
     }
+    
+    const selectedBatch = batches.find(b => b.id === selectedBatchId);
+    const selectedStudent = students.find(s => s.id === selectedStudentId);
+    const selectedStaff = staff.find(s => s.id === selectedStaffId);
+    const selectedExam = exams.find(e => e.id === selectedExamId);
+    const selectedEnquiry = enquiries.find(e => e.id === selectedEnquiryId);
 
+    const renderPage = (pageName: string) => {
+        switch (pageName) {
+            case 'dashboard':
+                if (currentUser?.role === 'admin' && academy) return <Dashboard onNavigate={handleNavigate} academy={academy} students={students} batches={batches} staff={staff} onShowDevPopup={setShowDevPopup} />;
+                if (currentUser?.role === 'student' && academy) return <StudentDashboardPage student={currentUser.data} academy={academy} onNavigate={handleNavigate} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme} onShowDevPopup={setShowDevPopup}/>;
+                if (currentUser?.role === 'staff' && academy) return <StaffDashboardPage onNavigate={handleNavigate} academy={academy} staff={currentUser.data} onShowDevPopup={setShowDevPopup}/>;
+                return null;
 
-    const renderPage = () => {
-        if (!currentUser || (currentUser.role !== 'superadmin' && !academy)) {
-            return null; // Should be handled by top-level conditional
-        }
-        
-        // Find selected items
-        const selectedBatch = batches.find(b => b.id === selectedBatchId);
-        const selectedStudent = students.find(s => s.id === selectedStudentId);
-        const selectedStaffMember = staff.find(s => s.id === selectedStaffId);
-        const selectedExam = exams.find(e => e.id === selectedExamId);
-        const selectedEnquiry = enquiries.find(e => e.id === selectedEnquiryId);
+            // Admin Pages
+            case 'batches': return <BatchesPage onBack={() => setPage('dashboard')} onCreate={() => setPage('new-batch')} batches={batches} onViewStudents={(batchName) => handleNavigate('active-students', { batchName })} onEditBatch={(batchId) => handleNavigate('edit-batch', { batchId })} />;
+            case 'new-batch': return <NewBatchPage onBack={() => setPage('batches')} onSave={handleSaveBatch} />;
+            case 'edit-batch': return selectedBatch && <EditBatchPage onBack={() => setPage('batches')} onSave={handleUpdateBatch} batch={selectedBatch} />;
+            case 'student-options': return <StudentOptionsPage onBack={() => setPage('dashboard')} onNavigate={handleNavigate} onShowDevPopup={setShowDevPopup} />;
+            case 'new-student': return academy && <NewStudentPage onBack={() => setPage(selectedEnquiryId ? 'enquiry-manager' : 'student-options')} onSave={handleSaveStudent} batches={batches} academyId={academy.academyId} enquiryData={selectedEnquiry} />;
+            case 'edit-student': return selectedStudent && <EditStudentPage onBack={() => setPage('active-students')} onUpdate={handleUpdateStudent} student={selectedStudent} batches={batches} />;
+            case 'active-students': return <ActiveStudentsPage onBack={() => setPage('student-options')} students={students} batches={batches} onToggleStudentStatus={handleToggleStudentStatus} onEditStudent={(studentId) => handleNavigate('edit-student', { studentId })} onViewStudent={(studentId) => handleNavigate('registration-form-view', { studentId })} initialFilter={studentListFilter} />;
+            case 'inactive-students': return <InactiveStudentsPage onBack={() => setPage('student-options')} students={students} batches={batches} onToggleStudentStatus={handleToggleStudentStatus} />;
+            case 'birthday-list': return <BirthdayListPage onBack={() => setPage('student-options')} students={students} />;
+            case 'registration-form-list': return <RegistrationFormListPage onBack={() => setPage('student-options')} students={students} onSelectStudent={(studentId) => handleNavigate('registration-form-view', { studentId })} />;
+            case 'registration-form-view': return selectedStudent && <RegistrationFormViewPage onBack={() => setPage('registration-form-list')} student={selectedStudent} />;
+            case 'select-batch-attendance': return academy && <SelectBatchForAttendancePage onBack={() => setPage('dashboard')} batches={batches} onSelectBatch={(batchId) => handleNavigate('take-attendance', { batchId })} academyId={academy.id} />;
+            case 'take-attendance': return selectedBatch && academy && <TakeAttendancePage onBack={() => setPage('select-batch-attendance')} batch={selectedBatch} students={students.filter(s => s.batches.includes(selectedBatch.name))} academy={academy} isDemoMode={isDemoMode} />;
+            case 'fees-options': return <FeesOptionsPage onBack={() => setPage('dashboard')} onNavigate={handleNavigate} />;
+            case 'select-batch-for-fees': return <SelectBatchForFeesPage onBack={() => setPage('fees-options')} batches={batches} onSelectBatch={(batchId) => handleNavigate('select-student-for-fees', { batchId })} />;
+            case 'select-student-for-fees': return selectedBatch && <SelectStudentForFeesPage onBack={() => setPage('select-batch-for-fees')} batch={selectedBatch} students={students.filter(s => s.batches.includes(selectedBatch.name))} onSelectStudent={(studentId) => handleNavigate('student-fee-details', { studentId })} />;
+            case 'student-fee-details': return selectedStudent && <StudentFeeDetailsPage onBack={() => setPage('select-student-for-fees')} student={selectedStudent} feeCollections={feeCollections.filter(fc => fc.studentId === selectedStudent.id)} onSavePayment={handleSavePayment} />;
+            case 'fee-collection-report': return <FeeCollectionReportPage onBack={() => setPage('fees-options')} feeCollections={feeCollections} onDelete={handleDeleteFeeCollection} onUpdate={handleUpdateFeeCollection} isDemoMode={isDemoMode}/>;
+            case 'fee-dues-list': return academy && <FeeDuesListPage onBack={() => setPage('fees-options')} students={students} batches={batches} feeCollections={feeCollections} academy={academy} />;
+            case 'my-account': return academy && <MyAccountPage onBack={() => setPage('dashboard')} academy={academy} onSave={handleSaveAcademyDetails} onLogout={handleLogout} />;
+            case 'staff-options': return <StaffOptionsPage onBack={() => setPage('dashboard')} onNavigate={handleNavigate} />;
+            case 'new-staff': return <NewStaffPage onBack={() => setPage('staff-options')} onSave={handleSaveStaff} />;
+            case 'staff-manager': return <StaffManagerPage onBack={() => setPage('staff-options')} staff={staff} onManageAccess={(staffId) => handleNavigate('staff-batch-access', { staffId })} onToggleStatus={handleToggleStaffStatus} onShowDevPopup={setShowDevPopup} />;
+            case 'inactive-staff': return <InactiveStaffPage onBack={() => setPage('staff-options')} staff={staff} onToggleStatus={handleToggleStaffStatus} />;
+            case 'staff-batch-access': return selectedStaff && <StaffBatchAccessPage onBack={() => setPage('staff-manager')} staff={selectedStaff} batches={batches} onSave={handleSaveStaffAccess} />;
+            case 'schedule-classes': return academy && <ScheduleClassesPage onBack={() => setPage('dashboard')} batches={batches} staff={staff} academyId={academy.id} onSave={handleSaveDailySchedule} isDemoMode={isDemoMode} />;
+            case 'subscription': return academy && <SubscriptionPage onBack={() => setPage('dashboard')} academy={academy} onSubscribe={async (plan, months) => {}} />;
+            case 'income-expenses': return <IncomeExpensesPage onBack={() => setPage('dashboard')} transactions={transactions} onSave={handleSaveTransaction} onUpdate={handleUpdateTransaction} onDelete={handleDeleteTransaction} isDemoMode={isDemoMode}/>;
+            case 'manage-exams': return <ManageExamsPage onBack={() => setPage('dashboard')} exams={exams} onNavigate={handleNavigate} onPublish={handlePublishExamResults}/>;
+            case 'create-exam': return <CreateExamPage onBack={() => setPage('manage-exams')} batches={batches} onSave={handleSaveExam} exam={selectedExam} />;
+            case 'record-marks': return selectedExam && academy && <RecordMarksPage onBack={() => setPage('manage-exams')} exam={selectedExam} students={students} academyId={academy.id} isDemoMode={isDemoMode}/>;
+            case 'enquiry-manager': return <EnquiryManagerPage onBack={() => setPage('dashboard')} enquiries={enquiries} onNavigate={handleNavigate} onDelete={handleDeleteEnquiry} onUpdateStatus={handleUpdateEnquiryStatus} />;
+            case 'new-enquiry': return <NewEnquiryPage onBack={() => setPage('enquiry-manager')} batches={batches} onSave={handleSaveEnquiry} enquiry={selectedEnquiry}/>;
+            case 'edit-enquiry': return selectedEnquiry && <NewEnquiryPage onBack={() => setPage('enquiry-manager')} batches={batches} onSave={handleSaveEnquiry} enquiry={selectedEnquiry}/>;
+            case 'settings': return <SettingsPage onBack={() => setPage('dashboard')} onNavigate={handleNavigate} onShowDevPopup={setShowDevPopup} />;
+            case 'custom-sms-settings': return academy && <CustomSmsSettingsPage onBack={() => setPage('settings')} academy={academy} onSave={handleSaveAcademyDetails} />;
+            case 'reports-options': return <ReportsPage onBack={() => setPage('dashboard')} onNavigate={handleNavigate} onShowDevPopup={setShowDevPopup} />;
+            case 'attendance-report': return academy && <AttendanceReportPage onBack={() => setPage('reports-options')} batches={batches} students={students} academyId={academy.id} />;
+            
+            // Student Pages
+            case 'fee-status': return currentUser?.role === 'student' && <StudentFeeStatusPage student={currentUser.data} feeCollections={feeCollections} onBack={() => setPage('dashboard')} />;
+            case 'my-academy': return academy && <MyAcademyPage academy={academy} onBack={() => setPage('dashboard')} />;
+            case 'attendance': return currentUser?.role === 'student' && <StudentAttendancePage student={currentUser.data} academyId={currentUser.academyId} onBack={() => setPage('dashboard')} />;
+            case 'timetable': return currentUser?.role === 'student' && <StudentTimetablePage onBack={() => setPage('dashboard')} student={currentUser.data} academyId={currentUser.academyId} batches={batches} />;
+            case 'student-exams': return currentUser?.role === 'student' && <StudentExamsPage onBack={() => setPage('dashboard')} student={currentUser.data} academyId={currentUser.academyId} />;
 
-        switch(currentUser.role) {
-            case 'admin':
-                switch (page) {
-                    case 'dashboard': return <Dashboard onNavigate={handleNavigate} academy={academy!} students={students} batches={batches} staff={staff} onShowDevPopup={setShowDevPopup} />;
-                    case 'my-account': return <MyAccountPage onBack={() => setPage('dashboard')} onLogout={handleLogout} academy={academy!} onSave={handleSaveAcademyDetails} />;
-                    case 'batches': return <BatchesPage onBack={() => setPage('dashboard')} onCreate={() => setPage('new-batch')} batches={batches} onViewStudents={(batchName) => handleNavigate('active-students', { filter: batchName })} onEditBatch={(batchId) => handleNavigate('edit-batch', { batchId })} />;
-                    case 'new-batch': return <NewBatchPage onBack={() => setPage('batches')} onSave={handleSaveBatch} />;
-                    case 'edit-batch': return selectedBatch ? <EditBatchPage onBack={() => setPage('batches')} batch={selectedBatch} onSave={handleUpdateBatch} /> : <p>Batch not found</p>;
-                    case 'student-options': return <StudentOptionsPage onBack={() => setPage('dashboard')} onNavigate={handleNavigate} onShowDevPopup={setShowDevPopup} />;
-                    case 'active-students': return <ActiveStudentsPage onBack={() => setPage('student-options')} students={students} batches={batches} onToggleStudentStatus={handleToggleStudentStatus} onEditStudent={(studentId) => handleNavigate('edit-student', { studentId })} onViewStudent={(studentId) => handleNavigate('view-registration-form', { studentId })} initialFilter={studentListFilter} />;
-                    case 'inactive-students': return <InactiveStudentsPage onBack={() => setPage('student-options')} students={students} batches={batches} onToggleStudentStatus={handleToggleStudentStatus} />;
-                    case 'new-student': return <NewStudentPage onBack={() => {setSelectedEnquiryId(null); setPage('student-options')}} batches={batches} onSave={handleSaveStudent} academyId={academy!.academyId} enquiryData={selectedEnquiry} />;
-                    case 'edit-student': return selectedStudent ? <EditStudentPage onBack={() => setPage('active-students')} student={selectedStudent} batches={batches} onUpdate={handleUpdateStudent} /> : <p>Student not found</p>;
-                    case 'birthday-list': return <BirthdayListPage onBack={() => setPage('student-options')} students={students} />;
-                    case 'registration-form-list': return <RegistrationFormListPage onBack={() => setPage('student-options')} students={students} onSelectStudent={(studentId) => handleNavigate('view-registration-form', { studentId })} />;
-                    case 'view-registration-form': return selectedStudent ? <RegistrationFormViewPage onBack={() => setPage(studentListFilter === 'all' ? 'registration-form-list' : 'active-students')} student={selectedStudent} /> : <p>Student not found</p>;
-                    case 'fees-options': return <FeesOptionsPage onBack={() => setPage('dashboard')} onNavigate={handleNavigate} />;
-                    case 'select-batch-for-fees': return <SelectBatchForFeesPage onBack={() => setPage('fees-options')} batches={batches} onSelectBatch={(batchId) => handleNavigate('select-student-for-fees', { batchId })} />;
-                    case 'select-student-for-fees': return selectedBatch ? <SelectStudentForFeesPage onBack={() => setPage('select-batch-for-fees')} batch={selectedBatch} students={students.filter(s => s.batches.includes(selectedBatch.name))} onSelectStudent={(studentId) => handleNavigate('student-fee-details', { studentId })} /> : <p>Batch not found</p>;
-                    case 'student-fee-details': return selectedStudent ? <StudentFeeDetailsPage onBack={() => handleNavigate('select-student-for-fees', { batchId: selectedBatchId })} student={selectedStudent} feeCollections={feeCollections.filter(fc => fc.studentId === selectedStudent.id)} onSavePayment={handleSavePayment} /> : <p>Student not found</p>;
-                    case 'fee-collection-report': return <FeeCollectionReportPage onBack={() => setPage('fees-options')} feeCollections={feeCollections} onDelete={handleDeleteFeeCollection} onShowDevPopup={setShowDevPopup} isDemoMode={isDemoMode} />;
-                    case 'fee-dues-list': return <FeeDuesListPage onBack={() => setPage('fees-options')} students={students} batches={batches} feeCollections={feeCollections} />;
-                    case 'select-batch-attendance': return <SelectBatchForAttendancePage onBack={() => setPage('dashboard')} batches={batches} onSelectBatch={(batchId) => handleNavigate('take-attendance', { batchId })} />;
-                    case 'take-attendance': return selectedBatch ? <TakeAttendancePage onBack={() => setPage('select-batch-attendance')} batch={selectedBatch} students={students.filter(s => s.isActive && s.batches.includes(selectedBatch.name))} academy={academy!} isDemoMode={isDemoMode} /> : <p>Batch not found.</p>;
-                    case 'settings': return <SettingsPage onBack={() => setPage('dashboard')} onNavigate={handleNavigate} onShowDevPopup={setShowDevPopup} />;
-                    case 'custom-sms-settings': return <CustomSmsSettingsPage onBack={() => setPage('settings')} academy={academy!} onSave={handleSaveAcademyDetails} />;
-                    case 'staff-options': return <StaffOptionsPage onBack={() => setPage('dashboard')} onNavigate={handleNavigate} />;
-                    case 'new-staff': return <NewStaffPage onBack={() => setPage('staff-options')} onSave={handleSaveStaff} />;
-                    case 'staff-manager': return <StaffManagerPage onBack={() => setPage('staff-options')} staff={staff} onManageAccess={(staffId) => handleNavigate('staff-batch-access', { staffId })} onShowDevPopup={setShowDevPopup} onToggleStatus={handleToggleStaffStatus} />;
-                    case 'inactive-staff': return <InactiveStaffPage onBack={() => setPage('staff-options')} staff={staff} onToggleStatus={handleToggleStaffStatus} />;
-                    case 'staff-batch-access': return selectedStaffMember ? <StaffBatchAccessPage onBack={() => setPage('staff-manager')} staff={selectedStaffMember} batches={batches} onSave={handleSaveStaffAccess} /> : <p>Staff member not found</p>;
-                    case 'schedule-classes': return <ScheduleClassesPage onBack={() => setPage('dashboard')} batches={batches} staff={staff} academyId={academy!.id} onSave={handleSaveDailySchedule} isDemoMode={isDemoMode} />;
-                    case 'subscription': return <SubscriptionPage onBack={() => setPage('dashboard')} academy={academy!} onSubscribe={handleSubscribe} />;
-                    case 'income-expenses': return <IncomeExpensesPage onBack={() => setPage('dashboard')} transactions={transactions} onSave={handleSaveTransaction} onUpdate={handleUpdateTransaction} onDelete={handleDeleteTransaction} isDemoMode={isDemoMode} />;
-                    case 'manage-exams': return <ManageExamsPage onBack={() => setPage('dashboard')} exams={exams} onNavigate={handleNavigate} onPublish={handlePublishExam} />;
-                    case 'create-exam': return <CreateExamPage onBack={() => setPage('manage-exams')} batches={batches} onSave={selectedExam ? handleUpdateExam : handleSaveExam} exam={selectedExam} />;
-                    case 'record-marks': return selectedExam ? <RecordMarksPage onBack={() => setPage('manage-exams')} exam={selectedExam} students={students} academyId={academy.id} isDemoMode={isDemoMode} /> : <p>Exam not found.</p>;
-                    case 'enquiry-manager': return <EnquiryManagerPage onBack={() => setPage('dashboard')} enquiries={enquiries} onNavigate={handleNavigate} onDelete={handleDeleteEnquiry} onUpdateStatus={handleUpdateEnquiry} />;
-                    case 'new-enquiry': return <NewEnquiryPage onBack={() => setPage('enquiry-manager')} batches={batches} onSave={handleSaveEnquiry} />;
-                    case 'edit-enquiry': return <NewEnquiryPage onBack={() => setPage('enquiry-manager')} batches={batches} onSave={({enquiryId, data}) => handleUpdateEnquiry(enquiryId, data)} enquiry={selectedEnquiry} />;
-                    default: return <Dashboard onNavigate={handleNavigate} academy={academy!} students={students} batches={batches} staff={staff} onShowDevPopup={setShowDevPopup} />;
-                }
-            case 'student':
-                 switch (page) {
-                    case 'dashboard': return <StudentDashboardPage student={currentUser.data} academy={academy!} onNavigate={handleNavigate} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme} onShowDevPopup={setShowDevPopup} />;
-                    case 'fee-status': return <StudentFeeStatusPage student={currentUser.data} feeCollections={feeCollections.filter(fc => fc.studentId === currentUser.data.id)} onBack={() => setPage('dashboard')} />;
-                    case 'my-academy': return <MyAcademyPage academy={academy!} onBack={() => setPage('dashboard')} />;
-                    case 'attendance': return <StudentAttendancePage student={currentUser.data} academyId={currentUser.academyId} onBack={() => setPage('dashboard')} />;
-                    case 'timetable': return <StudentTimetablePage onBack={() => setPage('dashboard')} student={currentUser.data} academyId={currentUser.academyId} batches={batches} />;
-                    case 'student-exams': return <StudentExamsPage onBack={() => setPage('dashboard')} academyId={currentUser.academyId} student={currentUser.data} />;
-                    default: return <StudentDashboardPage student={currentUser.data} academy={academy!} onNavigate={handleNavigate} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme} onShowDevPopup={setShowDevPopup} />;
-                 }
-            case 'staff':
-                const staffAccessibleBatchIds = Object.keys(currentUser.data.batchAccess || {});
-                const staffAccessibleBatchNames = batches
-                    .filter(b => staffAccessibleBatchIds.includes(b.id))
-                    .map(b => b.name);
-                const accessibleStudents = students.filter(s => 
-                    s.batches.some(studentBatchName => staffAccessibleBatchNames.includes(studentBatchName))
-                );
-                // FIX: Cast the iterated object to the correct type to resolve a TypeScript error where it was inferred as 'unknown'.
-                const canManageAnyExams = Object.values(currentUser.data.batchAccess || {}).some(p => (p as BatchAccessPermissions).exams);
+            // Staff Pages
+            case 'class-schedule': return currentUser?.role === 'staff' && <StaffSchedulePage onBack={() => setPage('dashboard')} staff={currentUser.data} academyId={currentUser.academyId} />;
 
-                 switch(page) {
-                     case 'dashboard': return <StaffDashboardPage staff={currentUser.data} academy={academy!} onNavigate={handleNavigate} onShowDevPopup={setShowDevPopup} />;
-                     case 'active-students': return <ActiveStudentsPage onBack={() => setPage('dashboard')} students={accessibleStudents} batches={batches} onToggleStudentStatus={async () => {}} onEditStudent={(studentId) => handleNavigate('edit-student', { studentId })} onViewStudent={(studentId) => handleNavigate('view-registration-form', { studentId })} initialFilter={studentListFilter} staffPermissions={currentUser.data.batchAccess} />;
-                    case 'select-batch-for-fees': return <SelectBatchForFeesPage onBack={() => setPage('dashboard')} batches={batches} onSelectBatch={(batchId) => handleNavigate('select-student-for-fees', { batchId })} staffPermissions={currentUser.data.batchAccess} />;
-                    case 'select-student-for-fees': return selectedBatch ? <SelectStudentForFeesPage onBack={() => setPage('select-batch-for-fees')} batch={selectedBatch} students={accessibleStudents.filter(s => s.batches.includes(selectedBatch.name))} onSelectStudent={(studentId) => handleNavigate('student-fee-details', { studentId })} /> : <p>Batch not found</p>;
-                    case 'student-fee-details': return selectedStudent ? <StudentFeeDetailsPage onBack={() => handleNavigate('select-student-for-fees', { batchId: selectedBatchId })} student={selectedStudent} feeCollections={feeCollections.filter(fc => fc.studentId === selectedStudent.id)} onSavePayment={handleSavePayment} /> : <p>Student not found</p>;
-                    case 'select-batch-attendance': return <SelectBatchForAttendancePage onBack={() => setPage('dashboard')} batches={batches} onSelectBatch={(batchId) => handleNavigate('take-attendance', { batchId })} staffPermissions={currentUser.data.batchAccess} />;
-                    case 'take-attendance': return selectedBatch ? <TakeAttendancePage onBack={() => setPage('select-batch-attendance')} batch={selectedBatch} students={accessibleStudents.filter(s => s.isActive && s.batches.includes(selectedBatch.name))} academy={academy!} isDemoMode={isDemoMode} /> : <p>Batch not found.</p>;
-                    case 'class-schedule': return <StaffSchedulePage onBack={() => setPage('dashboard')} staff={currentUser.data} academyId={academy!.id} />;
-                    case 'manage-exams': return canManageAnyExams ? <ManageExamsPage onBack={() => setPage('dashboard')} exams={exams} onNavigate={handleNavigate} staffPermissions={currentUser.data.batchAccess} onPublish={handlePublishExam} /> : <p>Access Denied</p>;
-                    case 'create-exam': return canManageAnyExams ? <CreateExamPage onBack={() => setPage('manage-exams')} batches={batches} onSave={selectedExam ? handleUpdateExam : handleSaveExam} staffPermissions={currentUser.data.batchAccess} exam={selectedExam} /> : <p>Access Denied</p>;
-                    case 'record-marks': return selectedExam && canManageAnyExams ? <RecordMarksPage onBack={() => setPage('manage-exams')} exam={selectedExam} students={students} academyId={academy.id} isDemoMode={isDemoMode} /> : <p>Exam not found or access denied.</p>;
-                     default: return <StaffDashboardPage staff={currentUser.data} academy={academy!} onNavigate={handleNavigate} onShowDevPopup={setShowDevPopup} />;
-                 }
-            case 'superadmin':
-                 return <SuperAdminPanel onLogout={handleLogout} />;
-            default:
-                 return <p>Invalid user role.</p>
+            default: return <div>Page not found</div>;
         }
     };
     
+    let mainContent;
 
-    // Main App Screens
-    return (
-        <div className={`font-sans antialiased text-gray-900 bg-gray-100 dark:bg-gray-900 ${theme}`}>
-            {showDevPopup && <DevInProgressPopup featureName={showDevPopup} onClose={() => setShowDevPopup(null)} />}
-            { isPlaceholderConfig && <ConfigurationWarning /> }
-            { connectionError && <ConnectionErrorBanner message={connectionError} onClose={() => setConnectionError(null)} /> }
-            { isOffline && <OfflineIndicator /> }
-            
-            <div className="bg-slate-100 dark:bg-gray-900 min-h-screen flex flex-col">
-            {currentUser.role === 'admin' && academy && (
-                <>
-                    {page === 'dashboard' && <Header
-                        academy={academy}
-                        onLogout={handleLogout}
-                        onToggleNav={() => setIsNavOpen(true)}
-                        onNavigate={handleNavigate}
-                        theme={theme}
-                        onToggleTheme={handleToggleTheme}
-                    />}
-                     <SideNav 
-                        isOpen={isNavOpen}
-                        onClose={() => setIsNavOpen(false)}
-                        onNavigate={handleNavigate}
-                        onLogout={handleLogout}
-                        onShowDevPopup={setShowDevPopup}
-                    />
-                </>
-            )}
-            {currentUser.role === 'staff' && academy && (
-                 <>
-                    {page === 'dashboard' && <StaffHeader
-                        staffName={currentUser.data.name}
-                        academyName={academy.name}
-                        onLogout={handleLogout}
-                        onToggleNav={() => setIsNavOpen(true)}
-                        theme={theme}
-                        onToggleTheme={handleToggleTheme}
-                    />}
-                     <StaffSideNav 
-                        isOpen={isNavOpen}
-                        onClose={() => setIsNavOpen(false)}
-                        onNavigate={handleNavigate}
-                        onLogout={handleLogout}
-                        staff={currentUser.data}
-                        onShowDevPopup={setShowDevPopup}
-                    />
-                </>
-            )}
-             {currentUser.role === 'student' && (
-                <StudentSideNav
-                    isOpen={isNavOpen}
-                    onClose={() => setIsNavOpen(false)}
-                    onNavigate={handleNavigate}
-                    onLogout={handleLogout}
-                />
-            )}
-                <main className="flex-grow flex flex-col relative overflow-hidden">
-                    <div className="flex-grow overflow-y-auto">
-                        {renderPage()}
-                    </div>
-                </main>
-            {currentUser.role === 'admin' && page === 'dashboard' && <BottomNav onNavigate={setPage} activePage={page} />}
+    if (!currentUser) {
+        mainContent = (
+            <div className="flex justify-center items-center min-h-screen bg-gray-100 dark:bg-gray-900">
+                <div className="w-full max-w-md mx-auto">
+                    {page === 'login' && <LoginPage onLogin={handleLogin} onNavigateToRegister={() => setPage('register')} externalError={authError} clearExternalError={() => setAuthError(null)} />}
+                    {page === 'register' && <RegisterPage onNavigateToLogin={() => setPage('login')} />}
+                    {page === 'complete-registration' && auth.currentUser && (
+                        <CompleteRegistrationPage
+                            onComplete={handleCompleteRegistration}
+                            onLogout={handleLogout}
+                            userEmail={auth.currentUser.email || 'your email'}
+                            externalError={authError}
+                            clearExternalError={() => setAuthError(null)}
+                        />
+                    )}
+                </div>
             </div>
-        </div>
+        );
+    } else if (currentUser.role === 'superadmin') {
+        mainContent = <SuperAdminPanel onLogout={handleLogout} />;
+    } else if (currentUser.role === 'admin' && academy) {
+        mainContent = (
+             <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900">
+                <Header academy={academy} onLogout={handleLogout} onToggleNav={() => setIsNavOpen(true)} onNavigate={handleNavigate} theme={theme} onToggleTheme={handleToggleTheme} />
+                <SideNav isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} onNavigate={handleNavigate} onLogout={handleLogout} onShowDevPopup={setShowDevPopup}/>
+                <div className="flex-grow overflow-y-auto pb-16">
+                    {renderPage(page)}
+                </div>
+                <BottomNav onNavigate={handleNavigate} activePage={page} />
+            </div>
+        );
+    } else if (currentUser.role === 'student' && academy) {
+         mainContent = (
+             <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900">
+                <StudentSideNav isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} onNavigate={handleNavigate} onLogout={handleLogout} />
+                {renderPage(page)}
+            </div>
+        );
+    } else if (currentUser.role === 'staff' && academy) {
+        mainContent = (
+             <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900">
+                <StaffHeader staffName={currentUser.data.name} academyName={academy.name} onLogout={handleLogout} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme}/>
+                <StaffSideNav isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} onNavigate={handleNavigate} onLogout={handleLogout} staff={currentUser.data} onShowDevPopup={setShowDevPopup} />
+                {renderPage(page)}
+            </div>
+        );
+    } else {
+        mainContent = <SplashScreen />; // Or some error state
+    }
+    
+    return (
+        <>
+            {connectionError && <ConnectionErrorBanner message={connectionError} onClose={() => setConnectionError(null)} />}
+            {isOffline && <OfflineIndicator />}
+            {showDevPopup && <DevInProgressPopup featureName={showDevPopup} onClose={() => setShowDevPopup(null)} />}
+            {mainContent}
+        </>
     );
 }
