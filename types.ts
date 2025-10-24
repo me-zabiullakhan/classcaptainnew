@@ -27,6 +27,7 @@ export interface Academy {
   trialEndsAt?: Timestamp;
   subscriptionEndsAt?: Timestamp;
   plan?: 'monthly' | 'quarterly' | 'yearly';
+  smsTemplates?: Record<string, string>;
 }
 
 export interface Batch {
@@ -52,6 +53,7 @@ export interface Student {
     dob: string;
     mobile1: string;
     mobile2?: string;
+    email?: string;
     gender: 'Male' | 'Female' | 'Other';
     address: string;
     admissionDate: string;
@@ -172,4 +174,42 @@ export interface Transaction {
   attachmentUrl?: string;
   createdAt: Timestamp;
   feeCollectionId?: string; // ID of the corresponding fee collection
+}
+
+export interface Exam {
+  id: string; // Firestore document ID
+  name: string;
+  batchId: string;
+  batchName: string;
+  subject: string;
+  date: Timestamp;
+  maxMarks: number;
+  passingMarks: number;
+  description?: string;
+  resultStatus: 'Draft' | 'Published';
+}
+
+export interface ExamMarks {
+  // Document ID will be studentId
+  studentId: string;
+  studentName: string;
+  studentRollNumber: string;
+  marksObtained: number | null; // null if not yet entered
+  status: 'Passed' | 'Failed' | 'Absent' | 'Not Graded';
+}
+
+export type EnquiryStatus = 'New' | 'Follow-up' | 'Converted' | 'Lost';
+export type ReferenceSource = 'Google' | 'Referral' | 'Walk-in' | 'Social Media' | 'Other';
+
+export interface Enquiry {
+  id: string; // Firestore document ID
+  studentName: string;
+  mobile: string;
+  email?: string;
+  interestedBatch: string; // Batch name
+  referenceSource: ReferenceSource;
+  followUpDate?: Timestamp;
+  notes?: string;
+  status: EnquiryStatus;
+  createdAt: Timestamp;
 }

@@ -1,4 +1,4 @@
-import type { Batch, Student, Staff, Transaction } from './types';
+import type { Batch, Student, Staff, Transaction, Enquiry } from './types';
 import { Timestamp } from 'firebase/firestore';
 
 export const demoBatches: Batch[] = [
@@ -210,4 +210,28 @@ export const demoTransactions: Transaction[] = [
         date: Timestamp.fromMillis(Date.now() - 86400 * 10 * 1000), // 10 days ago
         createdAt: Timestamp.fromMillis(Date.now() - 86400 * 10 * 1000),
     },
+];
+
+export const demoEnquiries: Enquiry[] = [
+    {
+        id: 'demo-enquiry-1',
+        studentName: 'Laura Palmer',
+        mobile: '5550101',
+        interestedBatch: 'Morning Physics - Grade 12',
+        referenceSource: 'Referral',
+        followUpDate: Timestamp.fromMillis(Date.now() + 86400 * 2 * 1000), // 2 days from now
+        status: 'New',
+        createdAt: Timestamp.fromMillis(Date.now() - 86400 * 1 * 1000), // 1 day ago
+    },
+    {
+        id: 'demo-enquiry-2',
+        studentName: 'Dale Cooper',
+        mobile: '5550102',
+        email: 'coop@fbi.gov',
+        interestedBatch: 'Evening Maths - Grade 11',
+        referenceSource: 'Google',
+        status: 'Follow-up',
+        notes: 'Called once, needs a callback next week.',
+        createdAt: Timestamp.fromMillis(Date.now() - 86400 * 5 * 1000), // 5 days ago
+    }
 ];

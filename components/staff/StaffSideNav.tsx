@@ -48,6 +48,7 @@ export function StaffSideNav({ isOpen, onClose, onNavigate, onLogout, staff, onS
       case 'Tuition Fees': return () => handleNavigate('fees-options');
       case 'Attendance': return () => handleNavigate('select-batch-attendance');
       case 'Class Schedule': return () => handleNavigate('class-schedule');
+      case 'Manage Exams': return () => handleNavigate('manage-exams');
       default: return () => onShowDevPopup(name);
     }
   }

@@ -81,6 +81,12 @@ export function SideNav({ isOpen, onClose, onNavigate, onLogout, onShowDevPopup 
         return () => handleNavigate('settings');
       case 'Subscription':
         return () => handleNavigate('subscription');
+      case 'Income/Expenses':
+        return () => handleNavigate('income-expenses');
+      case 'Manage Exams':
+        return () => handleNavigate('manage-exams');
+      case 'Enquiry Manager':
+        return () => handleNavigate('enquiry-manager');
       default:
         return () => {
             onShowDevPopup(name);

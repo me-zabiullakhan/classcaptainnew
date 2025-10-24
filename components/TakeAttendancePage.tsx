@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import type { Batch, Student, AttendanceStatus } from '../types';
+import type { Batch, Student, AttendanceStatus, Academy } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { ArrowRightIcon } from './icons/ArrowRightIcon';
 import { InfoIcon } from './icons/InfoIcon';
@@ -13,12 +13,13 @@ import { UserIcon } from './icons/UserIcon';
 import { PhoneIcon } from './icons/PhoneIcon';
 import { BatchesIcon } from './icons/BatchesIcon';
 import { XMarkIcon } from './icons/XMarkIcon';
+import { SendAttendanceSmsModal } from './SendAttendanceSmsModal';
 
 interface TakeAttendancePageProps {
   onBack: () => void;
   batch: Batch;
   students: Student[];
-  academyId: string;
+  academy: Academy;
   isDemoMode: boolean;
 }
 
@@ -118,7 +119,7 @@ const StudentAttendanceCard: React.FC<{ student: Student, batch: Batch, status: 
     );
 };
 
-export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoMode }: TakeAttendancePageProps): React.ReactNode {
+export function TakeAttendancePage({ onBack, batch, students, academy, isDemoMode }: TakeAttendancePageProps): React.ReactNode {
     const [currentDate, setCurrentDate] = React.useState(new Date());
     const [attendance, setAttendance] = React.useState<Record<string, AttendanceStatus>>({});
     const [isLoading, setIsLoading] = React.useState(true);
@@ -126,6 +127,7 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
     const [savingError, setSavingError] = React.useState<string | null>(null);
     const [retryTrigger, setRetryTrigger] = React.useState(0);
     const [selectedStudentForInfo, setSelectedStudentForInfo] = React.useState<Student | null>(null);
+    const [isSmsModalOpen, setIsSmsModalOpen] = React.useState(false);
 
 
     const getFormattedDate = (date: Date) => {
@@ -149,13 +151,13 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
             return;
         }
 
-        if (!academyId || !batch.id) return;
+        if (!academy.id || !batch.id) return;
 
         setIsLoading(true);
         setError(null);
         setSavingError(null);
         const dateString = getFormattedDate(currentDate);
-        const attendanceRef = doc(db, `academies/${academyId}/batches/${batch.id}/attendance`, dateString);
+        const attendanceRef = doc(db, `academies/${academy.id}/batches/${batch.id}/attendance`, dateString);
 
         const unsubscribe = onSnapshot(attendanceRef, (docSnap) => {
             const fetchedData = docSnap.data() || {};
@@ -176,7 +178,7 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
         });
 
         return () => unsubscribe();
-    }, [currentDate, batch.id, academyId, students, isDemoMode, retryTrigger]);
+    }, [currentDate, batch.id, academy.id, students, isDemoMode, retryTrigger]);
 
 
     const handleDateChange = (direction: 'prev' | 'next') => {
@@ -196,7 +198,7 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
 
         try {
             const dateString = getFormattedDate(currentDate);
-            const attendanceRef = doc(db, `academies/${academyId}/batches/${batch.id}/attendance`, dateString);
+            const attendanceRef = doc(db, `academies/${academy.id}/batches/${batch.id}/attendance`, dateString);
             await setDoc(attendanceRef, { [studentId]: status }, { merge: true });
         } catch (error) {
             console.error("Failed to save attendance:", error);
@@ -217,7 +219,7 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
 
         try {
             const dateString = getFormattedDate(currentDate);
-            const attendanceRef = doc(db, `academies/${academyId}/batches/${batch.id}/attendance`, dateString);
+            const attendanceRef = doc(db, `academies/${academy.id}/batches/${batch.id}/attendance`, dateString);
             await setDoc(attendanceRef, newAttendance, { merge: true });
         } catch (error) {
             console.error("Failed to set all attendance:", error);
@@ -244,7 +246,7 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
                         <h1 className="text-xl font-bold ml-2">Take Attendance</h1>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <button className="text-sm font-medium">SMS</button>
+                        <button onClick={() => setIsSmsModalOpen(true)} className="text-sm font-medium p-2 rounded-md hover:bg-indigo-800">SMS</button>
                         <button className="p-1 rounded-full hover:bg-indigo-800">
                             <MoreVertIcon className="w-6 h-6" />
                         </button>
@@ -313,6 +315,16 @@ export function TakeAttendancePage({ onBack, batch, students, academyId, isDemoM
                 )}
             </main>
             {selectedStudentForInfo && <StudentInfoModal student={selectedStudentForInfo} onClose={() => setSelectedStudentForInfo(null)} />}
+            {isSmsModalOpen && (
+                <SendAttendanceSmsModal
+                    onClose={() => setIsSmsModalOpen(false)}
+                    students={students}
+                    attendance={attendance}
+                    batch={batch}
+                    academy={academy}
+                    date={currentDate}
+                />
+            )}
         </div>
     );
 }

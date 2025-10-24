@@ -67,6 +67,7 @@ export function StaffDashboardPage({ onNavigate, academy, staff, onShowDevPopup 
       case 'Tuition Fees': return () => onNavigate('select-batch-for-fees');
       case 'Attendance': return () => onNavigate('select-batch-attendance');
       case 'Class Schedule': return () => onNavigate('class-schedule');
+      case 'Manage Exams': return () => onNavigate('manage-exams');
       default: return () => onShowDevPopup(name);
     }
   }

@@ -48,6 +48,8 @@ export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav
                 return () => onNavigate('attendance');
             case 'Timetable':
                 return () => onNavigate('timetable');
+            case 'Exams':
+                return () => onNavigate('student-exams');
             default:
                 return () => onShowDevPopup(name);
         }

@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import type { Student, Batch } from '../types';
+import type { Student, Batch, Enquiry } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { CameraIcon } from './icons/CameraIcon';
 import { ContactsIcon } from './icons/ContactsIcon';
@@ -12,9 +12,10 @@ import { ImageEditorModal } from './ImageEditorModal';
 
 interface NewStudentPageProps {
   onBack: () => void;
-  onSave: (studentData: Omit<Student, 'id' | 'isActive' | 'rollNumber'>) => Promise<Student | void>;
+  onSave: (studentData: Omit<Student, 'id' | 'isActive' | 'rollNumber'>, enquiryId?: string) => Promise<Student | void>;
   batches: Batch[];
   academyId: string;
+  enquiryData?: Enquiry | null;
 }
 
 const StudentCreationSuccessModal: React.FC<{ student: Student, academyId: string, onClose: () => void }> = ({ student, academyId, onClose }) => {
@@ -89,13 +90,14 @@ const FormInput = ({ label, id, children, containerClassName, ...props }: { labe
   </div>
 );
 
-export function NewStudentPage({ onBack, onSave, batches, academyId }: NewStudentPageProps): React.ReactNode {
+export function NewStudentPage({ onBack, onSave, batches, academyId, enquiryData }: NewStudentPageProps): React.ReactNode {
     const [formData, setFormData] = React.useState<Omit<Student, 'id' | 'feeAmount' | 'isActive' | 'rollNumber'> & { feeAmount: string }>({
         name: '',
         fatherName: '',
         motherName: '',
         dob: '',
         mobile1: '',
+        email: '',
         gender: 'Male',
         address: '',
         admissionDate: '',
@@ -117,6 +119,19 @@ export function NewStudentPage({ onBack, onSave, batches, academyId }: NewStuden
     const cameraInputRef = React.useRef<HTMLInputElement>(null);
 
     const activeBatches = batches.filter(b => b.isActive);
+    
+    React.useEffect(() => {
+        if (enquiryData) {
+            setFormData(prev => ({
+                ...prev,
+                name: enquiryData.studentName,
+                mobile1: enquiryData.mobile,
+                email: enquiryData.email || '',
+                batches: enquiryData.interestedBatch ? [enquiryData.interestedBatch] : [],
+            }));
+        }
+    }, [enquiryData]);
+
 
     React.useEffect(() => {
         let feeDetailsFound = false;
@@ -199,7 +214,7 @@ export function NewStudentPage({ onBack, onSave, batches, academyId }: NewStuden
         const result = await onSave({
             ...formData,
             feeAmount: parseFloat(formData.feeAmount) || 0,
-        });
+        }, enquiryData?.id);
         setIsSaving(false);
         if (result) {
             setCreatedStudent(result);
@@ -213,7 +228,7 @@ export function NewStudentPage({ onBack, onSave, batches, academyId }: NewStuden
         <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back">
           <ArrowLeftIcon className="w-6 h-6" />
         </button>
-        <h1 className="text-xl font-bold ml-2">New Student</h1>
+        <h1 className="text-xl font-bold ml-2">{enquiryData ? 'Convert Enquiry to Admission' : 'New Student'}</h1>
       </header>
       
       <main className="flex-grow p-4 overflow-y-auto">
@@ -246,10 +261,7 @@ export function NewStudentPage({ onBack, onSave, batches, academyId }: NewStuden
                 <span className="text-gray-500 dark:text-gray-400 mr-2">+91</span>
                 <ContactsIcon className="w-6 h-6 text-indigo-600" />
             </FormInput>
-            <FormInput label="Mobile Number" id="mobile2" name="mobile2" type="tel" value={formData.mobile2} onChange={handleChange}>
-                <span className="text-gray-500 dark:text-gray-400 mr-2">+91</span>
-                <ContactsIcon className="w-6 h-6 text-indigo-600" />
-            </FormInput>
+            <FormInput label="Email Address (optional)" id="email" name="email" type="email" value={formData.email} onChange={handleChange} />
 
             <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-300 dark:border-gray-600">
                 <div className="flex items-center justify-around">

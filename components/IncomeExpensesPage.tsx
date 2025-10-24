@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo } from 'react';
 import type { Transaction } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -42,7 +41,10 @@ const TransactionForm = ({ onSave, onCancel, initialData, isDemoMode }: {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         if (name === 'type') {
-            setFormData(prev => ({ ...prev, type: value, category: '' }));
+            // FIX: Cast `value` to the correct type to resolve TypeScript error.
+            // The `value` is known to be 'Income' or 'Expense' from the button's onClick handler,
+            // but the generic event signature types it as `string`.
+            setFormData(prev => ({ ...prev, type: value as 'Income' | 'Expense', category: '' }));
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
         }

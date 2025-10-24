@@ -7,6 +7,7 @@ import { LogoutIcon } from '../icons/LogoutIcon';
 import { TimetableIcon } from '../icons/TimetableIcon';
 import { AttendanceStudentIcon } from '../icons/AttendanceStudentIcon';
 import { TuitionFeesStudentIcon } from '../icons/TuitionFeesStudentIcon';
+import { ExamsIcon } from '../icons/ExamsIcon';
 
 interface StudentSideNavProps {
   isOpen: boolean;
@@ -74,6 +75,12 @@ export function StudentSideNav({ isOpen, onClose, onNavigate, onLogout }: Studen
                         <button onClick={() => handleNavigate('fee-status')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
                             <TuitionFeesStudentIcon className="w-6 h-6 mr-4 text-gray-400"/>
                             <span className="font-medium">Fee Status</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button onClick={() => handleNavigate('student-exams')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                            <ExamsIcon className="w-6 h-6 mr-4 text-gray-400"/>
+                            <span className="font-medium">Exams</span>
                         </button>
                     </li>
                 </ul>
