@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { Academy, AttendanceStatus, Batch, Student } from '../types';
 import { XMarkIcon } from './icons/XMarkIcon';
@@ -15,7 +16,7 @@ interface SendAttendanceSmsModalProps {
 }
 
 const ATTENDANCE_TEMPLATE_KEY = 'attendance';
-const DEFAULT_ATTENDANCE_TEMPLATE = "Student : [STUDENT_NAME]([BATCH_NAME]) is *[STATUS]* for today's class Date : [DATE]\nRegards,\n[ACADEMY_NAME] ~\nNote: In case of queries call/message: *+91 9341771776*";
+const DEFAULT_ATTENDANCE_TEMPLATE = "Student : [STUDENT_NAME]([BATCH_NAME]) is *[STATUS]* for today's class Date : [DATE]\nRegards,\n[ACADEMY_NAME] ~";
 const STATUS_OPTIONS: AttendanceStatus[] = ['Present', 'Absent', 'Leave', 'Holiday'];
 
 export function SendAttendanceSmsModal({ onClose, students, attendance, batch, academy, date }: SendAttendanceSmsModalProps) {

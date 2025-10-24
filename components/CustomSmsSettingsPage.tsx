@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { RefreshIcon } from './icons/RefreshIcon';
@@ -61,7 +60,7 @@ const DEFAULT_TEMPLATES: Record<string, TemplateData> = {
     },
     attendance: {
         title: "Attendance SMS",
-        template: "Student : [STUDENT_NAME]([BATCH_NAME]) is *[STATUS]* for today's class Date : [DATE]\nRegards,\n[ACADEMY_NAME] ~\nNote: In case of queries call/message: *+91 9341771776*",
+        template: "Student : [STUDENT_NAME]([BATCH_NAME]) is *[STATUS]* for today's class Date : [DATE]\nRegards,\n[ACADEMY_NAME] ~",
         placeholders: {
             '[STUDENT_NAME]': 'for student name',
             '[BATCH_NAME]': 'for batch name',

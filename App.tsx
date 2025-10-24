@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 // Firebase
 import { auth, db, firebaseConfig } from './firebaseConfig';
@@ -886,7 +887,8 @@ export default function App() {
                 const accessibleStudents = students.filter(s => 
                     s.batches.some(studentBatchName => staffAccessibleBatchNames.includes(studentBatchName))
                 );
-                const canManageAnyExams = Object.values(currentUser.data.batchAccess || {}).some(p => p.exams);
+                // FIX: Cast the iterated object to the correct type to resolve a TypeScript error where it was inferred as 'unknown'.
+                const canManageAnyExams = Object.values(currentUser.data.batchAccess || {}).some(p => (p as BatchAccessPermissions).exams);
 
                  switch(page) {
                      case 'dashboard': return <StaffDashboardPage staff={currentUser.data} academy={academy!} onNavigate={handleNavigate} onShowDevPopup={setShowDevPopup} />;
