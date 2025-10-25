@@ -97,6 +97,8 @@ export function Dashboard({ onNavigate, academy, students, batches, staff, onSho
         return () => onNavigate('study-material');
       case 'Homework':
         return () => onNavigate('homework');
+      case 'Online Quiz':
+        return () => onNavigate('manage-quizzes');
       default:
         return () => onShowDevPopup(name);
     }

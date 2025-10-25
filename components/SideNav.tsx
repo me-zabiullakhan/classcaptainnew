@@ -93,6 +93,8 @@ export function SideNav({ isOpen, onClose, onNavigate, onLogout, onShowDevPopup 
         return () => handleNavigate('study-material');
       case 'Homework':
         return () => handleNavigate('homework');
+      case 'Online Quiz':
+        return () => handleNavigate('manage-quizzes');
       default:
         return () => {
             onShowDevPopup(name);

@@ -64,6 +64,13 @@ service cloud.firestore {
        // we allow any authenticated user to write, relying on UI controls.
        allow write: if request.auth != null;
     }
+    
+    // Quiz submission rules
+    match /academies/{academyId}/quizzes/{quizId}/submissions/{studentId} {
+       // Allow any authenticated user to read/write. App logic restricts students
+       // to their own submissions. Admin needs read access to all for the leaderboard.
+       allow read, write: if request.auth != null;
+    }
   }
 }`;
 

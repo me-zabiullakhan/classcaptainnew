@@ -76,7 +76,7 @@ export interface BatchAccessPermissions {
   fees?: boolean;
   studyMaterial?: boolean;
   homework?: boolean;
-  onlineExam?: boolean;
+  onlineQuiz?: boolean;
   schedule?: boolean; // Can view/manage schedule for this batch
 }
 
@@ -254,4 +254,36 @@ export interface HomeworkSubmission {
     storagePath: string;
     status: 'Submitted' | 'Checked';
     remarks?: string;
+}
+
+export interface QuizQuestion {
+  id: string;
+  questionText: string;
+  options: string[]; // Should always have 4 elements
+  correctAnswerIndex: number;
+}
+
+export interface Quiz {
+  id: string; // Firestore document ID
+  title: string;
+  batchId: string;
+  batchName: string;
+  subject: string;
+  dateTime: Timestamp;
+  duration: number; // in minutes
+  totalMarks: number;
+  instructions?: string;
+  questions: QuizQuestion[];
+  status: 'Draft' | 'Published' | 'Completed';
+}
+
+export interface QuizSubmission {
+  id: string; // studentId
+  studentId: string;
+  studentName: string;
+  studentRollNumber: string;
+  answers: Record<string, number>; // question.id -> selected option index
+  score: number;
+  totalMarks: number;
+  submittedAt: Timestamp;
 }

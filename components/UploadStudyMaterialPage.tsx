@@ -146,11 +146,6 @@ export function UploadStudyMaterialPage({ onBack, onSave, batches, academyId, up
                                 {isEditMode && !file && materialToEdit?.fileName && <span className="text-sm text-gray-500 mt-1">Current: {materialToEdit.fileName}</span>}
                             </label>
                             <input id="file-upload" type="file" onChange={handleFileChange} className="hidden" />
-                            {isSaving && uploadProgress > 0 && uploadProgress < 100 && (
-                                <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mt-2">
-                                    <div className="bg-indigo-600 h-2.5 rounded-full" style={{ width: `${uploadProgress}%` }}></div>
-                                </div>
-                            )}
                         </div>
                     ) : (
                         <input type="url" name="fileUrl" placeholder="https://example.com/video" value={formData.fileUrl} onChange={handleChange} required className="w-full p-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
@@ -158,13 +153,13 @@ export function UploadStudyMaterialPage({ onBack, onSave, batches, academyId, up
 
                 </main>
                 <footer className="p-4 bg-white dark:bg-gray-800 border-t dark:border-gray-700">
-                    <button type="submit" disabled={isSaving} className="relative w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors shadow-md disabled:bg-indigo-300 disabled:cursor-not-allowed overflow-hidden">
+                    <button type="submit" disabled={isSaving} className="relative w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors shadow-md disabled:bg-indigo-400 disabled:cursor-not-allowed overflow-hidden">
                         <span className="relative z-10">
-                            {isSaving ? `Uploading... ${Math.round(uploadProgress)}%` : (isEditMode ? 'Update Material' : 'Save Material')}
+                            {isSaving ? `Saving... ${Math.round(uploadProgress)}%` : (isEditMode ? 'Update Material' : 'Save Material')}
                         </span>
                         {isSaving && (
                             <div 
-                                className="absolute top-0 left-0 h-full bg-indigo-500 transition-all duration-200"
+                                className="absolute top-0 left-0 h-full bg-indigo-600 transition-all duration-150"
                                 style={{ width: `${uploadProgress}%` }}
                             ></div>
                         )}

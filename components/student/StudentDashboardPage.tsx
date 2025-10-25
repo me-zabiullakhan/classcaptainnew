@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import type { Student, Academy } from '../../types';
 import { StudentHeader } from './StudentHeader';
@@ -31,7 +30,7 @@ const studentFeatures = [
     { name: 'Exams', Icon: ExamsIcon, color: 'bg-lime-500' },
     { name: 'Study Material', Icon: StudyMaterialStudentIcon, color: 'bg-gray-700' },
     { name: 'Homework', Icon: HomeworkStudentIcon, color: 'bg-teal-500' },
-    { name: 'Online Exam', Icon: OnlineExamIcon, color: 'bg-red-500' },
+    { name: 'Online Quiz', Icon: OnlineExamIcon, color: 'bg-red-500' },
 ];
 
 export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav, theme, onToggleTheme, onShowDevPopup }: StudentDashboardPageProps): React.ReactNode {
@@ -54,6 +53,8 @@ export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav
                 return () => onNavigate('student-study-material');
             case 'Homework':
                 return () => onNavigate('student-homework');
+            case 'Online Quiz':
+                return () => onNavigate('student-quizzes');
             default:
                 return () => onShowDevPopup(name);
         }

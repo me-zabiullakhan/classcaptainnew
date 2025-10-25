@@ -3,6 +3,7 @@ import React from 'react';
 import type { Staff, Batch, BatchAccessPermissions } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 
+// FIX: Changed 'onlineExam' to 'onlineQuiz' to match the type definition and added the missing 'schedule' permission.
 const PERMISSION_KEYS: { key: keyof BatchAccessPermissions; label: string }[] = [
     { key: 'attendance', label: 'Attendance' },
     { key: 'editStudents', label: 'Edit Students' },
@@ -10,7 +11,8 @@ const PERMISSION_KEYS: { key: keyof BatchAccessPermissions; label: string }[] = 
     { key: 'fees', label: 'Fees' },
     { key: 'studyMaterial', label: 'Study Material' },
     { key: 'homework', label: 'Homework' },
-    { key: 'onlineExam', label: 'Online Exam' },
+    { key: 'onlineQuiz', label: 'Online Quiz' },
+    { key: 'schedule', label: 'Manage Schedule' },
 ];
 
 interface StaffBatchAccessPageProps {

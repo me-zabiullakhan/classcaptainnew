@@ -1,7 +1,4 @@
 
-
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 // Firebase
 import { auth, db, firebaseConfig, storage } from './firebaseConfig';
@@ -12,7 +9,7 @@ import firebase from 'firebase/compat/app';
 import { collection, doc, onSnapshot, addDoc, updateDoc, setDoc, getDoc, query, where, getDocs, writeBatch, serverTimestamp, Timestamp, runTransaction, deleteDoc, increment } from 'firebase/firestore';
 
 // Types
-import type { CurrentUser, Academy, Batch, Student, Staff, FeeCollection, BatchAccessPermissions, ScheduleItem, Transaction, Exam, Enquiry, StudyMaterial, Homework } from './types';
+import type { CurrentUser, Academy, Batch, Student, Staff, FeeCollection, BatchAccessPermissions, ScheduleItem, Transaction, Exam, Enquiry, StudyMaterial, Homework, Quiz, QuizSubmission } from './types';
 
 // Demo Data
 import { demoStudents, demoBatches, demoStaff, demoTransactions, demoEnquiries } from './demoData';
@@ -67,6 +64,9 @@ import { UploadStudyMaterialPage } from './components/UploadStudyMaterialPage';
 import { HomeworkPage } from './components/HomeworkPage';
 import { AssignHomeworkPage } from './components/AssignHomeworkPage';
 import { HomeworkSubmissionsPage } from './components/HomeworkSubmissionsPage';
+import { ManageQuizzesPage } from './components/ManageQuizzesPage';
+import { CreateQuizPage } from './components/CreateQuizPage';
+import { QuizResultsPage } from './components/QuizResultsPage';
 
 // Student view components
 import { StudentDashboardPage } from './components/student/StudentDashboardPage';
@@ -78,6 +78,9 @@ import { StudentTimetablePage } from './components/student/StudentTimetablePage'
 import { StudentExamsPage } from './components/student/StudentExamsPage';
 import { StudentStudyMaterialPage } from './components/student/StudentStudyMaterialPage';
 import { StudentHomeworkPage } from './components/student/StudentHomeworkPage';
+import { StudentQuizzesPage } from './components/student/StudentQuizzesPage';
+import { TakeQuizPage } from './components/student/TakeQuizPage';
+import { QuizResultPage } from './components/student/QuizResultPage';
 
 // Staff view components
 import { StaffDashboardPage } from './components/staff/StaffDashboardPage';
@@ -194,6 +197,8 @@ export default function App() {
     const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
     const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
     const [homework, setHomework] = useState<Homework[]>([]);
+    const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+    const [quizSubmissions, setQuizSubmissions] = useState<QuizSubmission[]>([]);
 
     // Page-specific state
     const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
@@ -203,6 +208,7 @@ export default function App() {
     const [selectedEnquiryId, setSelectedEnquiryId] = useState<string | null>(null);
     const [selectedStudyMaterialId, setSelectedStudyMaterialId] = useState<string | null>(null);
     const [selectedHomeworkId, setSelectedHomeworkId] = useState<string | null>(null);
+    const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
     const [studentListFilter, setStudentListFilter] = useState('all');
 
     // UI State
@@ -349,6 +355,7 @@ export default function App() {
                 setEnquiries(demoEnquiries);
                 setStudyMaterials([]);
                 setHomework([]);
+                setQuizzes([]);
             }
             return;
         };
@@ -376,7 +383,7 @@ export default function App() {
             unsubscribers.push(unsubAcademy);
         }
 
-        const collectionsToSubscribe = ['batches', 'students', 'staff', 'fees', 'transactions', 'exams', 'enquiries', 'studyMaterial', 'homework'];
+        const collectionsToSubscribe = ['batches', 'students', 'staff', 'fees', 'transactions', 'exams', 'enquiries', 'studyMaterial', 'homework', 'quizzes'];
         const setters: any = {
             batches: setBatches,
             students: setStudents,
@@ -387,6 +394,7 @@ export default function App() {
             enquiries: setEnquiries,
             studyMaterial: setStudyMaterials,
             homework: setHomework,
+            quizzes: setQuizzes,
         };
 
         collectionsToSubscribe.forEach(coll => {
@@ -399,11 +407,23 @@ export default function App() {
             }, (err) => console.error(`Error fetching ${coll}:`, err));
             unsubscribers.push(unsub);
         });
+        
+        // Add a new listener for quiz submissions when a quiz is selected for viewing results.
+        if (currentUser.role === 'admin' && academy && page === 'quiz-results' && selectedQuizId) {
+            const submissionsRef = collection(db, `academies/${academy.id}/quizzes/${selectedQuizId}/submissions`);
+            const unsubSubmissions = onSnapshot(submissionsRef, (snapshot) => {
+                const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as QuizSubmission[];
+                setQuizSubmissions(list);
+            }, (err) => console.error(`Error fetching quiz submissions:`, err));
+            unsubscribers.push(unsubSubmissions);
+        } else {
+            setQuizSubmissions([]); // Clear when not on the page
+        }
 
 
         return () => unsubscribers.forEach(unsub => unsub());
 
-    }, [currentUser, isDemoMode]);
+    }, [currentUser, isDemoMode, page, selectedQuizId]);
 
     // Subscription status check effect
     useEffect(() => {
@@ -915,6 +935,58 @@ export default function App() {
         }
     };
 
+    const handleSaveQuiz = async (data: Omit<Quiz, 'id'>) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode"); }
+        if (selectedQuizId) { // Update
+            const quizRef = doc(db, `academies/${academy.id}/quizzes`, selectedQuizId);
+            await updateDoc(quizRef, data);
+        } else { // Create
+            await addDoc(collection(db, `academies/${academy.id}/quizzes`), data);
+        }
+        setPage('manage-quizzes');
+        setSelectedQuizId(null);
+    };
+
+    const handleDeleteQuiz = async (quizId: string) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode"); }
+        if (!window.confirm("Are you sure you want to delete this quiz? All submissions will also be lost.")) return;
+
+        // TODO: This should also delete subcollections (e.g., submissions) via a cloud function for robustness.
+        const quizRef = doc(db, `academies/${academy.id}/quizzes`, quizId);
+        await deleteDoc(quizRef);
+    };
+    
+    const handleSaveQuizSubmission = async (quizId: string, answers: Record<string, number>) => {
+        if (!academy || !currentUser || currentUser.role !== 'student' || isDemoMode) {
+            throw new Error("Invalid state for saving submission.");
+        }
+
+        const quiz = quizzes.find(q => q.id === quizId);
+        if (!quiz) throw new Error("Quiz not found.");
+
+        let correctAnswers = 0;
+        quiz.questions.forEach(q => {
+            if (answers[q.id] === q.correctAnswerIndex) {
+                correctAnswers++;
+            }
+        });
+        
+        const finalScore = (correctAnswers / quiz.questions.length) * quiz.totalMarks;
+
+        const submissionData: Omit<QuizSubmission, 'id'> = {
+            studentId: currentUser.data.id,
+            studentName: currentUser.data.name,
+            studentRollNumber: currentUser.data.rollNumber,
+            answers,
+            score: finalScore,
+            totalMarks: quiz.totalMarks,
+            submittedAt: serverTimestamp() as Timestamp,
+        };
+        
+        const submissionRef = doc(db, `academies/${academy.id}/quizzes/${quiz.id}/submissions`, currentUser.data.id);
+        await setDoc(submissionRef, submissionData);
+    };
+
 
     const handleNavigate = (page: string, params: { [key: string]: any } = {}) => {
         if (params.batchId !== undefined) setSelectedBatchId(params.batchId);
@@ -925,6 +997,7 @@ export default function App() {
         if (params.enquiryId !== undefined) setSelectedEnquiryId(params.enquiryId);
         if (params.studyMaterialId !== undefined) setSelectedStudyMaterialId(params.studyMaterialId);
         if (params.homeworkId !== undefined) setSelectedHomeworkId(params.homeworkId);
+        if (params.quizId !== undefined) setSelectedQuizId(params.quizId);
         setPage(page);
     };
 
@@ -954,6 +1027,7 @@ export default function App() {
     const selectedEnquiry = enquiries.find(e => e.id === selectedEnquiryId);
     const selectedStudyMaterial = studyMaterials.find(m => m.id === selectedStudyMaterialId);
     const selectedHomework = homework.find(h => h.id === selectedHomeworkId);
+    const selectedQuiz = quizzes.find(q => q.id === selectedQuizId);
 
     const renderPage = (pageName: string) => {
         const staffPermissions = currentUser?.role === 'staff' ? currentUser.data.batchAccess : undefined;
@@ -1010,6 +1084,10 @@ export default function App() {
             case 'assign-homework': return academy && currentUser?.role === 'admin' && <AssignHomeworkPage onBack={() => setPage('homework')} onSave={handleSaveHomework} batches={batches} academyId={academy.id} uploaderName={academy.name} isDemoMode={isDemoMode} />;
             case 'edit-homework': return academy && currentUser?.role === 'admin' && selectedHomework && <AssignHomeworkPage onBack={() => setPage('homework')} onSave={handleSaveHomework} batches={batches} academyId={academy.id} uploaderName={academy.name} homeworkToEdit={selectedHomework} isDemoMode={isDemoMode} />;
             case 'homework-submissions': return academy && selectedHomework && <HomeworkSubmissionsPage onBack={() => setPage('homework')} homework={selectedHomework} students={students} academyId={academy.id} />;
+            case 'manage-quizzes': return <ManageQuizzesPage onBack={() => setPage('dashboard')} quizzes={quizzes} onNavigate={handleNavigate} onDelete={handleDeleteQuiz} staffPermissions={staffPermissions} onShowDevPopup={setShowDevPopup} />;
+            case 'create-quiz': return <CreateQuizPage onBack={() => setPage('manage-quizzes')} onSave={handleSaveQuiz} batches={batches} quiz={selectedQuiz} staffPermissions={staffPermissions} />;
+            case 'edit-quiz': return selectedQuiz && <CreateQuizPage onBack={() => setPage('manage-quizzes')} onSave={handleSaveQuiz} batches={batches} quiz={selectedQuiz} staffPermissions={staffPermissions} />;
+            case 'quiz-results': return selectedQuiz && <QuizResultsPage onBack={() => setPage('manage-quizzes')} quiz={selectedQuiz} submissions={quizSubmissions} students={students} />;
 
             // Student Pages
             case 'fee-status': return currentUser?.role === 'student' && <StudentFeeStatusPage student={currentUser.data} feeCollections={feeCollections} onBack={() => setPage('dashboard')} />;
@@ -1019,6 +1097,9 @@ export default function App() {
             case 'student-exams': return currentUser?.role === 'student' && <StudentExamsPage onBack={() => setPage('dashboard')} student={currentUser.data} academyId={currentUser.academyId} />;
             case 'student-study-material': return currentUser?.role === 'student' && <StudentStudyMaterialPage onBack={() => setPage('dashboard')} materials={studyMaterials} student={currentUser.data} />;
             case 'student-homework': return currentUser?.role === 'student' && <StudentHomeworkPage onBack={() => setPage('dashboard')} homework={homework} student={currentUser.data} academyId={currentUser.academyId} batches={batches} isDemoMode={isDemoMode}/>;
+            case 'student-quizzes': return currentUser?.role === 'student' && <StudentQuizzesPage onBack={() => setPage('dashboard')} quizzes={quizzes} student={currentUser.data} onNavigate={handleNavigate} academyId={currentUser.academyId}/>;
+            case 'take-quiz': return currentUser?.role === 'student' && selectedQuiz && <TakeQuizPage onBack={() => handleNavigate('student-quizzes')} quiz={selectedQuiz} onSaveSubmission={handleSaveQuizSubmission} studentId={currentUser.data.id} academyId={currentUser.academyId} />;
+            case 'quiz-result': return currentUser?.role === 'student' && selectedQuiz && <QuizResultPage onBack={() => handleNavigate('student-quizzes')} quiz={selectedQuiz} studentId={currentUser.data.id} academyId={currentUser.academyId} />;
 
             // Staff Pages
             case 'class-schedule': return currentUser?.role === 'staff' && <StaffSchedulePage onBack={() => setPage('dashboard')} staff={currentUser.data} academyId={currentUser.academyId} />;
