@@ -5,7 +5,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { auth, db, firebaseConfig } from './firebaseConfig';
 // FIX: Replaced V9 modular 'firebase/auth' imports with the V8 compat 'firebase/compat/app' to match the auth instance setup.
 import firebase from 'firebase/compat/app';
-import { collection, doc, onSnapshot, addDoc, updateDoc, setDoc, getDoc, query, where, getDocs, writeBatch, serverTimestamp, Timestamp, runTransaction, deleteDoc } from 'firebase/firestore';
+// UPDATED: Added 'increment' to handle atomic counter updates for batch student counts.
+import { collection, doc, onSnapshot, addDoc, updateDoc, setDoc, getDoc, query, where, getDocs, writeBatch, serverTimestamp, Timestamp, runTransaction, deleteDoc, increment } from 'firebase/firestore';
 
 // Types
 import type { CurrentUser, Academy, Batch, Student, Staff, FeeCollection, BatchAccessPermissions, ScheduleItem, Transaction, Exam, Enquiry } from './types';
@@ -507,18 +508,16 @@ export default function App() {
                 return { ...finalStudentData, id: newStudentRef.id };
             });
 
-            // Update batch counts
-            const batchUpdatePromises = studentData.batches.map(batchName => {
-                const batchToUpdate = batches.find(b => b.name === batchName);
-                if (batchToUpdate) {
-                    const batchRef = doc(db, `academies/${academy.id}/batches`, batchToUpdate.id);
-                    return updateDoc(batchRef, {
-                        currentStudents: batchToUpdate.currentStudents + 1
-                    });
+            // Update batch counts atomically
+            const batchWriter = writeBatch(db);
+            studentData.batches.forEach(batchName => {
+                const batchDoc = batches.find(b => b.name === batchName);
+                if (batchDoc) {
+                    const batchRef = doc(db, `academies/${academy.id}/batches`, batchDoc.id);
+                    batchWriter.update(batchRef, { currentStudents: increment(1) });
                 }
-                return Promise.resolve();
             });
-            await Promise.all(batchUpdatePromises);
+            await batchWriter.commit();
             
             return studentWithDefaults as Student;
         } catch (error) {
@@ -528,10 +527,59 @@ export default function App() {
     };
     
     const handleUpdateStudent = async (studentData: Omit<Student, 'id' | 'isActive'>) => {
-        if (!academy || !selectedStudentId || isDemoMode) { alert("Demo mode or error."); return; }
-        const studentRef = doc(db, `academies/${academy.id}/students`, selectedStudentId);
-        await updateDoc(studentRef, studentData);
-        setPage('active-students');
+        if (!academy || !selectedStudentId || isDemoMode) { 
+            alert("Demo mode or error."); 
+            return; 
+        }
+
+        const oldStudent = students.find(s => s.id === selectedStudentId);
+        if (!oldStudent) {
+            console.error("Could not find student to update.");
+            alert("An error occurred. Could not find original student data.");
+            return;
+        }
+
+        try {
+            const batchWriter = writeBatch(db);
+            
+            // 1. Update the student document itself
+            const studentRef = doc(db, `academies/${academy.id}/students`, selectedStudentId);
+            batchWriter.update(studentRef, studentData);
+
+            // 2. Calculate batch changes
+            const oldBatches = new Set(oldStudent.batches);
+            const newBatches = new Set(studentData.batches);
+
+            const addedBatches = [...newBatches].filter(batchName => !oldBatches.has(batchName));
+            const removedBatches = [...oldBatches].filter(batchName => !newBatches.has(batchName));
+            
+            // 3. Increment counts for added batches
+            addedBatches.forEach(batchName => {
+                const batchDoc = batches.find(b => b.name === batchName);
+                if (batchDoc) {
+                    const batchRef = doc(db, `academies/${academy.id}/batches`, batchDoc.id);
+                    batchWriter.update(batchRef, { currentStudents: increment(1) });
+                }
+            });
+
+            // 4. Decrement counts for removed batches
+            removedBatches.forEach(batchName => {
+                const batchDoc = batches.find(b => b.name === batchName);
+                if (batchDoc) {
+                    const batchRef = doc(db, `academies/${academy.id}/batches`, batchDoc.id);
+                    batchWriter.update(batchRef, { currentStudents: increment(-1) });
+                }
+            });
+
+            // 5. Commit all changes atomically
+            await batchWriter.commit();
+
+            setPage('active-students');
+
+        } catch (error) {
+            console.error("Error updating student and batch counts:", error);
+            alert("Failed to update student. Please try again.");
+        }
     };
 
     const handleToggleStudentStatus = async (studentId: string) => {
