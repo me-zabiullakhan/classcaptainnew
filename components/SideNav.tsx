@@ -89,6 +89,10 @@ export function SideNav({ isOpen, onClose, onNavigate, onLogout, onShowDevPopup 
         return () => handleNavigate('enquiry-manager');
       case 'Reports':
         return () => handleNavigate('reports-options');
+      case 'Study Material':
+        return () => handleNavigate('study-material');
+      case 'Homework':
+        return () => handleNavigate('homework');
       default:
         return () => {
             onShowDevPopup(name);

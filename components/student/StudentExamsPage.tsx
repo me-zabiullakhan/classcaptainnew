@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Student, Exam, ExamMarks } from '../../types';
 import { ArrowLeftIcon } from '../icons/ArrowLeftIcon';
@@ -11,11 +12,31 @@ interface StudentExamsPageProps {
   academyId: string;
 }
 
+const formatTime12h = (timeString: string | undefined): string => {
+    if (!timeString) {
+      return '';
+    }
+    const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)/;
+    const match = timeString.match(timeRegex);
+    
+    if (!match) {
+      return timeString;
+    }
+  
+    let [_, hours, minutes] = match;
+    let h = parseInt(hours);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12;
+    h = h ? h : 12; // the hour '0' should be '12'
+    
+    return `${h}:${minutes} ${ampm}`;
+  };
+
 export function StudentExamsPage({ onBack, student, academyId }: StudentExamsPageProps) {
     const [exams, setExams] = useState<Exam[]>([]);
     const [marks, setMarks] = useState<Record<string, ExamMarks>>({});
     const [isLoading, setIsLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'upcoming' | 'results'>('results');
+    const [activeTab, setActiveTab] = useState<'results' | 'upcoming'>('results');
     
     useEffect(() => {
         if (!academyId || student.batches.length === 0) {
@@ -88,7 +109,7 @@ export function StudentExamsPage({ onBack, student, academyId }: StudentExamsPag
                                 <div key={exam.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
                                     <h3 className="font-bold text-gray-800 dark:text-gray-100">{exam.name} - <span className="text-indigo-600 dark:text-indigo-400">{exam.subject}</span></h3>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">{exam.batchName}</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Date: {exam.date.toDate().toLocaleDateString()}</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">Date: {exam.date.toDate().toLocaleDateString()} at {formatTime12h(exam.date.toDate().toTimeString().substring(0, 5))}</p>
                                     
                                     {activeTab === 'results' && studentMark && (
                                         <div className="mt-3 pt-3 border-t dark:border-gray-700 flex justify-between items-center">

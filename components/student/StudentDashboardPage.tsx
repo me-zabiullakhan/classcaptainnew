@@ -29,9 +29,9 @@ const studentFeatures = [
     { name: 'Timetable', Icon: TimetableIcon, color: 'bg-pink-500' },
     { name: 'Tuition Fees', Icon: TuitionFeesStudentIcon, color: 'bg-green-500' },
     { name: 'Exams', Icon: ExamsIcon, color: 'bg-lime-500' },
+    { name: 'Study Material', Icon: StudyMaterialStudentIcon, color: 'bg-gray-700' },
     { name: 'Homework', Icon: HomeworkStudentIcon, color: 'bg-teal-500' },
     { name: 'Online Exam', Icon: OnlineExamIcon, color: 'bg-red-500' },
-    { name: 'Study Material', Icon: StudyMaterialStudentIcon, color: 'bg-black' },
 ];
 
 export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav, theme, onToggleTheme, onShowDevPopup }: StudentDashboardPageProps): React.ReactNode {
@@ -50,6 +50,10 @@ export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav
                 return () => onNavigate('timetable');
             case 'Exams':
                 return () => onNavigate('student-exams');
+            case 'Study Material':
+                return () => onNavigate('student-study-material');
+            case 'Homework':
+                return () => onNavigate('student-homework');
             default:
                 return () => onShowDevPopup(name);
         }

@@ -133,7 +133,7 @@ export function EnquiryManagerPage({ onBack, enquiries, onNavigate, onDelete, on
 
             <button
                 onClick={() => onNavigate('new-enquiry')}
-                className="absolute bottom-6 right-6 bg-indigo-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="absolute bottom-20 right-6 bg-indigo-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 aria-label="Add New Enquiry"
             >
                 <PlusIcon className="w-8 h-8" />

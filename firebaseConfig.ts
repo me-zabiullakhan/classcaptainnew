@@ -2,6 +2,7 @@ import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 // IMPORTANT: Replace the following with your app's Firebase project configuration
 // For more information, visit: https://firebase.google.com/docs/web/setup#available-libraries
@@ -23,6 +24,7 @@ firebase.initializeApp(firebaseConfig);
 // Firestore uses the modular SDK, while Auth uses the compat SDK.
 // This is a supported pattern.
 export const db = getFirestore();
+export const storage = getStorage();
 export const auth = firebase.auth();
 
 // Set auth persistence to 'session' to better support sandboxed/iframe environments

@@ -16,6 +16,26 @@ interface ManageExamsPageProps {
   onPublish: (examId: string, status: 'Published' | 'Draft') => Promise<void>;
 }
 
+const formatTime12h = (timeString: string | undefined): string => {
+    if (!timeString) {
+      return '';
+    }
+    const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)/;
+    const match = timeString.match(timeRegex);
+    
+    if (!match) {
+      return timeString;
+    }
+  
+    let [_, hours, minutes] = match;
+    let h = parseInt(hours);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12;
+    h = h ? h : 12; // the hour '0' should be '12'
+    
+    return `${h}:${minutes} ${ampm}`;
+  };
+
 const ExamCard: React.FC<{ exam: Exam; onNavigate: (page: string, params?: { [key: string]: any }) => void; onPublish: () => Promise<void>; isPublishing: boolean; }> = ({ exam, onNavigate, onPublish, isPublishing }) => {
     
     const handlePublishClick = (e: React.MouseEvent) => {
@@ -36,7 +56,7 @@ const ExamCard: React.FC<{ exam: Exam; onNavigate: (page: string, params?: { [ke
                 </span>
             </div>
             <div className="mt-3 text-sm text-gray-600 dark:text-gray-300">
-                <p>Date: {exam.date.toDate().toLocaleDateString('en-GB')}</p>
+                <p>Date: {exam.date.toDate().toLocaleDateString('en-GB')} at {formatTime12h(exam.date.toDate().toTimeString().substring(0, 5))}</p>
                 <p>Max Marks: {exam.maxMarks} | Passing: {exam.passingMarks}</p>
             </div>
             <div className="border-t dark:border-gray-700 mt-4 pt-3 flex justify-end space-x-2">
@@ -117,7 +137,7 @@ export function ManageExamsPage({ onBack, exams, onNavigate, staffPermissions, o
 
             <button
                 onClick={() => onNavigate('create-exam')}
-                className="absolute bottom-6 right-6 bg-indigo-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="absolute bottom-20 right-6 bg-indigo-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 aria-label="Create New Exam"
             >
                 <PlusIcon className="w-8 h-8" />

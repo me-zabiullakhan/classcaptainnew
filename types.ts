@@ -212,3 +212,46 @@ export interface Enquiry {
   status: EnquiryStatus;
   createdAt: Timestamp;
 }
+
+export interface StudyMaterial {
+  id: string; // Firestore document ID
+  title: string;
+  description?: string;
+  batchId: string;
+  batchName: string;
+  subject: string;
+  fileType: 'file' | 'link';
+  fileUrl: string; // Download URL from Storage or external link
+  fileName?: string; // Original file name
+  storagePath?: string; // Path in Firebase Storage to find for deletion
+  uploadedAt: Timestamp;
+  uploadedBy: string; // UID or name of uploader
+}
+
+export interface Homework {
+  id: string; // Firestore document ID
+  batchId: string;
+  batchName: string;
+  subject: string;
+  title: string;
+  description?: string;
+  dueDate: Timestamp;
+  attachmentUrl?: string;
+  attachmentName?: string;
+  storagePath?: string;
+  assignedAt: Timestamp;
+  assignedBy: string; // Name of uploader
+}
+
+export interface HomeworkSubmission {
+    id: string; // studentId
+    studentId: string;
+    studentName: string;
+    studentRollNumber: string;
+    submittedAt: Timestamp;
+    fileUrl: string; // URL of the student's submission
+    fileName?: string;
+    storagePath: string;
+    status: 'Submitted' | 'Checked';
+    remarks?: string;
+}

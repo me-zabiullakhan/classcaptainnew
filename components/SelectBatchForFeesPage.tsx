@@ -12,6 +12,26 @@ interface SelectBatchForFeesPageProps {
   staffPermissions?: Record<string, BatchAccessPermissions>;
 }
 
+const formatTime12h = (timeString: string | undefined): string => {
+    if (!timeString) {
+      return 'N/A';
+    }
+    const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)/;
+    const match = timeString.match(timeRegex);
+    
+    if (!match) {
+      return timeString;
+    }
+  
+    let [_, hours, minutes] = match;
+    let h = parseInt(hours);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12;
+    h = h ? h : 12; // the hour '0' should be '12'
+    
+    return `${h}:${minutes} ${ampm}`;
+  };
+
 export function SelectBatchForFeesPage({ onBack, batches, onSelectBatch, staffPermissions }: SelectBatchForFeesPageProps): React.ReactNode {
   const [searchTerm, setSearchTerm] = React.useState('');
 
@@ -53,7 +73,7 @@ export function SelectBatchForFeesPage({ onBack, batches, onSelectBatch, staffPe
                 className="w-full bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 text-left"
               >
                 <h3 className="font-bold text-indigo-800">{batch.name}</h3>
-                <p className="text-sm text-gray-500">{batch.teacher} &middot; {batch.time}</p>
+                <p className="text-sm text-gray-500">{batch.teacher} &middot; {formatTime12h(batch.time)}</p>
                 <p className="text-sm text-gray-600 mt-2">{batch.currentStudents} / {batch.maxSlots} Students</p>
               </button>
             ))}

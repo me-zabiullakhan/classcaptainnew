@@ -1,22 +1,102 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
-import type { Exam, Student, ExamMarks } from '../types';
+import type { Exam, Student, ExamMarks, Academy } from '../types';
 import { db } from '../firebaseConfig';
-import { collection, doc, writeBatch, getDocs, updateDoc } from 'firebase/firestore';
+import { collection, doc, writeBatch, getDocs } from 'firebase/firestore';
+import { CheckCircleIcon } from './icons/CheckCircleIcon';
+import { SendMarksSmsModal } from './SendMarksSmsModal';
+import { ArrowUpTrayIcon } from './icons/ArrowUpTrayIcon';
 
 interface RecordMarksPageProps {
   onBack: () => void;
   exam: Exam;
   students: Student[];
-  academyId: string;
+  academy: Academy;
   isDemoMode: boolean;
+  onPublish: (examId: string, status: 'Published' | 'Draft') => Promise<void>;
 }
 
-export function RecordMarksPage({ onBack, exam, students, academyId, isDemoMode }: RecordMarksPageProps) {
+const SaveSuccessModal = ({ onClose }: { onClose: () => void }) => (
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fade-in p-4">
+        <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-lg max-w-sm mx-auto text-center">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/40 mb-5">
+                <CheckCircleIcon className="h-9 w-9 text-green-600 dark:text-green-400" />
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100 mb-3">Success!</h2>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6">
+                Marks have been saved successfully.
+            </p>
+            <button
+                onClick={onClose}
+                className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors shadow-md"
+            >
+                OK
+            </button>
+        </div>
+    </div>
+);
+
+const PublishConfirmationModal = ({ onConfirm, onCancel, isPublishing }: { onConfirm: () => void; onCancel: () => void; isPublishing: boolean }) => (
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fade-in p-4">
+        <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-lg max-w-sm mx-auto text-center">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 dark:bg-blue-900/40 mb-5">
+                <ArrowUpTrayIcon className="h-9 w-9 text-blue-600 dark:text-blue-400" />
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100 mb-3">Confirm Publication</h2>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6">
+                Are you sure you want to publish these results? They will become visible to students in their dashboard.
+            </p>
+            <div className="flex flex-col sm:flex-row-reverse gap-3">
+                <button
+                    onClick={onConfirm}
+                    disabled={isPublishing}
+                    className="w-full sm:w-auto flex-1 bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition-colors shadow-md disabled:bg-green-300"
+                >
+                    {isPublishing ? 'Publishing...' : 'Yes, Publish'}
+                </button>
+                <button
+                    onClick={onCancel}
+                    disabled={isPublishing}
+                    className="w-full sm:w-auto flex-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-bold py-3 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+);
+
+const PublishSuccessModal = ({ onClose }: { onClose: () => void }) => (
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fade-in p-4">
+        <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-lg max-w-sm mx-auto text-center">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/40 mb-5">
+                <CheckCircleIcon className="h-9 w-9 text-green-600 dark:text-green-400" />
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100 mb-3">Results Published!</h2>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6">
+                Your marks are published and can be viewed by students in their dashboard.
+            </p>
+            <button
+                onClick={onClose}
+                className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors shadow-md"
+            >
+                OK
+            </button>
+        </div>
+    </div>
+);
+
+
+export function RecordMarksPage({ onBack, exam, students, academy, isDemoMode, onPublish }: RecordMarksPageProps) {
     const [marks, setMarks] = useState<Record<string, number | null>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
+    const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+    const [showPublishConfirm, setShowPublishConfirm] = useState(false);
+    const [isPublishing, setIsPublishing] = useState(false);
+    const [showPublishSuccess, setShowPublishSuccess] = useState(false);
 
     const studentsInBatch = students.filter(s => s.isActive && s.batches.includes(exam.batchName));
 
@@ -26,7 +106,7 @@ export function RecordMarksPage({ onBack, exam, students, academyId, isDemoMode 
             return;
         }
         setIsLoading(true);
-        const marksCollectionRef = collection(db, `academies/${academyId}/exams/${exam.id}/marks`);
+        const marksCollectionRef = collection(db, `academies/${academy.id}/exams/${exam.id}/marks`);
         const querySnapshot = await getDocs(marksCollectionRef);
         const fetchedMarks: Record<string, number | null> = {};
         querySnapshot.forEach(doc => {
@@ -34,7 +114,7 @@ export function RecordMarksPage({ onBack, exam, students, academyId, isDemoMode 
         });
         setMarks(fetchedMarks);
         setIsLoading(false);
-    }, [academyId, exam.id, isDemoMode]);
+    }, [academy.id, exam.id, isDemoMode]);
 
     useEffect(() => {
         fetchMarks();
@@ -63,7 +143,7 @@ export function RecordMarksPage({ onBack, exam, students, academyId, isDemoMode 
                 ? 'Not Graded' 
                 : marksObtained >= exam.passingMarks ? 'Passed' : 'Failed';
             
-            const markDocRef = doc(db, `academies/${academyId}/exams/${exam.id}/marks`, studentId);
+            const markDocRef = doc(db, `academies/${academy.id}/exams/${exam.id}/marks`, studentId);
             const markData: ExamMarks = {
                 studentId,
                 studentName: student.name,
@@ -76,7 +156,7 @@ export function RecordMarksPage({ onBack, exam, students, academyId, isDemoMode 
 
         try {
             await batch.commit();
-            alert("Marks saved successfully!");
+            setShowSaveSuccess(true);
         } catch (error) {
             console.error("Error saving marks:", error);
             alert("Failed to save marks.");
@@ -85,23 +165,35 @@ export function RecordMarksPage({ onBack, exam, students, academyId, isDemoMode 
         }
     };
 
-    const handlePublish = async (status: 'Published' | 'Draft') => {
+    const handleConfirmPublish = async () => {
         if(isDemoMode) { alert("Demo mode."); return; }
-        const confirmText = status === 'Published' 
-            ? "Are you sure you want to publish the results? This will make them visible to students."
-            : "Are you sure you want to unpublish the results? Students will no longer be able to see them.";
-        if (!window.confirm(confirmText)) return;
-
-        const examRef = doc(db, `academies/${academyId}/exams`, exam.id);
+        
+        setIsPublishing(true);
         try {
-            await updateDoc(examRef, { resultStatus: status });
-            alert(`Results have been ${status.toLowerCase()}!`);
+            await onPublish(exam.id, 'Published');
+            setShowPublishConfirm(false);
+            setShowPublishSuccess(true);
+        } catch (error) {
+             alert(`Failed to publish results.`);
+        } finally {
+            setIsPublishing(false);
+        }
+    };
+
+    const handleUnpublish = async () => {
+        if(isDemoMode) { alert("Demo mode."); return; }
+        if (!window.confirm("Are you sure you want to unpublish the results? Students will no longer be able to see them.")) return;
+
+        try {
+            await onPublish(exam.id, 'Draft');
+            alert(`Results have been successfully unpublished!`);
         } catch (error) {
              alert(`Failed to update status.`);
         }
-    }
+    };
 
     return (
+        <>
         <div className="animate-fade-in flex flex-col h-full bg-gray-100 dark:bg-gray-900">
             <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md flex-shrink-0 sticky top-0 z-10">
                 <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back">
@@ -142,14 +234,38 @@ export function RecordMarksPage({ onBack, exam, students, academyId, isDemoMode 
             
             <footer className="p-4 bg-white dark:bg-gray-800 border-t dark:border-gray-700 flex-shrink-0 space-y-3">
                  {exam.resultStatus === 'Draft' ? (
-                    <button onClick={() => handlePublish('Published')} className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700">Publish Results</button>
+                    <button onClick={() => setShowPublishConfirm(true)} className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700">Publish Results</button>
                  ) : (
-                    <button onClick={() => handlePublish('Draft')} className="w-full bg-yellow-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-yellow-600">Unpublish Results</button>
+                    <button onClick={() => setIsSmsModalOpen(true)} className="w-full bg-sky-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-sky-600">Send Marks to Parents</button>
                  )}
-                <button onClick={handleSave} disabled={isSaving} className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 disabled:bg-indigo-300">
+                <button onClick={handleSave} disabled={isSaving} className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 disabled:bg-blue-300">
                     {isSaving ? 'Saving...' : 'Save Marks'}
                 </button>
+                {exam.resultStatus === 'Published' && (
+                    <button onClick={handleUnpublish} className="w-full bg-yellow-500 text-black font-bold py-3 px-4 rounded-lg hover:bg-yellow-600">Unpublish Results</button>
+                )}
             </footer>
         </div>
+        {isSmsModalOpen && (
+            <SendMarksSmsModal
+                onClose={() => setIsSmsModalOpen(false)}
+                students={studentsInBatch}
+                marks={marks}
+                exam={exam}
+                academy={academy}
+            />
+        )}
+        {showSaveSuccess && <SaveSuccessModal onClose={() => setShowSaveSuccess(false)} />}
+        {showPublishConfirm && (
+            <PublishConfirmationModal 
+                onConfirm={handleConfirmPublish}
+                onCancel={() => setShowPublishConfirm(false)}
+                isPublishing={isPublishing}
+            />
+        )}
+        {showPublishSuccess && (
+            <PublishSuccessModal onClose={() => setShowPublishSuccess(false)} />
+        )}
+        </>
     );
 }

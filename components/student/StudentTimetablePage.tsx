@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import type { Student, Batch, DailySchedule, ScheduleItem } from '../../types';
 import { ArrowLeftIcon } from '../icons/ArrowLeftIcon';
@@ -12,6 +13,26 @@ interface StudentTimetablePageProps {
   academyId: string;
   batches: Batch[];
 }
+
+const formatTime12h = (timeString: string | undefined): string => {
+    if (!timeString) {
+      return '--:--';
+    }
+    const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)/;
+    const match = timeString.match(timeRegex);
+    
+    if (!match) {
+      return timeString;
+    }
+  
+    let [_, hours, minutes] = match;
+    let h = parseInt(hours);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12;
+    h = h ? h : 12; // the hour '0' should be '12'
+    
+    return `${h}:${minutes} ${ampm}`;
+  };
 
 export function StudentTimetablePage({ onBack, student, academyId, batches }: StudentTimetablePageProps) {
     const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([]);
@@ -30,8 +51,7 @@ export function StudentTimetablePage({ onBack, student, academyId, batches }: St
             setIsLoading(false);
             return;
         }
-        // For simplicity, we'll just use the first batch if a student is in multiple.
-        // A more complex app might show schedules for all batches or let the user choose.
+        
         const primaryBatchId = studentBatchIds[0];
 
         const fetchSchedule = async () => {
@@ -43,8 +63,18 @@ export function StudentTimetablePage({ onBack, student, academyId, batches }: St
                 if (docSnap.exists()) {
                     const data = docSnap.data() as DailySchedule;
                     const items = data[primaryBatchId] || [];
-                    items.sort((a,b) => a.startTime.localeCompare(b.startTime));
-                    setScheduleItems(items);
+                    
+                    const now = new Date();
+                    const upcomingItems = items.filter(item => {
+                        if (!item.endTime) return true;
+                        const [hours, minutes] = item.endTime.split(':').map(Number);
+                        const itemEndTime = new Date();
+                        itemEndTime.setHours(hours, minutes, 0, 0);
+                        return itemEndTime > now;
+                    });
+
+                    upcomingItems.sort((a,b) => a.startTime.localeCompare(b.startTime));
+                    setScheduleItems(upcomingItems);
                 } else {
                     setScheduleItems([]);
                 }
@@ -83,9 +113,9 @@ export function StudentTimetablePage({ onBack, student, academyId, batches }: St
                             {scheduleItems.map(item => (
                                 <div key={item.id} className={`p-4 rounded-lg shadow-sm flex items-center space-x-4 ${item.type === 'class' ? 'bg-white dark:bg-gray-800' : 'bg-yellow-50 dark:bg-yellow-900/40'}`}>
                                     <div className="flex flex-col items-center w-20 text-indigo-600 dark:text-indigo-300">
-                                        <span className="font-bold text-sm">{item.startTime}</span>
+                                        <span className="font-bold text-sm">{formatTime12h(item.startTime)}</span>
                                         <span className="text-xs">to</span>
-                                        <span className="font-bold text-sm">{item.endTime}</span>
+                                        <span className="font-bold text-sm">{formatTime12h(item.endTime)}</span>
                                     </div>
                                     <div className={`w-1 h-16 rounded-full ${item.type === 'class' ? 'bg-indigo-200 dark:bg-indigo-700' : 'bg-yellow-200 dark:bg-yellow-700'}`}></div>
                                     <div>
@@ -106,7 +136,7 @@ export function StudentTimetablePage({ onBack, student, academyId, batches }: St
                         </div>
                     ) : (
                         <div className="text-center py-20 px-4">
-                            <p className="text-lg text-gray-500 dark:text-gray-400">No schedule set for today.</p>
+                            <p className="text-lg text-gray-500 dark:text-gray-400">No upcoming classes for today.</p>
                         </div>
                     )
                 )}

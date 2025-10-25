@@ -21,11 +21,31 @@ interface BatchAttendanceCardProps {
   counts: { present: number; absent: number; leave: number };
 }
 
+const formatTime12h = (timeString: string | undefined): string => {
+    if (!timeString) {
+      return '';
+    }
+    const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)/;
+    const match = timeString.match(timeRegex);
+    
+    if (!match) {
+      return timeString;
+    }
+  
+    let [_, hours, minutes] = match;
+    let h = parseInt(hours);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12;
+    h = h ? h : 12; // the hour '0' should be '12'
+    
+    return `${h}:${minutes} ${ampm}`;
+  };
+
 const BatchAttendanceCard: React.FC<BatchAttendanceCardProps> = ({ batch, onSelect, counts }) => (
   <button onClick={onSelect} className="w-full bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 text-left">
     <div className="flex justify-between items-start mb-4">
       <h3 className="font-bold text-indigo-800 dark:text-gray-100 text-base">{batch.name}</h3>
-      <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{batch.time}</span>
+      <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{formatTime12h(batch.time)}</span>
     </div>
     <div className="grid grid-cols-3 text-center">
       <div>

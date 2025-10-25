@@ -1,15 +1,18 @@
 
 
+
+
 import React, { useState, useEffect, useCallback } from 'react';
 // Firebase
-import { auth, db, firebaseConfig } from './firebaseConfig';
+import { auth, db, firebaseConfig, storage } from './firebaseConfig';
+import { ref, deleteObject } from "firebase/storage";
 // FIX: Replaced V9 modular 'firebase/auth' imports with the V8 compat 'firebase/compat/app' to match the auth instance setup.
 import firebase from 'firebase/compat/app';
 // UPDATED: Added 'increment' to handle atomic counter updates for batch student counts.
 import { collection, doc, onSnapshot, addDoc, updateDoc, setDoc, getDoc, query, where, getDocs, writeBatch, serverTimestamp, Timestamp, runTransaction, deleteDoc, increment } from 'firebase/firestore';
 
 // Types
-import type { CurrentUser, Academy, Batch, Student, Staff, FeeCollection, BatchAccessPermissions, ScheduleItem, Transaction, Exam, Enquiry } from './types';
+import type { CurrentUser, Academy, Batch, Student, Staff, FeeCollection, BatchAccessPermissions, ScheduleItem, Transaction, Exam, Enquiry, StudyMaterial, Homework } from './types';
 
 // Demo Data
 import { demoStudents, demoBatches, demoStaff, demoTransactions, demoEnquiries } from './demoData';
@@ -59,6 +62,12 @@ import { EnquiryManagerPage } from './components/EnquiryManagerPage';
 import { NewEnquiryPage } from './components/NewEnquiryPage';
 import { ReportsPage } from './components/ReportsPage';
 import { AttendanceReportPage } from './components/AttendanceReportPage';
+import { StudyMaterialPage } from './components/StudyMaterialPage';
+import { UploadStudyMaterialPage } from './components/UploadStudyMaterialPage';
+import { HomeworkPage } from './components/HomeworkPage';
+import { AssignHomeworkPage } from './components/AssignHomeworkPage';
+import { HomeworkSubmissionsPage } from './components/HomeworkSubmissionsPage';
+
 // Student view components
 import { StudentDashboardPage } from './components/student/StudentDashboardPage';
 import { StudentFeeStatusPage } from './components/student/StudentFeeStatusPage';
@@ -67,6 +76,9 @@ import { MyAcademyPage } from './components/student/MyAcademyPage';
 import { StudentAttendancePage } from './components/student/StudentAttendancePage';
 import { StudentTimetablePage } from './components/student/StudentTimetablePage';
 import { StudentExamsPage } from './components/student/StudentExamsPage';
+import { StudentStudyMaterialPage } from './components/student/StudentStudyMaterialPage';
+import { StudentHomeworkPage } from './components/student/StudentHomeworkPage';
+
 // Staff view components
 import { StaffDashboardPage } from './components/staff/StaffDashboardPage';
 import { StaffHeader } from './components/staff/StaffHeader';
@@ -180,6 +192,8 @@ export default function App() {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [exams, setExams] = useState<Exam[]>([]);
     const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
+    const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
+    const [homework, setHomework] = useState<Homework[]>([]);
 
     // Page-specific state
     const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
@@ -187,6 +201,8 @@ export default function App() {
     const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
     const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
     const [selectedEnquiryId, setSelectedEnquiryId] = useState<string | null>(null);
+    const [selectedStudyMaterialId, setSelectedStudyMaterialId] = useState<string | null>(null);
+    const [selectedHomeworkId, setSelectedHomeworkId] = useState<string | null>(null);
     const [studentListFilter, setStudentListFilter] = useState('all');
 
     // UI State
@@ -331,6 +347,8 @@ export default function App() {
                 setTransactions(demoTransactions);
                 setExams([]);
                 setEnquiries(demoEnquiries);
+                setStudyMaterials([]);
+                setHomework([]);
             }
             return;
         };
@@ -358,7 +376,7 @@ export default function App() {
             unsubscribers.push(unsubAcademy);
         }
 
-        const collectionsToSubscribe = ['batches', 'students', 'staff', 'fees', 'transactions', 'exams', 'enquiries'];
+        const collectionsToSubscribe = ['batches', 'students', 'staff', 'fees', 'transactions', 'exams', 'enquiries', 'studyMaterial', 'homework'];
         const setters: any = {
             batches: setBatches,
             students: setStudents,
@@ -367,6 +385,8 @@ export default function App() {
             transactions: setTransactions,
             exams: setExams,
             enquiries: setEnquiries,
+            studyMaterial: setStudyMaterials,
+            homework: setHomework,
         };
 
         collectionsToSubscribe.forEach(coll => {
@@ -482,7 +502,8 @@ export default function App() {
         if (!academy || isDemoMode) { alert("Demo mode: Cannot save data."); return; }
         
         try {
-            const studentWithDefaults = await runTransaction(db, async (transaction) => {
+            // FIX: Explicitly type the return value of runTransaction to avoid it being inferred as 'unknown'.
+            const studentWithDefaults = await runTransaction<Student>(db, async (transaction) => {
                 const counterRef = doc(db, 'counters', `studentCounter_${academy.id}`);
                 const counterDoc = await transaction.get(counterRef);
 
@@ -505,21 +526,28 @@ export default function App() {
                     transaction.update(enquiryRef, { status: 'Converted' });
                 }
 
-                return { ...finalStudentData, id: newStudentRef.id };
+                // FIX: The object returned by the transaction was inferred as `unknown` because it contained
+                // a `createdAt` field with a `FieldValue` type, which is not part of the `Student` interface.
+                // By destructuring `createdAt` out, the returned object becomes structurally compatible with `Student`,
+                // resolving the type error on the cast below.
+                const { createdAt, ...studentToReturn } = finalStudentData;
+                return { ...studentToReturn, id: newStudentRef.id };
             });
 
             // Update batch counts atomically
             const batchWriter = writeBatch(db);
-            studentData.batches.forEach(batchName => {
-                const batchDoc = batches.find(b => b.name === batchName);
+            // FIX: Replaced forEach with a for...of loop to ensure correct type inference for batchName.
+            for (const batchName of (studentData.batches as string[])) {
+                // FIX: Explicitly cast batchName to string to satisfy type checker.
+                const batchDoc = batches.find(b => b.name === (batchName as string));
                 if (batchDoc) {
                     const batchRef = doc(db, `academies/${academy.id}/batches`, batchDoc.id);
                     batchWriter.update(batchRef, { currentStudents: increment(1) });
                 }
-            });
+            }
             await batchWriter.commit();
             
-            return studentWithDefaults as Student;
+            return studentWithDefaults;
         } catch (error) {
             console.error("Error saving student:", error);
             alert("Failed to save student. Please try again.");
@@ -547,29 +575,36 @@ export default function App() {
             batchWriter.update(studentRef, studentData);
 
             // 2. Calculate batch changes
-            const oldBatches = new Set(oldStudent.batches);
-            const newBatches = new Set(studentData.batches);
+            // FIX: Explicitly cast `oldStudent.batches` to `string[]` to ensure `oldBatches` is `Set<string>`. This resolves an `unknown` type error in the `removedBatches` filter.
+            const oldBatches = new Set(oldStudent.batches as string[]);
+            // FIX: Explicitly cast `studentData.batches` to string[] to ensure `newBatches` is `Set<string>`.
+            // This resolves downstream type inference issues where `batchName` was becoming `unknown`.
+            const newBatches = new Set(studentData.batches as string[]);
 
             const addedBatches = [...newBatches].filter(batchName => !oldBatches.has(batchName));
             const removedBatches = [...oldBatches].filter(batchName => !newBatches.has(batchName));
             
             // 3. Increment counts for added batches
-            addedBatches.forEach(batchName => {
-                const batchDoc = batches.find(b => b.name === batchName);
+            for (const batchName of addedBatches) {
+                // The type of batchName is now correctly inferred as `string`.
+                // FIX: Explicitly cast batchName to string to satisfy type checker, mirroring the pattern in handleSaveStudent.
+                const batchDoc = batches.find(b => b.name === (batchName as string));
                 if (batchDoc) {
                     const batchRef = doc(db, `academies/${academy.id}/batches`, batchDoc.id);
                     batchWriter.update(batchRef, { currentStudents: increment(1) });
                 }
-            });
+            }
 
             // 4. Decrement counts for removed batches
-            removedBatches.forEach(batchName => {
-                const batchDoc = batches.find(b => b.name === batchName);
+            for (const batchName of removedBatches) {
+                // The type of batchName is now correctly inferred as `string`.
+                // FIX: Explicitly cast batchName to string to satisfy type checker, mirroring the pattern in handleSaveStudent.
+                const batchDoc = batches.find(b => b.name === (batchName as string));
                 if (batchDoc) {
                     const batchRef = doc(db, `academies/${academy.id}/batches`, batchDoc.id);
                     batchWriter.update(batchRef, { currentStudents: increment(-1) });
                 }
-            });
+            }
 
             // 5. Commit all changes atomically
             await batchWriter.commit();
@@ -799,6 +834,87 @@ export default function App() {
         if (!academy || isDemoMode) { throw new Error("Demo mode"); }
         await deleteDoc(doc(db, `academies/${academy.id}/enquiries`, enquiryId));
     };
+    
+    const handleSaveStudyMaterial = async (data: Omit<StudyMaterial, 'id'>) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode"); }
+        if (selectedStudyMaterialId) { // Update
+            const materialRef = doc(db, `academies/${academy.id}/studyMaterial`, selectedStudyMaterialId);
+            await updateDoc(materialRef, data);
+        } else { // Create
+            await addDoc(collection(db, `academies/${academy.id}/studyMaterial`), data);
+        }
+        setPage('study-material');
+        setSelectedStudyMaterialId(null);
+    };
+
+    const handleDeleteStudyMaterial = async (material: StudyMaterial) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode"); }
+        if (!window.confirm(`Are you sure you want to delete "${material.title}"?`)) return;
+
+        const materialDocRef = doc(db, `academies/${academy.id}/studyMaterial`, material.id);
+        
+        try {
+            // If it's a file, delete from storage first
+            if (material.fileType === 'file' && material.storagePath) {
+                const fileRef = ref(storage, material.storagePath);
+                await deleteObject(fileRef);
+            }
+            // Then delete the Firestore document
+            await deleteDoc(materialDocRef);
+        } catch (error) {
+            console.error("Error deleting study material:", error);
+            alert("Failed to delete material. It may have already been removed. If the file persists, it might need to be removed manually from Firebase Storage.");
+        }
+    };
+
+    const handleSaveHomework = async (data: Omit<Homework, 'id'>) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode"); }
+        if (selectedHomeworkId) { // Update
+            const homeworkRef = doc(db, `academies/${academy.id}/homework`, selectedHomeworkId);
+            await updateDoc(homeworkRef, data);
+        } else { // Create
+            await addDoc(collection(db, `academies/${academy.id}/homework`), data);
+        }
+        setPage('homework');
+        setSelectedHomeworkId(null);
+    };
+
+    const handleDeleteHomework = async (homework: Homework) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode"); }
+        if (!window.confirm(`Are you sure you want to delete "${homework.title}"? This will also delete all student submissions.`)) return;
+
+        const homeworkDocRef = doc(db, `academies/${academy.id}/homework`, homework.id);
+        
+        try {
+            // Delete attachment from storage if it exists
+            if (homework.storagePath) {
+                const fileRef = ref(storage, homework.storagePath);
+                await deleteObject(fileRef);
+            }
+
+            // Delete all submission files and documents
+            const submissionsRef = collection(db, `academies/${academy.id}/homework/${homework.id}/submissions`);
+            const submissionsSnap = await getDocs(submissionsRef);
+            const deleteBatch = writeBatch(db);
+
+            for (const subDoc of submissionsSnap.docs) {
+                const submissionData = subDoc.data();
+                if (submissionData.storagePath) {
+                    const subFileRef = ref(storage, submissionData.storagePath);
+                    await deleteObject(subFileRef).catch(err => console.error("Could not delete submission file:", err)); // Don't block on failure
+                }
+                deleteBatch.delete(subDoc.ref);
+            }
+            await deleteBatch.commit();
+            
+            // Finally delete the homework document
+            await deleteDoc(homeworkDocRef);
+        } catch (error) {
+            console.error("Error deleting homework:", error);
+            alert("Failed to delete homework. Please try again.");
+        }
+    };
+
 
     const handleNavigate = (page: string, params: { [key: string]: any } = {}) => {
         if (params.batchId !== undefined) setSelectedBatchId(params.batchId);
@@ -807,6 +923,8 @@ export default function App() {
         if (params.staffId !== undefined) setSelectedStaffId(params.staffId);
         if (params.examId !== undefined) setSelectedExamId(params.examId);
         if (params.enquiryId !== undefined) setSelectedEnquiryId(params.enquiryId);
+        if (params.studyMaterialId !== undefined) setSelectedStudyMaterialId(params.studyMaterialId);
+        if (params.homeworkId !== undefined) setSelectedHomeworkId(params.homeworkId);
         setPage(page);
     };
 
@@ -834,6 +952,8 @@ export default function App() {
     const selectedStaff = staff.find(s => s.id === selectedStaffId);
     const selectedExam = exams.find(e => e.id === selectedExamId);
     const selectedEnquiry = enquiries.find(e => e.id === selectedEnquiryId);
+    const selectedStudyMaterial = studyMaterials.find(m => m.id === selectedStudyMaterialId);
+    const selectedHomework = homework.find(h => h.id === selectedHomeworkId);
 
     const renderPage = (pageName: string) => {
         const staffPermissions = currentUser?.role === 'staff' ? currentUser.data.batchAccess : undefined;
@@ -875,7 +995,7 @@ export default function App() {
             case 'income-expenses': return <IncomeExpensesPage onBack={() => setPage('dashboard')} transactions={transactions} onSave={handleSaveTransaction} onUpdate={handleUpdateTransaction} onDelete={handleDeleteTransaction} isDemoMode={isDemoMode}/>;
             case 'manage-exams': return <ManageExamsPage onBack={() => setPage('dashboard')} exams={exams} onNavigate={handleNavigate} onPublish={handlePublishExamResults} staffPermissions={staffPermissions} />;
             case 'create-exam': return <CreateExamPage onBack={() => setPage('manage-exams')} batches={batches} onSave={handleSaveExam} exam={selectedExam} staffPermissions={staffPermissions} />;
-            case 'record-marks': return selectedExam && academy && <RecordMarksPage onBack={() => setPage('manage-exams')} exam={selectedExam} students={students} academyId={academy.id} isDemoMode={isDemoMode}/>;
+            case 'record-marks': return selectedExam && academy && <RecordMarksPage onBack={() => setPage('manage-exams')} exam={selectedExam} students={students} academy={academy} isDemoMode={isDemoMode} onPublish={handlePublishExamResults} />;
             case 'enquiry-manager': return <EnquiryManagerPage onBack={() => setPage('dashboard')} enquiries={enquiries} onNavigate={handleNavigate} onDelete={handleDeleteEnquiry} onUpdateStatus={handleUpdateEnquiryStatus} />;
             case 'new-enquiry': return <NewEnquiryPage onBack={() => setPage('enquiry-manager')} batches={batches} onSave={handleSaveEnquiry} enquiry={selectedEnquiry}/>;
             case 'edit-enquiry': return selectedEnquiry && <NewEnquiryPage onBack={() => setPage('enquiry-manager')} batches={batches} onSave={handleSaveEnquiry} enquiry={selectedEnquiry}/>;
@@ -883,13 +1003,22 @@ export default function App() {
             case 'custom-sms-settings': return academy && <CustomSmsSettingsPage onBack={() => setPage('settings')} academy={academy} onSave={handleSaveAcademyDetails} />;
             case 'reports-options': return <ReportsPage onBack={() => setPage('dashboard')} onNavigate={handleNavigate} onShowDevPopup={setShowDevPopup} />;
             case 'attendance-report': return academy && <AttendanceReportPage onBack={() => setPage('reports-options')} batches={batches} students={students} academyId={academy.id} />;
-            
+            case 'study-material': return academy && <StudyMaterialPage onBack={() => setPage('dashboard')} materials={studyMaterials} batches={batches} onNavigate={handleNavigate} onDelete={handleDeleteStudyMaterial} />;
+            case 'upload-study-material': return academy && currentUser?.role === 'admin' && <UploadStudyMaterialPage onBack={() => setPage('study-material')} onSave={handleSaveStudyMaterial} batches={batches} academyId={academy.id} uploaderName={academy.name} isDemoMode={isDemoMode} />;
+            case 'edit-study-material': return academy && currentUser?.role === 'admin' && selectedStudyMaterial && <UploadStudyMaterialPage onBack={() => setPage('study-material')} onSave={handleSaveStudyMaterial} batches={batches} academyId={academy.id} uploaderName={academy.name} materialToEdit={selectedStudyMaterial} isDemoMode={isDemoMode} />;
+            case 'homework': return <HomeworkPage onBack={() => setPage('dashboard')} homework={homework} batches={batches} onNavigate={handleNavigate} onDelete={handleDeleteHomework} />;
+            case 'assign-homework': return academy && currentUser?.role === 'admin' && <AssignHomeworkPage onBack={() => setPage('homework')} onSave={handleSaveHomework} batches={batches} academyId={academy.id} uploaderName={academy.name} isDemoMode={isDemoMode} />;
+            case 'edit-homework': return academy && currentUser?.role === 'admin' && selectedHomework && <AssignHomeworkPage onBack={() => setPage('homework')} onSave={handleSaveHomework} batches={batches} academyId={academy.id} uploaderName={academy.name} homeworkToEdit={selectedHomework} isDemoMode={isDemoMode} />;
+            case 'homework-submissions': return academy && selectedHomework && <HomeworkSubmissionsPage onBack={() => setPage('homework')} homework={selectedHomework} students={students} academyId={academy.id} />;
+
             // Student Pages
             case 'fee-status': return currentUser?.role === 'student' && <StudentFeeStatusPage student={currentUser.data} feeCollections={feeCollections} onBack={() => setPage('dashboard')} />;
             case 'my-academy': return academy && <MyAcademyPage academy={academy} onBack={() => setPage('dashboard')} />;
             case 'attendance': return currentUser?.role === 'student' && <StudentAttendancePage student={currentUser.data} academyId={currentUser.academyId} onBack={() => setPage('dashboard')} />;
             case 'timetable': return currentUser?.role === 'student' && <StudentTimetablePage onBack={() => setPage('dashboard')} student={currentUser.data} academyId={currentUser.academyId} batches={batches} />;
             case 'student-exams': return currentUser?.role === 'student' && <StudentExamsPage onBack={() => setPage('dashboard')} student={currentUser.data} academyId={currentUser.academyId} />;
+            case 'student-study-material': return currentUser?.role === 'student' && <StudentStudyMaterialPage onBack={() => setPage('dashboard')} materials={studyMaterials} student={currentUser.data} />;
+            case 'student-homework': return currentUser?.role === 'student' && <StudentHomeworkPage onBack={() => setPage('dashboard')} homework={homework} student={currentUser.data} academyId={currentUser.academyId} batches={batches} isDemoMode={isDemoMode}/>;
 
             // Staff Pages
             case 'class-schedule': return currentUser?.role === 'staff' && <StaffSchedulePage onBack={() => setPage('dashboard')} staff={currentUser.data} academyId={currentUser.academyId} />;

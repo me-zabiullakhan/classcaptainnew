@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { LogoIcon } from '../icons/LogoIcon';
 import { XMarkIcon } from '../icons/XMarkIcon';
@@ -8,6 +9,8 @@ import { TimetableIcon } from '../icons/TimetableIcon';
 import { AttendanceStudentIcon } from '../icons/AttendanceStudentIcon';
 import { TuitionFeesStudentIcon } from '../icons/TuitionFeesStudentIcon';
 import { ExamsIcon } from '../icons/ExamsIcon';
+import { StudyMaterialStudentIcon } from '../icons/StudyMaterialStudentIcon';
+import { HomeworkStudentIcon } from '../icons/HomeworkStudentIcon';
 
 interface StudentSideNavProps {
   isOpen: boolean;
@@ -81,6 +84,18 @@ export function StudentSideNav({ isOpen, onClose, onNavigate, onLogout }: Studen
                         <button onClick={() => handleNavigate('student-exams')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
                             <ExamsIcon className="w-6 h-6 mr-4 text-gray-400"/>
                             <span className="font-medium">Exams</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button onClick={() => handleNavigate('student-study-material')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                            <StudyMaterialStudentIcon className="w-6 h-6 mr-4 text-gray-400"/>
+                            <span className="font-medium">Study Material</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button onClick={() => handleNavigate('student-homework')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                            <HomeworkStudentIcon className="w-6 h-6 mr-4 text-gray-400"/>
+                            <span className="font-medium">Homework</span>
                         </button>
                     </li>
                 </ul>

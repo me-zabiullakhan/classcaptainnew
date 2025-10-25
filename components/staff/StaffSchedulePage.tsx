@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import type { Staff, DailySchedule, ClassScheduleItem } from '../../types';
 import { ArrowLeftIcon } from '../icons/ArrowLeftIcon';
@@ -17,6 +18,26 @@ interface StaffClass {
     startTime: string;
     endTime: string;
 }
+
+const formatTime12h = (timeString: string | undefined): string => {
+    if (!timeString) {
+      return '--:--';
+    }
+    const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)/;
+    const match = timeString.match(timeRegex);
+    
+    if (!match) {
+      return timeString;
+    }
+  
+    let [_, hours, minutes] = match;
+    let h = parseInt(hours);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12;
+    h = h ? h : 12; // the hour '0' should be '12'
+    
+    return `${h}:${minutes} ${ampm}`;
+  };
 
 export function StaffSchedulePage({ onBack, staff, academyId }: StaffSchedulePageProps) {
     const [classes, setClasses] = useState<StaffClass[]>([]);
@@ -53,8 +74,18 @@ export function StaffSchedulePage({ onBack, staff, academyId }: StaffSchedulePag
                         });
                     }
                 }
-                staffClasses.sort((a,b) => a.startTime.localeCompare(b.startTime));
-                setClasses(staffClasses);
+                
+                const now = new Date();
+                const upcomingClasses = staffClasses.filter(item => {
+                    if (!item.endTime) return true;
+                    const [hours, minutes] = item.endTime.split(':').map(Number);
+                    const itemEndTime = new Date();
+                    itemEndTime.setHours(hours, minutes, 0, 0);
+                    return itemEndTime > now;
+                });
+
+                upcomingClasses.sort((a,b) => a.startTime.localeCompare(b.startTime));
+                setClasses(upcomingClasses);
             } catch (err) {
                 console.error("Error fetching schedule:", err);
                 setError("Failed to load your schedule. Please try again later.");
@@ -90,9 +121,9 @@ export function StaffSchedulePage({ onBack, staff, academyId }: StaffSchedulePag
                             {classes.map((item, index) => (
                                 <div key={index} className="p-4 rounded-lg shadow-sm flex items-center space-x-4 bg-white dark:bg-gray-800">
                                     <div className="flex flex-col items-center w-20 text-indigo-600 dark:text-indigo-300">
-                                        <span className="font-bold text-sm">{item.startTime}</span>
+                                        <span className="font-bold text-sm">{formatTime12h(item.startTime)}</span>
                                         <span className="text-xs">to</span>
-                                        <span className="font-bold text-sm">{item.endTime}</span>
+                                        <span className="font-bold text-sm">{formatTime12h(item.endTime)}</span>
                                     </div>
                                     <div className="w-1 h-16 rounded-full bg-indigo-200 dark:bg-indigo-700"></div>
                                     <div>
@@ -104,7 +135,7 @@ export function StaffSchedulePage({ onBack, staff, academyId }: StaffSchedulePag
                         </div>
                     ) : (
                         <div className="text-center py-20 px-4">
-                            <p className="text-lg text-gray-500 dark:text-gray-400">You have no classes scheduled for today.</p>
+                            <p className="text-lg text-gray-500 dark:text-gray-400">You have no upcoming classes scheduled for today.</p>
                         </div>
                     )
                 )}
