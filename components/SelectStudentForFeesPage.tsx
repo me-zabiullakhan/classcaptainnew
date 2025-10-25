@@ -1,5 +1,6 @@
 
-import React from 'react';
+
+import React, { useMemo } from 'react';
 import type { Student, Batch } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { SearchIcon } from './icons/SearchIcon';
@@ -14,9 +15,14 @@ interface SelectStudentForFeesPageProps {
 export function SelectStudentForFeesPage({ onBack, batch, students, onSelectStudent }: SelectStudentForFeesPageProps): React.ReactNode {
   const [searchTerm, setSearchTerm] = React.useState('');
 
-  const filteredStudents = students.filter(student =>
+  const activeStudentsInBatch = useMemo(() => 
+    students.filter(s => s.isActive && Array.isArray(s.batches) && s.batches.includes(batch.name)),
+    [students, batch.name]
+  );
+
+  const filteredStudents = activeStudentsInBatch.filter(student =>
     student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.rollNumber.toLowerCase().includes(searchTerm.toLowerCase())
+    (student.rollNumber && student.rollNumber.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (

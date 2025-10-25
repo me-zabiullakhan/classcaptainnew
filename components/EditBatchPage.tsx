@@ -83,7 +83,7 @@ export function EditBatchPage({ onBack, onSave, batch }: EditBatchPageProps): Re
     const feeAmountNumber = batchFeeAmount ? parseInt(batchFeeAmount, 10) : undefined;
     
     const saveData: Omit<Batch, 'id' | 'currentStudents'> = {
-      name,
+      name: name.trim(),
       location,
       teacher,
       time,

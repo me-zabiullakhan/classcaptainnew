@@ -788,6 +788,7 @@ export default function App() {
     const selectedEnquiry = enquiries.find(e => e.id === selectedEnquiryId);
 
     const renderPage = (pageName: string) => {
+        const staffPermissions = currentUser?.role === 'staff' ? currentUser.data.batchAccess : undefined;
         switch (pageName) {
             case 'dashboard':
                 if (currentUser?.role === 'admin' && academy) return <Dashboard onNavigate={handleNavigate} academy={academy} students={students} batches={batches} staff={staff} onShowDevPopup={setShowDevPopup} />;
@@ -802,16 +803,16 @@ export default function App() {
             case 'student-options': return <StudentOptionsPage onBack={() => setPage('dashboard')} onNavigate={handleNavigate} onShowDevPopup={setShowDevPopup} />;
             case 'new-student': return academy && <NewStudentPage onBack={() => setPage(selectedEnquiryId ? 'enquiry-manager' : 'student-options')} onSave={handleSaveStudent} batches={batches} academyId={academy.academyId} enquiryData={selectedEnquiry} />;
             case 'edit-student': return selectedStudent && <EditStudentPage onBack={() => setPage('active-students')} onUpdate={handleUpdateStudent} student={selectedStudent} batches={batches} />;
-            case 'active-students': return <ActiveStudentsPage onBack={() => setPage('student-options')} students={students} batches={batches} onToggleStudentStatus={handleToggleStudentStatus} onEditStudent={(studentId) => handleNavigate('edit-student', { studentId })} onViewStudent={(studentId) => handleNavigate('registration-form-view', { studentId })} initialFilter={studentListFilter} />;
+            case 'active-students': return <ActiveStudentsPage onBack={() => setPage('student-options')} students={students} batches={batches} onToggleStudentStatus={handleToggleStudentStatus} onEditStudent={(studentId) => handleNavigate('edit-student', { studentId })} onViewStudent={(studentId) => handleNavigate('registration-form-view', { studentId })} initialFilter={studentListFilter} staffPermissions={staffPermissions} />;
             case 'inactive-students': return <InactiveStudentsPage onBack={() => setPage('student-options')} students={students} batches={batches} onToggleStudentStatus={handleToggleStudentStatus} />;
             case 'birthday-list': return <BirthdayListPage onBack={() => setPage('student-options')} students={students} />;
             case 'registration-form-list': return <RegistrationFormListPage onBack={() => setPage('student-options')} students={students} onSelectStudent={(studentId) => handleNavigate('registration-form-view', { studentId })} />;
             case 'registration-form-view': return selectedStudent && <RegistrationFormViewPage onBack={() => setPage('registration-form-list')} student={selectedStudent} />;
-            case 'select-batch-attendance': return academy && <SelectBatchForAttendancePage onBack={() => setPage('dashboard')} batches={batches} onSelectBatch={(batchId) => handleNavigate('take-attendance', { batchId })} academyId={academy.id} />;
-            case 'take-attendance': return selectedBatch && academy && <TakeAttendancePage onBack={() => setPage('select-batch-attendance')} batch={selectedBatch} students={students.filter(s => s.batches.includes(selectedBatch.name))} academy={academy} isDemoMode={isDemoMode} />;
+            case 'select-batch-attendance': return academy && <SelectBatchForAttendancePage onBack={() => setPage('dashboard')} batches={batches} onSelectBatch={(batchId) => handleNavigate('take-attendance', { batchId })} academyId={academy.id} staffPermissions={staffPermissions} />;
+            case 'take-attendance': return selectedBatch && academy && <TakeAttendancePage onBack={() => setPage('select-batch-attendance')} batch={selectedBatch} students={students} academy={academy} isDemoMode={isDemoMode} />;
             case 'fees-options': return <FeesOptionsPage onBack={() => setPage('dashboard')} onNavigate={handleNavigate} />;
-            case 'select-batch-for-fees': return <SelectBatchForFeesPage onBack={() => setPage('fees-options')} batches={batches} onSelectBatch={(batchId) => handleNavigate('select-student-for-fees', { batchId })} />;
-            case 'select-student-for-fees': return selectedBatch && <SelectStudentForFeesPage onBack={() => setPage('select-batch-for-fees')} batch={selectedBatch} students={students.filter(s => s.batches.includes(selectedBatch.name))} onSelectStudent={(studentId) => handleNavigate('student-fee-details', { studentId })} />;
+            case 'select-batch-for-fees': return <SelectBatchForFeesPage onBack={() => setPage('fees-options')} batches={batches} onSelectBatch={(batchId) => handleNavigate('select-student-for-fees', { batchId })} staffPermissions={staffPermissions} />;
+            case 'select-student-for-fees': return selectedBatch && <SelectStudentForFeesPage onBack={() => setPage('select-batch-for-fees')} batch={selectedBatch} students={students} onSelectStudent={(studentId) => handleNavigate('student-fee-details', { studentId })} />;
             case 'student-fee-details': return selectedStudent && <StudentFeeDetailsPage onBack={() => setPage('select-student-for-fees')} student={selectedStudent} feeCollections={feeCollections.filter(fc => fc.studentId === selectedStudent.id)} onSavePayment={handleSavePayment} />;
             case 'fee-collection-report': return <FeeCollectionReportPage onBack={() => setPage('fees-options')} feeCollections={feeCollections} onDelete={handleDeleteFeeCollection} onUpdate={handleUpdateFeeCollection} isDemoMode={isDemoMode}/>;
             case 'fee-dues-list': return academy && <FeeDuesListPage onBack={() => setPage('fees-options')} students={students} batches={batches} feeCollections={feeCollections} academy={academy} />;
@@ -824,8 +825,8 @@ export default function App() {
             case 'schedule-classes': return academy && <ScheduleClassesPage onBack={() => setPage('dashboard')} batches={batches} staff={staff} academyId={academy.id} onSave={handleSaveDailySchedule} isDemoMode={isDemoMode} />;
             case 'subscription': return academy && <SubscriptionPage onBack={() => setPage('dashboard')} academy={academy} onSubscribe={async (plan, months) => {}} />;
             case 'income-expenses': return <IncomeExpensesPage onBack={() => setPage('dashboard')} transactions={transactions} onSave={handleSaveTransaction} onUpdate={handleUpdateTransaction} onDelete={handleDeleteTransaction} isDemoMode={isDemoMode}/>;
-            case 'manage-exams': return <ManageExamsPage onBack={() => setPage('dashboard')} exams={exams} onNavigate={handleNavigate} onPublish={handlePublishExamResults}/>;
-            case 'create-exam': return <CreateExamPage onBack={() => setPage('manage-exams')} batches={batches} onSave={handleSaveExam} exam={selectedExam} />;
+            case 'manage-exams': return <ManageExamsPage onBack={() => setPage('dashboard')} exams={exams} onNavigate={handleNavigate} onPublish={handlePublishExamResults} staffPermissions={staffPermissions} />;
+            case 'create-exam': return <CreateExamPage onBack={() => setPage('manage-exams')} batches={batches} onSave={handleSaveExam} exam={selectedExam} staffPermissions={staffPermissions} />;
             case 'record-marks': return selectedExam && academy && <RecordMarksPage onBack={() => setPage('manage-exams')} exam={selectedExam} students={students} academyId={academy.id} isDemoMode={isDemoMode}/>;
             case 'enquiry-manager': return <EnquiryManagerPage onBack={() => setPage('dashboard')} enquiries={enquiries} onNavigate={handleNavigate} onDelete={handleDeleteEnquiry} onUpdateStatus={handleUpdateEnquiryStatus} />;
             case 'new-enquiry': return <NewEnquiryPage onBack={() => setPage('enquiry-manager')} batches={batches} onSave={handleSaveEnquiry} enquiry={selectedEnquiry}/>;
@@ -874,7 +875,7 @@ export default function App() {
     } else if (currentUser.role === 'admin' && academy) {
         mainContent = (
              <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900">
-                <Header academy={academy} onLogout={handleLogout} onToggleNav={() => setIsNavOpen(true)} onNavigate={handleNavigate} theme={theme} onToggleTheme={handleToggleTheme} />
+                {page === 'dashboard' && <Header academy={academy} onLogout={handleLogout} onToggleNav={() => setIsNavOpen(true)} onNavigate={handleNavigate} theme={theme} onToggleTheme={handleToggleTheme} />}
                 <SideNav isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} onNavigate={handleNavigate} onLogout={handleLogout} onShowDevPopup={setShowDevPopup}/>
                 <div className="flex-grow overflow-y-auto pb-16">
                     {renderPage(page)}
@@ -892,9 +893,11 @@ export default function App() {
     } else if (currentUser.role === 'staff' && academy) {
         mainContent = (
              <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900">
-                <StaffHeader staffName={currentUser.data.name} academyName={academy.name} onLogout={handleLogout} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme}/>
+                {page === 'dashboard' && <StaffHeader staffName={currentUser.data.name} academyName={academy.name} onLogout={handleLogout} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme}/>}
                 <StaffSideNav isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} onNavigate={handleNavigate} onLogout={handleLogout} staff={currentUser.data} onShowDevPopup={setShowDevPopup} />
-                {renderPage(page)}
+                <div className="flex-grow overflow-y-auto">
+                    {renderPage(page)}
+                </div>
             </div>
         );
     } else {

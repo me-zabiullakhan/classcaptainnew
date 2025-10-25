@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { WarningIcon } from '../icons/WarningIcon';
 import { ClipboardDocumentIcon } from '../icons/ClipboardDocumentIcon';
@@ -10,46 +11,58 @@ interface AuthErrorModalProps {
 const firestoreRules = `rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // --- Default Deny All ---
+    // By default, deny all reads and writes
     match /{document=**} {
       allow read, write: if false;
     }
-
-    // --- ACADEMIES COLLECTION ---
-    // Allow any authenticated user (including anonymous) to query ('list') and 
-    // fetch ('get') academy documents. This is CRUCIAL for student/staff login 
-    // to find the academy by its user-facing ID.
-    match /academies/{document} {
-      allow get, list: if request.auth != null;
-    }
-
-    // --- ACADEMY SUBCOLLECTIONS ---
-    // Allow any authenticated user to read from subcollections (like students, staff).
-    // This is needed to verify credentials and fetch data after a successful login.
-    match /academies/{academyId}/{subcollection}/{docId} {
-        allow read: if request.auth != null;
-    }
     
-    // --- ADMIN-ONLY WRITE ACCESS ---
-    // Function to check if the user is the owner of the academy.
+    // Helper function: Checks if the requesting user is the admin of the academy
     function isOwner(academyId) {
       return request.auth.uid == get(/databases/$(database)/documents/academies/$(academyId)).data.adminUid;
     }
-
-    // Allow admins to write to their academy document and all its subcollections.
-    match /academies/{academyId}/{document=**} {
-      allow write: if isOwner(academyId);
-    }
-
-    // --- USER MAPPING & COUNTERS ---
-    // Allow users to create and read their own mapping doc during registration.
+    
+    // Allow users to be created and read their own user mapping doc
     match /users/{userId} {
       allow read, create: if request.auth.uid == userId;
     }
-    
-    // Allow admins to create/update student/staff ID counters.
+
+    // Allow admins to create/update student/staff ID counters
     match /counters/{counterId} {
-      allow write: if request.auth != null;
+        // Checks if a user document exists, which is a proxy for being an admin.
+        allow write: if request.auth != null && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    
+    // Allow academy creation and lookup by any authenticated user
+    match /academies/{academyId} {
+      allow get, list: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if isOwner(academyId);
+    }
+    
+    // Rules for top-level collections within an academy (students, staff, etc.)
+    match /academies/{academyId}/{collection}/{docId} {
+      allow read: if request.auth != null;
+      allow write: if isOwner(academyId);
+    }
+    
+    // --- Specific rules for nested collections ---
+    // These are more explicit and override the general rule above.
+    
+    // Attendance rules
+    match /academies/{academyId}/batches/{batchId}/attendance/{date} {
+       // Allow any authenticated user (admin, or staff via anonymous auth) to read and write.
+       // The app's UI logic must restrict access to only authorized staff.
+       allow read, write: if request.auth != null;
+    }
+    
+    // Exam marks rules
+    match /academies/{academyId}/exams/{examId}/marks/{studentId} {
+       // Allow any authenticated user to read marks (e.g., students reading their own).
+       allow read: if request.auth != null;
+
+       // Allow writes for admins or authorized staff. For simplicity with anonymous auth,
+       // we allow any authenticated user to write, relying on UI controls.
+       allow write: if request.auth != null;
     }
   }
 }`;

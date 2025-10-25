@@ -129,6 +129,10 @@ export function TakeAttendancePage({ onBack, batch, students, academy, isDemoMod
     const [selectedStudentForInfo, setSelectedStudentForInfo] = React.useState<Student | null>(null);
     const [isSmsModalOpen, setIsSmsModalOpen] = React.useState(false);
 
+    const studentsInBatch = React.useMemo(() => 
+        students.filter(s => s.isActive && Array.isArray(s.batches) && s.batches.some(bName => bName.trim() === batch.name.trim())),
+        [students, batch.name]
+    );
 
     const getFormattedDate = (date: Date) => {
         const year = date.getFullYear();
@@ -145,7 +149,7 @@ export function TakeAttendancePage({ onBack, batch, students, academy, isDemoMod
     React.useEffect(() => {
         if (isDemoMode) {
             const initialState: Record<string, AttendanceStatus> = {};
-            students.forEach(s => { initialState[s.id] = 'Not Set'; });
+            studentsInBatch.forEach(s => { initialState[s.id] = 'Not Set'; });
             setAttendance(initialState);
             setIsLoading(false);
             return;
@@ -162,7 +166,7 @@ export function TakeAttendancePage({ onBack, batch, students, academy, isDemoMod
         const unsubscribe = onSnapshot(attendanceRef, (docSnap) => {
             const fetchedData = docSnap.data() || {};
             const newAttendanceState: Record<string, AttendanceStatus> = {};
-            students.forEach(s => {
+            studentsInBatch.forEach(s => {
                 newAttendanceState[s.id] = fetchedData[s.id] || 'Not Set';
             });
             setAttendance(newAttendanceState);
@@ -178,7 +182,7 @@ export function TakeAttendancePage({ onBack, batch, students, academy, isDemoMod
         });
 
         return () => unsubscribe();
-    }, [currentDate, batch.id, academy.id, students, isDemoMode, retryTrigger]);
+    }, [currentDate, batch.id, academy.id, studentsInBatch, isDemoMode, retryTrigger]);
 
 
     const handleDateChange = (direction: 'prev' | 'next') => {
@@ -212,7 +216,7 @@ export function TakeAttendancePage({ onBack, batch, students, academy, isDemoMod
         setSavingError(null);
         const oldAttendance = { ...attendance };
         const newAttendance: Record<string, AttendanceStatus> = {};
-        students.forEach(s => { newAttendance[s.id] = status; });
+        studentsInBatch.forEach(s => { newAttendance[s.id] = status; });
         setAttendance(newAttendance);
 
         if (isDemoMode) return;
@@ -294,9 +298,9 @@ export function TakeAttendancePage({ onBack, batch, students, academy, isDemoMod
                             Retry
                         </button>
                     </div>
-                ) : students.length > 0 ? (
+                ) : studentsInBatch.length > 0 ? (
                     <div className="space-y-3 pb-4">
-                        {students.map(student => (
+                        {studentsInBatch.map(student => (
                             <StudentAttendanceCard
                                 key={student.id}
                                 student={student}
@@ -318,7 +322,7 @@ export function TakeAttendancePage({ onBack, batch, students, academy, isDemoMod
             {isSmsModalOpen && (
                 <SendAttendanceSmsModal
                     onClose={() => setIsSmsModalOpen(false)}
-                    students={students}
+                    students={studentsInBatch}
                     attendance={attendance}
                     batch={batch}
                     academy={academy}

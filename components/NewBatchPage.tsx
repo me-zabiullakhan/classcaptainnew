@@ -69,7 +69,7 @@ export function NewBatchPage({ onBack, onSave }: NewBatchPageProps): React.React
     const feeAmountNumber = batchFeeAmount ? parseInt(batchFeeAmount, 10) : undefined;
     
     const saveData: Omit<Batch, 'id' | 'currentStudents' | 'isActive'> = {
-      name,
+      name: name.trim(),
       location,
       teacher,
       time,
