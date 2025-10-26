@@ -11,6 +11,7 @@ import { ExamsIcon } from '../icons/ExamsIcon';
 import { AccountIcon } from '../icons/AccountIcon';
 import { LogoutIcon } from '../icons/LogoutIcon';
 import { TimetableIcon } from '../icons/TimetableIcon';
+import { LeaveIcon } from '../icons/LeaveIcon';
 
 const allFeatures: Omit<FeatureItem, 'color'>[] = [
   { name: 'Students', Icon: StudentsIcon },
@@ -18,6 +19,7 @@ const allFeatures: Omit<FeatureItem, 'color'>[] = [
   { name: 'Class Schedule', Icon: TimetableIcon },
   { name: 'Tuition Fees', Icon: FeesIcon },
   { name: 'Manage Exams', Icon: ExamsIcon },
+  { name: 'Leave Manager', Icon: LeaveIcon },
 ];
 
 
@@ -49,6 +51,7 @@ export function StaffSideNav({ isOpen, onClose, onNavigate, onLogout, staff, onS
       case 'Attendance': return () => handleNavigate('select-batch-attendance');
       case 'Class Schedule': return () => handleNavigate('class-schedule');
       case 'Manage Exams': return () => handleNavigate('manage-exams');
+      case 'Leave Manager': return () => handleNavigate('leave-manager');
       default: return () => onShowDevPopup(name);
     }
   }
@@ -60,6 +63,7 @@ export function StaffSideNav({ isOpen, onClose, onNavigate, onLogout, staff, onS
           case 'Class Schedule': return Object.keys(batchAccess || {}).length > 0;
           case 'Tuition Fees': return hasPermission('fees');
           case 'Manage Exams': return hasPermission('exams');
+          case 'Leave Manager': return hasPermission('leaveRequests');
           default: return false;
       }
   });
@@ -103,7 +107,11 @@ export function StaffSideNav({ isOpen, onClose, onNavigate, onLogout, staff, onS
             </nav>
 
             <footer className="p-4 border-t">
-                 <button onClick={() => onShowDevPopup('My Account')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors rounded-lg">
+                 <button onClick={() => handleNavigate('my-leave')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors rounded-lg">
+                    <LeaveIcon className="w-6 h-6 mr-4 text-gray-400"/>
+                    <span className="font-medium">My Leave</span>
+                </button>
+                 <button onClick={() => onShowDevPopup('My Account')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors rounded-lg mt-2">
                     <AccountIcon className="w-6 h-6 mr-4 text-gray-400"/>
                     <span className="font-medium">My Account</span>
                 </button>

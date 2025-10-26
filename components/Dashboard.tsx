@@ -99,6 +99,10 @@ export function Dashboard({ onNavigate, academy, students, batches, staff, onSho
         return () => onNavigate('homework');
       case 'Online Quiz':
         return () => onNavigate('manage-quizzes');
+      case 'Leave Manager':
+        return () => onNavigate('leave-manager');
+      case 'To Do Task':
+        return () => onNavigate('todo-task');
       default:
         return () => onShowDevPopup(name);
     }

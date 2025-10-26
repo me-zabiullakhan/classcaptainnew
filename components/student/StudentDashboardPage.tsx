@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { Student, Academy } from '../../types';
 import { StudentHeader } from './StudentHeader';
@@ -11,6 +12,7 @@ import { HomeworkStudentIcon } from '../icons/HomeworkStudentIcon';
 import { OnlineExamIcon } from '../icons/OnlineExamIcon';
 import { StudyMaterialStudentIcon } from '../icons/StudyMaterialStudentIcon';
 import { TimetableIcon } from '../icons/TimetableIcon';
+import { LeaveIcon } from '../icons/LeaveIcon';
 
 interface StudentDashboardPageProps {
     student: Student;
@@ -31,6 +33,7 @@ const studentFeatures = [
     { name: 'Study Material', Icon: StudyMaterialStudentIcon, color: 'bg-gray-700' },
     { name: 'Homework', Icon: HomeworkStudentIcon, color: 'bg-teal-500' },
     { name: 'Online Quiz', Icon: OnlineExamIcon, color: 'bg-red-500' },
+    { name: 'My Leave', Icon: LeaveIcon, color: 'bg-blue-500' },
 ];
 
 export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav, theme, onToggleTheme, onShowDevPopup }: StudentDashboardPageProps): React.ReactNode {
@@ -55,6 +58,8 @@ export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav
                 return () => onNavigate('student-homework');
             case 'Online Quiz':
                 return () => onNavigate('student-quizzes');
+            case 'My Leave':
+                return () => onNavigate('my-leave');
             default:
                 return () => onShowDevPopup(name);
         }

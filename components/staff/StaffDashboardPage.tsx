@@ -10,6 +10,7 @@ import { ExamsIcon } from '../icons/ExamsIcon';
 import { NoticeIcon } from '../icons/NoticeIcon';
 import { IncomeIcon } from '../icons/IncomeIcon';
 import { TimetableIcon } from '../icons/TimetableIcon';
+import { LeaveIcon } from '../icons/LeaveIcon';
 
 const permissionBasedFeatures: FeatureItem[] = [
   { name: 'Students', Icon: StudentsIcon, color: 'bg-blue-600' },
@@ -17,6 +18,7 @@ const permissionBasedFeatures: FeatureItem[] = [
   { name: 'Class Schedule', Icon: TimetableIcon, color: 'bg-pink-500' },
   { name: 'Tuition Fees', Icon: FeesIcon, color: 'bg-emerald-500' },
   { name: 'Manage Exams', Icon: ExamsIcon, color: 'bg-lime-500' },
+  { name: 'Leave Manager', Icon: LeaveIcon, color: 'bg-blue-500' },
 ];
 
 const defaultFeatures: FeatureItem[] = [
@@ -54,6 +56,8 @@ export function StaffDashboardPage({ onNavigate, academy, staff, onShowDevPopup 
               return hasPermission('fees');
           case 'Manage Exams':
               return hasPermission('exams');
+          case 'Leave Manager':
+              return hasPermission('leaveRequests');
           default:
               return false;
       }
@@ -68,6 +72,7 @@ export function StaffDashboardPage({ onNavigate, academy, staff, onShowDevPopup 
       case 'Attendance': return () => onNavigate('select-batch-attendance');
       case 'Class Schedule': return () => onNavigate('class-schedule');
       case 'Manage Exams': return () => onNavigate('manage-exams');
+      case 'Leave Manager': return () => onNavigate('leave-manager');
       default: return () => onShowDevPopup(name);
     }
   }

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 // Firebase
 import { auth, db, firebaseConfig, storage } from './firebaseConfig';
@@ -9,7 +10,7 @@ import firebase from 'firebase/compat/app';
 import { collection, doc, onSnapshot, addDoc, updateDoc, setDoc, getDoc, query, where, getDocs, writeBatch, serverTimestamp, Timestamp, runTransaction, deleteDoc, increment } from 'firebase/firestore';
 
 // Types
-import type { CurrentUser, Academy, Batch, Student, Staff, FeeCollection, BatchAccessPermissions, ScheduleItem, Transaction, Exam, Enquiry, StudyMaterial, Homework, Quiz, QuizSubmission } from './types';
+import type { CurrentUser, Academy, Batch, Student, Staff, FeeCollection, BatchAccessPermissions, ScheduleItem, Transaction, Exam, Enquiry, StudyMaterial, Homework, Quiz, QuizSubmission, LeaveRequest, Task } from './types';
 
 // Demo Data
 import { demoStudents, demoBatches, demoStaff, demoTransactions, demoEnquiries } from './demoData';
@@ -67,6 +68,8 @@ import { HomeworkSubmissionsPage } from './components/HomeworkSubmissionsPage';
 import { ManageQuizzesPage } from './components/ManageQuizzesPage';
 import { CreateQuizPage } from './components/CreateQuizPage';
 import { QuizResultsPage } from './components/QuizResultsPage';
+import { LeaveManagerPage } from './components/LeaveManagerPage';
+import { TodoTaskPage } from './components/TodoTaskPage';
 
 // Student view components
 import { StudentDashboardPage } from './components/student/StudentDashboardPage';
@@ -81,6 +84,8 @@ import { StudentHomeworkPage } from './components/student/StudentHomeworkPage';
 import { StudentQuizzesPage } from './components/student/StudentQuizzesPage';
 import { TakeQuizPage } from './components/student/TakeQuizPage';
 import { QuizResultPage } from './components/student/QuizResultPage';
+import { MyLeavePage } from './components/student/MyLeavePage';
+import { ApplyLeavePage } from './components/student/ApplyLeavePage';
 
 // Staff view components
 import { StaffDashboardPage } from './components/staff/StaffDashboardPage';
@@ -199,6 +204,8 @@ export default function App() {
     const [homework, setHomework] = useState<Homework[]>([]);
     const [quizzes, setQuizzes] = useState<Quiz[]>([]);
     const [quizSubmissions, setQuizSubmissions] = useState<QuizSubmission[]>([]);
+    const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+    const [tasks, setTasks] = useState<Task[]>([]);
 
     // Page-specific state
     const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
@@ -356,6 +363,8 @@ export default function App() {
                 setStudyMaterials([]);
                 setHomework([]);
                 setQuizzes([]);
+                setLeaveRequests([]);
+                setTasks([]);
             }
             return;
         };
@@ -383,7 +392,7 @@ export default function App() {
             unsubscribers.push(unsubAcademy);
         }
 
-        const collectionsToSubscribe = ['batches', 'students', 'staff', 'fees', 'transactions', 'exams', 'enquiries', 'studyMaterial', 'homework', 'quizzes'];
+        const collectionsToSubscribe = ['batches', 'students', 'staff', 'fees', 'transactions', 'exams', 'enquiries', 'studyMaterial', 'homework', 'quizzes', 'leaveRequests', 'tasks'];
         const setters: any = {
             batches: setBatches,
             students: setStudents,
@@ -395,6 +404,8 @@ export default function App() {
             studyMaterial: setStudyMaterials,
             homework: setHomework,
             quizzes: setQuizzes,
+            leaveRequests: setLeaveRequests,
+            tasks: setTasks,
         };
 
         collectionsToSubscribe.forEach(coll => {
@@ -987,6 +998,53 @@ export default function App() {
         await setDoc(submissionRef, submissionData);
     };
 
+    const handleSaveLeaveRequest = async (data: Omit<LeaveRequest, 'id'>) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode"); }
+        await addDoc(collection(db, `academies/${academy.id}/leaveRequests`), data);
+        setPage('my-leave');
+    };
+    
+    const handleUpdateLeaveRequestStatus = async (id: string, status: 'Approved' | 'Rejected') => {
+        if (!academy || !currentUser || isDemoMode) { throw new Error("Demo mode"); }
+        const leaveRef = doc(db, `academies/${academy.id}/leaveRequests`, id);
+        await updateDoc(leaveRef, { 
+            status,
+            reviewedBy: currentUser.role === 'admin' ? academy.name : (currentUser.role === 'staff' ? currentUser.data.name : 'System'),
+            reviewedAt: serverTimestamp()
+        });
+    };
+    
+    const handleSaveTask = async (data: Omit<Task, 'id' | 'createdAt' | 'status'>, taskId?: string) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode: Cannot save data."); }
+        const taskData = {
+            ...data,
+            dueDate: Timestamp.fromDate(new Date(data.dueDate as any)),
+        };
+
+        if (taskId) { // Update
+            const taskRef = doc(db, `academies/${academy.id}/tasks`, taskId);
+            await updateDoc(taskRef, taskData);
+        } else { // Create
+            await addDoc(collection(db, `academies/${academy.id}/tasks`), {
+                ...taskData,
+                status: 'Pending',
+                createdAt: serverTimestamp()
+            });
+        }
+    };
+
+    const handleToggleTaskStatus = async (taskId: string, currentStatus: 'Pending' | 'Completed') => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode"); }
+        const taskRef = doc(db, `academies/${academy.id}/tasks`, taskId);
+        await updateDoc(taskRef, { status: currentStatus === 'Pending' ? 'Completed' : 'Pending' });
+    };
+
+    const handleDeleteTask = async (taskId: string) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode"); }
+        if (!window.confirm("Are you sure you want to delete this task?")) return;
+        await deleteDoc(doc(db, `academies/${academy.id}/tasks`, taskId));
+    };
+
 
     const handleNavigate = (page: string, params: { [key: string]: any } = {}) => {
         if (params.batchId !== undefined) setSelectedBatchId(params.batchId);
@@ -1088,7 +1146,14 @@ export default function App() {
             case 'create-quiz': return <CreateQuizPage onBack={() => setPage('manage-quizzes')} onSave={handleSaveQuiz} batches={batches} quiz={selectedQuiz} staffPermissions={staffPermissions} />;
             case 'edit-quiz': return selectedQuiz && <CreateQuizPage onBack={() => setPage('manage-quizzes')} onSave={handleSaveQuiz} batches={batches} quiz={selectedQuiz} staffPermissions={staffPermissions} />;
             case 'quiz-results': return selectedQuiz && <QuizResultsPage onBack={() => setPage('manage-quizzes')} quiz={selectedQuiz} submissions={quizSubmissions} students={students} />;
+            case 'leave-manager': return currentUser && academy && <LeaveManagerPage onBack={() => setPage('dashboard')} leaveRequests={leaveRequests} students={students} staff={staff} onUpdateStatus={handleUpdateLeaveRequestStatus} currentUser={currentUser} batches={batches}/>;
+            case 'todo-task': return academy && <TodoTaskPage onBack={() => setPage('dashboard')} tasks={tasks} staff={staff} onSaveTask={handleSaveTask} onToggleTaskStatus={handleToggleTaskStatus} onDeleteTask={handleDeleteTask} isDemoMode={isDemoMode}/>;
 
+
+            // Student/Staff common pages
+            case 'my-leave': return currentUser && <MyLeavePage onBack={() => setPage('dashboard')} onNavigate={handleNavigate} currentUser={currentUser} leaveRequests={leaveRequests} />;
+            case 'apply-leave': return currentUser && academy && <ApplyLeavePage onBack={() => setPage('my-leave')} currentUser={currentUser} academyId={academy.id} onSave={handleSaveLeaveRequest} isDemoMode={isDemoMode} />;
+            
             // Student Pages
             case 'fee-status': return currentUser?.role === 'student' && <StudentFeeStatusPage student={currentUser.data} feeCollections={feeCollections} onBack={() => setPage('dashboard')} />;
             case 'my-academy': return academy && <MyAcademyPage academy={academy} onBack={() => setPage('dashboard')} />;

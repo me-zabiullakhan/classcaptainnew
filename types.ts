@@ -78,6 +78,7 @@ export interface BatchAccessPermissions {
   homework?: boolean;
   onlineQuiz?: boolean;
   schedule?: boolean; // Can view/manage schedule for this batch
+  leaveRequests?: boolean;
 }
 
 export interface Staff {
@@ -286,4 +287,34 @@ export interface QuizSubmission {
   score: number;
   totalMarks: number;
   submittedAt: Timestamp;
+}
+
+export interface LeaveRequest {
+  id: string; // Firestore document ID
+  userId: string; // ID of student or staff
+  userName: string;
+  userRole: 'student' | 'staff';
+  userRollNumber?: string; // For easy identification of students
+  userBatches: string[]; // Batches the user is in at time of request
+  fromDate: Timestamp;
+  toDate: Timestamp;
+  reason: string;
+  attachmentUrl?: string;
+  storagePath?: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
+  requestedAt: Timestamp;
+  reviewedBy?: string; // Admin/staff name who reviewed
+  reviewedAt?: Timestamp;
+}
+
+export interface Task {
+  id: string; // Firestore document ID
+  title: string;
+  description?: string;
+  assignedToId?: string; // Staff ID
+  assignedToName?: string;
+  dueDate: Timestamp;
+  priority: 'Low' | 'Medium' | 'High';
+  status: 'Pending' | 'Completed';
+  createdAt: Timestamp;
 }

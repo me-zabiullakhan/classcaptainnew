@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { Staff, Batch, BatchAccessPermissions } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -13,6 +14,7 @@ const PERMISSION_KEYS: { key: keyof BatchAccessPermissions; label: string }[] = 
     { key: 'homework', label: 'Homework' },
     { key: 'onlineQuiz', label: 'Online Quiz' },
     { key: 'schedule', label: 'Manage Schedule' },
+    { key: 'leaveRequests', label: 'Manage Leave' },
 ];
 
 interface StaffBatchAccessPageProps {

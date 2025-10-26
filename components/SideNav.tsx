@@ -37,11 +37,11 @@ const features: Omit<FeatureItem, 'color'>[] = [
   { name: 'Manage Exams', Icon: ExamsIcon },
   { name: 'Enquiry Manager', Icon: EnquiryIcon },
   { name: 'Staff Manager', Icon: StaffIcon },
+  { name: 'Leave Manager', Icon: LeaveIcon },
   { name: 'Reports', Icon: ReportsIcon },
   { name: 'Study Material', Icon: StudyMaterialIcon },
   { name: 'Homework', Icon: HomeworkIcon },
   { name: 'Online Quiz', Icon: QuizIcon },
-  { name: 'Leave Manager', Icon: LeaveIcon },
   { name: 'To Do Task', Icon: TodoIcon },
   { name: 'Notice Board', Icon: NoticeIcon },
   { name: 'Transport', Icon: TransportIcon },
@@ -95,6 +95,10 @@ export function SideNav({ isOpen, onClose, onNavigate, onLogout, onShowDevPopup 
         return () => handleNavigate('homework');
       case 'Online Quiz':
         return () => handleNavigate('manage-quizzes');
+      case 'Leave Manager':
+        return () => handleNavigate('leave-manager');
+      case 'To Do Task':
+        return () => handleNavigate('todo-task');
       default:
         return () => {
             onShowDevPopup(name);
