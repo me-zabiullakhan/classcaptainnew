@@ -13,6 +13,8 @@ interface StudentAttendancePageProps {
     student: Student;
     academyId: string;
     onBack: () => void;
+    // FIX: Add isEmbedded prop to allow this component to be used without its own header.
+    isEmbedded?: boolean;
 }
 
 const StatusIcon = ({ status }: { status: AttendanceStatus }) => {
@@ -60,7 +62,7 @@ const LegendItem = ({ status, label }: { status: AttendanceStatus, label: string
     </div>
 );
 
-export function StudentAttendancePage({ student, academyId, onBack }: StudentAttendancePageProps): React.ReactNode {
+export function StudentAttendancePage({ student, academyId, onBack, isEmbedded }: StudentAttendancePageProps): React.ReactNode {
     const [currentDate, setCurrentDate] = React.useState(new Date());
     const [attendanceData, setAttendanceData] = React.useState<Record<string, AttendanceStatus>>({});
     const [summary, setSummary] = React.useState({ present: 0, absent: 0, leave: 0, holiday: 0 });
@@ -161,12 +163,14 @@ export function StudentAttendancePage({ student, academyId, onBack }: StudentAtt
 
     return (
         <div className="bg-slate-100 flex flex-col h-full animate-fade-in">
+            {!isEmbedded && (
             <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md flex-shrink-0 sticky top-0 z-10">
                 <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back to dashboard">
                     <ArrowLeftIcon className="w-6 h-6" />
                 </button>
                 <h1 className="text-xl font-bold ml-2">Attendance</h1>
             </header>
+            )}
             
             <main className="flex-grow p-4 overflow-y-auto">
                 <div className="bg-white p-4 rounded-lg shadow-sm mb-4">

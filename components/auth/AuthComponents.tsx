@@ -1,12 +1,11 @@
 import React from 'react';
-import { LogoIcon } from '../icons/LogoIcon';
+import { FullLogoIcon } from '../icons/LogoIcon';
 
 export const AuthLayout: React.FC<{ title: string, subtitle: string, children: React.ReactNode }> = ({ title, subtitle, children }) => (
     <div className="min-h-screen flex flex-col justify-center items-center px-4 py-8 bg-gradient-to-br from-purple-50 to-slate-100 dark:from-indigo-900 dark:to-gray-900">
         <div className="text-center mb-8">
-            <div className="flex justify-center items-center gap-3 mb-4">
-                <LogoIcon className="w-12 h-12 text-indigo-600 dark:text-indigo-400" />
-                <span className="text-3xl font-bold text-gray-800 dark:text-gray-100">Class Captain</span>
+            <div className="flex justify-center mb-4">
+                <FullLogoIcon className="w-64" />
             </div>
             <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{title}</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">{subtitle}</p>

@@ -1,6 +1,7 @@
 
 import React from 'react';
-import type { Student, FeeCollection } from '../types';
+// FIX: Import Academy type to resolve prop type error.
+import type { Student, FeeCollection, Academy } from '../../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { CheckCircleIcon } from './icons/CheckCircleIcon';
 import { CalendarIcon } from './icons/CalendarIcon';
@@ -10,6 +11,9 @@ interface StudentFeeDetailsPageProps {
   student: Student;
   feeCollections: FeeCollection[];
   onSavePayment: (paymentData: Omit<FeeCollection, 'id'>) => Promise<void>;
+  // FIX: Add missing props to match usage in parent component.
+  academy: Academy;
+  isEmbedded?: boolean;
 }
 
 const getPendingMonths = (student: Student, paidMonths: Set<string>): string[] => {
@@ -142,7 +146,7 @@ const PaymentModal = ({ month, student, onSave, onClose }: { month: string, stud
     );
 };
 
-export function StudentFeeDetailsPage({ onBack, student, feeCollections, onSavePayment }: StudentFeeDetailsPageProps) {
+export function StudentFeeDetailsPage({ onBack, student, feeCollections, onSavePayment, isEmbedded }: StudentFeeDetailsPageProps) {
     const [selectedMonth, setSelectedMonth] = React.useState<string | null>(null);
     const [showSuccess, setShowSuccess] = React.useState(false);
     
@@ -164,6 +168,7 @@ export function StudentFeeDetailsPage({ onBack, student, feeCollections, onSaveP
     return (
         <>
             <div className="bg-slate-100 flex flex-col h-full animate-fade-in">
+                {!isEmbedded && (
                 <div className="flex-shrink-0 sticky top-0 z-10">
                     <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md">
                         <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back to student selection">
@@ -182,6 +187,7 @@ export function StudentFeeDetailsPage({ onBack, student, feeCollections, onSaveP
                         </div>
                     </div>
                 </div>
+                )}
 
                 <main className="flex-grow p-4 overflow-y-auto">
                     <h3 className="font-bold text-gray-700 mb-3">Pending Fees</h3>

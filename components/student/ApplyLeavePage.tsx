@@ -1,12 +1,12 @@
 
 
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeftIcon } from '../icons/ArrowLeftIcon';
 import type { CurrentUser, LeaveRequest, Student } from '../../types';
 import { storage } from '../../firebaseConfig';
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { serverTimestamp, Timestamp } from 'firebase/firestore';
+import { CheckCircleIcon } from '../icons/CheckCircleIcon';
 
 interface ApplyLeavePageProps {
   onBack: () => void;
@@ -29,6 +29,23 @@ const UploadingModal: React.FC<{ progress: number }> = ({ progress }) => (
     </div>
 );
 
+const SuccessModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+    useEffect(() => {
+        const timer = setTimeout(onClose, 2000);
+        return () => clearTimeout(timer);
+    }, [onClose]);
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fade-in p-4">
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg w-full max-w-sm text-center">
+                <CheckCircleIcon className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Submitted Successfully!</h2>
+                <p className="text-gray-600 dark:text-gray-400 mt-2">Your leave request has been sent for review.</p>
+            </div>
+        </div>
+    );
+};
+
 
 export function ApplyLeavePage({ onBack, onSave, currentUser, academyId, isDemoMode }: ApplyLeavePageProps) {
     const [formData, setFormData] = useState({
@@ -39,6 +56,7 @@ export function ApplyLeavePage({ onBack, onSave, currentUser, academyId, isDemoM
     const [file, setFile] = useState<File | null>(null);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isSaving, setIsSaving] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -116,6 +134,8 @@ export function ApplyLeavePage({ onBack, onSave, currentUser, academyId, isDemoM
                 requestedAt: serverTimestamp(),
             } as Omit<LeaveRequest, 'id'>);
 
+            setShowSuccess(true);
+
         } catch (error) {
             if (!isSaving) return; // Prevent alert if already handled by upload promise rejection
             alert((error as Error).message);
@@ -126,6 +146,7 @@ export function ApplyLeavePage({ onBack, onSave, currentUser, academyId, isDemoM
     return (
         <>
             {isSaving && file && <UploadingModal progress={uploadProgress} />}
+            {showSuccess && <SuccessModal onClose={onBack} />}
             <div className="animate-fade-in flex flex-col h-full bg-gray-100 dark:bg-gray-900">
                 <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md flex-shrink-0 sticky top-0 z-10">
                     <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back">
@@ -160,7 +181,7 @@ export function ApplyLeavePage({ onBack, onSave, currentUser, academyId, isDemoM
                     </main>
                     <footer className="p-4 bg-white dark:bg-gray-800 border-t dark:border-gray-700">
                         <button type="submit" disabled={isSaving} className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors shadow-md disabled:bg-indigo-400">
-                            {isSaving ? 'Submitting...' : 'Submit Application'}
+                            {isSaving ? (file ? 'Uploading...' : 'Submitting...') : 'Submit Application'}
                         </button>
                     </footer>
                 </form>
