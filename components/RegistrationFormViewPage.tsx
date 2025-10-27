@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import type { Student } from '../types';
+import type { Student, TransportRoute } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { MoreVertIcon } from './icons/MoreVertIcon';
 import { LogoIcon } from './icons/LogoIcon';
@@ -22,13 +22,15 @@ const FormRow = ({ label, value }: { label: string, value?: string | number | nu
     </div>
 );
 
-export function RegistrationFormViewPage({ onBack, student }: { onBack: () => void; student: Student }) {
+export function RegistrationFormViewPage({ onBack, student, transportRoutes }: { onBack: () => void; student: Student; transportRoutes: TransportRoute[] }) {
     const [menuOpen, setMenuOpen] = React.useState(false);
 
     const handlePrint = () => {
         setMenuOpen(false);
         window.print();
     };
+
+    const assignedRoute = transportRoutes.find(r => r.id === student.transportRouteId);
     
     return (
         <div className="bg-slate-200 min-h-screen">
@@ -110,6 +112,7 @@ export function RegistrationFormViewPage({ onBack, student }: { onBack: () => vo
                             <FormRow label="Fee Type" value={student.feeType} />
                             <FormRow label="Fee Amount" value={`₹${student.feeAmount}`} />
                             <FormRow label="Transport" value={student.transport === 'USE_TRANSPORT' ? 'Opted In' : 'Not Opted'} />
+                            <FormRow label="Transport Route" value={assignedRoute?.routeName} />
                          </div>
                     </div>
 

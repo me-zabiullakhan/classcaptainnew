@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import type { Exam, Student, ExamMarks, Academy } from '../types';
@@ -7,6 +6,7 @@ import { collection, doc, writeBatch, getDocs } from 'firebase/firestore';
 import { CheckCircleIcon } from './icons/CheckCircleIcon';
 import { SendMarksSmsModal } from './SendMarksSmsModal';
 import { ArrowUpTrayIcon } from './icons/ArrowUpTrayIcon';
+import { LoadingSpinner } from './LoadingSpinner';
 
 interface RecordMarksPageProps {
   onBack: () => void;
@@ -206,7 +206,7 @@ export function RecordMarksPage({ onBack, exam, students, academy, isDemoMode, o
             </header>
 
             <main className="flex-grow p-4 overflow-y-auto">
-                {isLoading ? <p className="text-center">Loading student marks...</p> : (
+                {isLoading ? <LoadingSpinner message="Loading student marks..." /> : (
                     <div className="space-y-3">
                         {studentsInBatch.map(student => (
                             <div key={student.id} className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm flex items-center justify-between">

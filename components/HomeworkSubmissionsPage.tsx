@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Homework, Student, HomeworkSubmission } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { db } from '../firebaseConfig';
 import { collection, doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { LoadingSpinner } from './LoadingSpinner';
 
 interface HomeworkSubmissionsPageProps {
   onBack: () => void;
@@ -70,7 +70,7 @@ export function HomeworkSubmissionsPage({ onBack, homework, students, academyId 
             </header>
 
             <main className="flex-grow p-4 overflow-y-auto">
-                {isLoading ? <p>Loading submissions...</p> : studentsInBatch.length === 0 ? (
+                {isLoading ? <LoadingSpinner message="Loading submissions..." /> : studentsInBatch.length === 0 ? (
                     <p className="text-center text-gray-500 py-10">No students in this batch.</p>
                 ) : (
                     <div className="space-y-3">

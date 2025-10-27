@@ -1,10 +1,9 @@
-
-
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Student, Exam, ExamMarks } from '../../types';
 import { ArrowLeftIcon } from '../icons/ArrowLeftIcon';
 import { db } from '../../firebaseConfig';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { LoadingSpinner } from '../LoadingSpinner';
 
 interface StudentExamsPageProps {
   onBack: () => void;
@@ -97,7 +96,7 @@ export function StudentExamsPage({ onBack, student, academyId }: StudentExamsPag
                 </div>
             </div>
             <main className="flex-grow p-4 overflow-y-auto">
-                {isLoading ? <p className="text-center">Loading exams...</p> : examsToShow.length === 0 ? (
+                {isLoading ? <LoadingSpinner message="Loading exams..." /> : examsToShow.length === 0 ? (
                     <div className="text-center py-20 px-4">
                         <p className="text-lg text-gray-500">No {activeTab} exams found.</p>
                     </div>

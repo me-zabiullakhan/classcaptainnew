@@ -1,11 +1,10 @@
-
-
 import React, { useState, useEffect } from 'react';
 import type { Batch, BatchAccessPermissions, AttendanceStatus } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { SearchIcon } from './icons/SearchIcon';
 import { db } from '../firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
+import { LoadingSpinner } from './LoadingSpinner';
 
 interface SelectBatchForAttendancePageProps {
   onBack: () => void;
@@ -143,7 +142,7 @@ export function SelectBatchForAttendancePage({ onBack, batches, onSelectBatch, s
       <main className="flex-grow p-4 overflow-y-auto">
         {isLoading ? (
              <div className="text-center py-20 px-4">
-                <p className="text-lg text-gray-500 dark:text-gray-400">Loading attendance data...</p>
+                <LoadingSpinner message="Loading attendance data..." />
             </div>
         ) : activeBatches.length > 0 ? (
           <div className="space-y-3">

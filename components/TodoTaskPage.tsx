@@ -8,6 +8,7 @@ import { XMarkIcon } from './icons/XMarkIcon';
 import { CustomDropdown } from './CustomDropdown';
 import { Timestamp, serverTimestamp } from 'firebase/firestore';
 import { FlagIcon } from './icons/FlagIcon';
+import { CheckIcon } from './icons/CheckIcon';
 
 const PRIORITY_LEVELS: Task['priority'][] = ['Low', 'Medium', 'High'];
 

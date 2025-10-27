@@ -3,6 +3,7 @@ import { ArrowLeftIcon } from '../icons/ArrowLeftIcon';
 import type { Quiz, Student } from '../../types';
 import { db } from '../../firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
+import { LoadingSpinner } from '../LoadingSpinner';
 
 interface StudentQuizzesPageProps {
   onBack: () => void;
@@ -124,7 +125,7 @@ export function StudentQuizzesPage({ onBack, quizzes, student, onNavigate, acade
             </div>
             
             <main className="flex-grow p-4 overflow-y-auto">
-                {isLoading ? <p className="text-center">Loading quizzes...</p> : quizzesToShow.length === 0 ? (
+                {isLoading ? <LoadingSpinner message="Loading quizzes..." /> : quizzesToShow.length === 0 ? (
                      <div className="text-center py-20 px-4">
                         <p className="text-lg text-gray-500 dark:text-gray-400">No {activeTab} quizzes found.</p>
                     </div>

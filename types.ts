@@ -1,5 +1,4 @@
 
-
 import type { FC } from 'react';
 import type { Timestamp } from 'firebase/firestore';
 
@@ -15,6 +14,7 @@ export interface Academy {
   name: string;
   adminUid: string;
   adminEmail: string;
+  adminName?: string;
   status?: 'active' | 'paused';
   contactEmail?: string;
   contactPhone?: string;
@@ -60,6 +60,8 @@ export interface Student {
     batches: string[]; // Array of batch names
     schoolOrCollege?: string;
     transport: string;
+    transportRouteId?: string;
+    transportFee?: number;
     idNumber?: string;
     field1?: string;
     field2?: string;
@@ -317,4 +319,26 @@ export interface Task {
   priority: 'Low' | 'Medium' | 'High';
   status: 'Pending' | 'Completed';
   createdAt: Timestamp;
+}
+
+export interface Notice {
+  id: string; // Firestore document ID
+  title: string;
+  description: string;
+  targetAudience: 'All' | 'Students' | 'Staff';
+  attachmentUrl?: string;
+  attachmentName?: string;
+  storagePath?: string;
+  expiryDate: Timestamp;
+  createdAt: Timestamp;
+}
+
+export interface TransportRoute {
+  id: string; // Firestore document ID
+  routeName: string;
+  vehicleNumber: string;
+  driverName: string;
+  driverContact: string;
+  points: string; // comma-separated list of pickup/drop points
+  monthlyFee: number;
 }

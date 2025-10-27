@@ -3,11 +3,11 @@ import React from 'react';
 import type { Student, AttendanceStatus } from '../../types';
 import { ArrowLeftIcon } from '../icons/ArrowLeftIcon';
 import { ArrowRightIcon } from '../icons/ArrowRightIcon';
-import { CheckCircleIcon } from '../icons/CheckCircleIcon';
-import { XCircleIcon } from '../icons/XCircleIcon';
 import { CheckIcon } from '../icons/CheckIcon';
+import { XMarkIcon } from '../icons/XMarkIcon';
 import { db } from '../../firebaseConfig';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { LoadingSpinner } from '../LoadingSpinner';
 
 interface StudentAttendancePageProps {
     student: Student;
@@ -18,9 +18,17 @@ interface StudentAttendancePageProps {
 const StatusIcon = ({ status }: { status: AttendanceStatus }) => {
     switch (status) {
         case 'Present':
-            return <CheckCircleIcon className="w-6 h-6 text-green-500" aria-label="Present" />;
+            return (
+                <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center" aria-label="Present">
+                    <CheckIcon className="w-4 h-4 text-white" />
+                </div>
+            );
         case 'Absent':
-            return <XCircleIcon className="w-6 h-6 text-red-500" aria-label="Absent" />;
+            return (
+                <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center" aria-label="Absent">
+                    <XMarkIcon className="w-4 h-4 text-white" strokeWidth={3} />
+                </div>
+            );
         case 'Leave':
             return (
                 <div className="w-6 h-6 rounded-full bg-orange-400 flex items-center justify-center" aria-label="Leave">
@@ -184,8 +192,7 @@ export function StudentAttendancePage({ student, academyId, onBack }: StudentAtt
 
                     {isLoading ? (
                          <div className="flex justify-center items-center py-10">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                            <p className="ml-3 text-gray-600">Loading attendance...</p>
+                            <LoadingSpinner message="Loading attendance..." />
                         </div>
                     ) : error ? (
                         <div className="text-center py-10 px-4 bg-red-50 text-red-700 rounded-lg">

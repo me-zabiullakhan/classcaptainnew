@@ -1,7 +1,7 @@
 
 
-import React from 'react';
-import type { Student, Academy } from '../../types';
+import React, { useState, useEffect } from 'react';
+import type { Student, Academy, FeeCollection, Batch, ScheduleItem } from '../../types';
 import { StudentHeader } from './StudentHeader';
 import { StudentFeatureIcon } from './StudentFeatureIcon';
 import { MyAcademyIcon } from '../icons/MyAcademyIcon';
@@ -13,10 +13,19 @@ import { OnlineExamIcon } from '../icons/OnlineExamIcon';
 import { StudyMaterialStudentIcon } from '../icons/StudyMaterialStudentIcon';
 import { TimetableIcon } from '../icons/TimetableIcon';
 import { LeaveIcon } from '../icons/LeaveIcon';
+import { NoticeIcon } from '../icons/NoticeIcon';
+import { TransportIcon } from '../icons/TransportIcon';
+import { TodaySchedulePopup } from './TodaySchedulePopup';
+import { FeeReminderPopup } from './FeeReminderPopup';
+import { db } from '../../firebaseConfig';
+import { doc, getDoc } from 'firebase/firestore';
+
 
 interface StudentDashboardPageProps {
     student: Student;
     academy: Academy;
+    feeCollections: FeeCollection[];
+    batches: Batch[];
     onNavigate: (page: string) => void;
     onToggleNav: () => void;
     theme: 'light' | 'dark';
@@ -34,11 +43,129 @@ const studentFeatures = [
     { name: 'Homework', Icon: HomeworkStudentIcon, color: 'bg-teal-500' },
     { name: 'Online Quiz', Icon: OnlineExamIcon, color: 'bg-red-500' },
     { name: 'My Leave', Icon: LeaveIcon, color: 'bg-blue-500' },
+    { name: 'Notice Board', Icon: NoticeIcon, color: 'bg-cyan-600' },
+    { name: 'Transport', Icon: TransportIcon, color: 'bg-amber-500' },
 ];
 
-export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav, theme, onToggleTheme, onShowDevPopup }: StudentDashboardPageProps): React.ReactNode {
+const getPendingMonths = (student: Student, paidMonths: Set<string>): string[] => {
+    if (!student.admissionDate || !student.feeType) return [];
+
+    const pending: string[] = [];
+    const admissionDate = new Date(student.admissionDate);
+    const today = new Date();
+    
+    if (student.feeType === 'Monthly') {
+        let currentDate = new Date(admissionDate.getFullYear(), admissionDate.getMonth(), 1);
+        while (currentDate <= today) {
+            const monthString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+            if (!paidMonths.has(monthString)) {
+                pending.push(monthString);
+            }
+            currentDate.setMonth(currentDate.getMonth() + 1);
+        }
+    } else { // Handles 'Yearly'
+        let cycleStartDate = new Date(admissionDate.getFullYear(), admissionDate.getMonth(), 1);
+        while (cycleStartDate <= today) {
+            const cycleStartString = `${cycleStartDate.getFullYear()}-${String(cycleStartDate.getMonth() + 1).padStart(2, '0')}`;
+            if (!paidMonths.has(cycleStartString)) {
+                pending.push(cycleStartString);
+            }
+            cycleStartDate.setFullYear(cycleStartDate.getFullYear() + 1);
+        }
+    }
+
+    return pending;
+};
+
+export function StudentDashboardPage({ student, academy, feeCollections, batches, onNavigate, onToggleNav, theme, onToggleTheme, onShowDevPopup }: StudentDashboardPageProps): React.ReactNode {
+    
+    const [showSchedulePopup, setShowSchedulePopup] = useState(false);
+    const [showFeePopup, setShowFeePopup] = useState(false);
+    const [todaysSchedule, setTodaysSchedule] = useState<ScheduleItem[] | null>(null);
+    const [isScheduleLoading, setIsScheduleLoading] = useState(true);
+    const [pendingFees, setPendingFees] = useState<{ months: string[], total: number } | null>(null);
     
     const photoUrl = student.photo || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(student.name)}`;
+
+    useEffect(() => {
+        const popupsShown = sessionStorage.getItem('studentPopupsShown');
+        if (popupsShown) {
+            setIsScheduleLoading(false);
+            return;
+        }
+
+        let didShowPopup = false;
+
+        const fetchSchedule = async () => {
+            const studentBatchIds = batches
+                .filter(b => student.batches.includes(b.name))
+                .map(b => b.id);
+
+            if (studentBatchIds.length === 0) {
+                return null;
+            }
+            
+            const primaryBatchId = studentBatchIds[0];
+            const dateString = new Date().toISOString().split('T')[0];
+
+            try {
+                const scheduleRef = doc(db, `academies/${academy.id}/schedules/${dateString}`);
+                const docSnap = await getDoc(scheduleRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    const items = (data[primaryBatchId] || []) as ScheduleItem[];
+                    items.sort((a,b) => a.startTime.localeCompare(b.startTime));
+                    return items;
+                }
+                return [];
+            } catch (err) {
+                console.error("Error fetching schedule for popup:", err);
+                return null;
+            }
+        };
+
+        const calculatePendingFees = () => {
+            const paidMonths = new Set(feeCollections.map(fc => fc.feeForMonth));
+            const pending = getPendingMonths(student, paidMonths);
+            
+            if (pending.length > 0) {
+                const totalDue = pending.length * ((student.feeAmount || 0) + (student.transportFee || 0));
+                return { months: pending, total: totalDue };
+            }
+            return null;
+        };
+
+        const runChecks = async () => {
+            const schedule = await fetchSchedule();
+            const fees = calculatePendingFees();
+            
+            setTodaysSchedule(schedule);
+            setPendingFees(fees);
+            setIsScheduleLoading(false);
+
+            if(schedule !== null) { // Show schedule popup even if empty
+                setShowSchedulePopup(true);
+                didShowPopup = true;
+            } else if (fees) { // If schedule fetch fails or no batches, check for fees
+                setShowFeePopup(true);
+                didShowPopup = true;
+            }
+
+            if(didShowPopup) {
+                sessionStorage.setItem('studentPopupsShown', 'true');
+            }
+        };
+
+        runChecks();
+
+    }, [student, academy.id, batches, feeCollections]);
+
+    const handleScheduleClose = () => {
+        setShowSchedulePopup(false);
+        if (pendingFees) {
+            setShowFeePopup(true);
+        }
+    };
 
     const getClickHandler = (name: string) => {
         switch (name) {
@@ -60,10 +187,18 @@ export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav
                 return () => onNavigate('student-quizzes');
             case 'My Leave':
                 return () => onNavigate('my-leave');
+            case 'Notice Board':
+                return () => onNavigate('student-notice-board');
+            case 'Transport':
+                return () => onNavigate('student-transport');
             default:
                 return () => onShowDevPopup(name);
         }
     };
+
+    const featuresToDisplay = studentFeatures.filter(
+      feature => feature.name !== 'Transport' || student.transportRouteId
+    );
 
     return (
         <div className="bg-gray-100 dark:bg-gray-900 h-full font-sans flex flex-col">
@@ -105,7 +240,7 @@ export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav
                 {/* Features Grid */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
                     <div className="grid grid-cols-3 gap-y-6 text-center">
-                        {studentFeatures.map((feature) => (
+                        {featuresToDisplay.map((feature) => (
                             <StudentFeatureIcon
                                 key={feature.name}
                                 {...feature}
@@ -115,6 +250,22 @@ export function StudentDashboardPage({ student, academy, onNavigate, onToggleNav
                     </div>
                 </div>
             </main>
+            {showSchedulePopup && (
+                <TodaySchedulePopup 
+                    schedule={todaysSchedule} 
+                    onClose={handleScheduleClose} 
+                    isLoading={isScheduleLoading}
+                />
+            )}
+            {showFeePopup && pendingFees && (
+                <FeeReminderPopup 
+                    pendingMonths={pendingFees.months} 
+                    totalDue={pendingFees.total}
+                    studentFeeType={student.feeType}
+                    onClose={() => setShowFeePopup(false)} 
+                    onNavigate={onNavigate} 
+                />
+            )}
         </div>
     );
 }

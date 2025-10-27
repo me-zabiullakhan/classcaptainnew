@@ -14,6 +14,7 @@ import { XMarkIcon } from '../icons/XMarkIcon';
 import { AuthLayout, AuthCard, FormInput } from './AuthComponents';
 import { CalendarIcon } from '../icons/CalendarIcon';
 import { AuthErrorModal } from './AuthErrorModal';
+import { LoadingSpinner } from '../LoadingSpinner';
 
 
 type Role = 'academy' | 'student' | 'staff';
@@ -382,7 +383,7 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
                 
                 {isLoading && (
                     <div className="absolute inset-0 bg-white/50 dark:bg-gray-800/50 flex justify-center items-center rounded-2xl">
-                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+                        <LoadingSpinner />
                     </div>
                 )}
             </AuthCard>

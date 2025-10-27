@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeftIcon } from '../icons/ArrowLeftIcon';
 import { ArrowRightIcon } from '../icons/ArrowRightIcon';
 import type { Quiz } from '../../types';
 import { CheckCircleIcon } from '../icons/CheckCircleIcon';
+import { LoadingSpinner } from '../LoadingSpinner';
 
 interface TakeQuizPageProps {
   onBack: () => void;
@@ -103,8 +103,7 @@ export function TakeQuizPage({ onBack, quiz, onSaveSubmission }: TakeQuizPagePro
     if (isSubmitting) {
         return (
             <div className="h-full flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900">
-                <CheckCircleIcon className="w-20 h-20 text-green-500 animate-pulse" />
-                <h2 className="text-xl font-bold mt-4">Submitting Quiz...</h2>
+                <LoadingSpinner message="Submitting Quiz..." />
             </div>
         )
     }

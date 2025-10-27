@@ -103,6 +103,10 @@ export function Dashboard({ onNavigate, academy, students, batches, staff, onSho
         return () => onNavigate('leave-manager');
       case 'To Do Task':
         return () => onNavigate('todo-task');
+      case 'Notice Board':
+        return () => onNavigate('notice-board');
+      case 'Transport':
+        return () => onNavigate('transport-options');
       default:
         return () => onShowDevPopup(name);
     }

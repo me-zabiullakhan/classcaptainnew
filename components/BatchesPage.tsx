@@ -35,6 +35,8 @@ const formatTime12h = (timeString: string | undefined): string => {
     return `${h}:${minutes} ${ampm}`;
   };
 
+const WEEK_DAYS_ORDER = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 export function BatchesPage({ onBack, onCreate, batches, onViewStudents, onEditBatch }: BatchesPageProps): React.ReactNode {
   return (
     <div className="animate-fade-in flex flex-col h-full">
@@ -70,7 +72,10 @@ export function BatchesPage({ onBack, onCreate, batches, onViewStudents, onEditB
                   <div className="flex justify-between items-center mt-2 text-sm text-gray-600 dark:text-gray-300">
                     <span className="font-medium">{batch.currentStudents} / {batch.maxSlots} Students</span>
                     <div className="flex space-x-1">
-                        {batch.days.map(day => <span key={day} className="text-xs font-semibold">{day}</span>)}
+                        {WEEK_DAYS_ORDER
+                          .filter(day => batch.days.includes(day))
+                          .map(day => <span key={day} className="text-xs font-semibold">{day}</span>)
+                        }
                     </div>
                   </div>
                 </div>

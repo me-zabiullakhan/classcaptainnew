@@ -12,6 +12,8 @@ import { ExamsIcon } from '../icons/ExamsIcon';
 import { StudyMaterialStudentIcon } from '../icons/StudyMaterialStudentIcon';
 import { HomeworkStudentIcon } from '../icons/HomeworkStudentIcon';
 import { LeaveIcon } from '../icons/LeaveIcon';
+import { NoticeIcon } from '../icons/NoticeIcon';
+import { TransportIcon } from '../icons/TransportIcon';
 
 interface StudentSideNavProps {
   isOpen: boolean;
@@ -103,6 +105,18 @@ export function StudentSideNav({ isOpen, onClose, onNavigate, onLogout }: Studen
                         <button onClick={() => handleNavigate('my-leave')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
                             <LeaveIcon className="w-6 h-6 mr-4 text-gray-400"/>
                             <span className="font-medium">My Leave</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button onClick={() => handleNavigate('student-notice-board')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                            <NoticeIcon className="w-6 h-6 mr-4 text-gray-400"/>
+                            <span className="font-medium">Notice Board</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button onClick={() => handleNavigate('student-transport')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                            <TransportIcon className="w-6 h-6 mr-4 text-gray-400"/>
+                            <span className="font-medium">Transport</span>
                         </button>
                     </li>
                 </ul>

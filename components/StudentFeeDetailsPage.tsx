@@ -49,7 +49,7 @@ const PaymentModal = ({ month, student, onSave, onClose }: { month: string, stud
     const [isSaving, setIsSaving] = React.useState(false);
     const [saveError, setSaveError] = React.useState<string | null>(null);
 
-    const totalAmount = student.feeAmount || 0;
+    const totalAmount = (student.feeAmount || 0) + (student.transportFee || 0);
     const discountAmount = parseFloat(discount) || 0;
     const finalAmount = Math.max(0, totalAmount - discountAmount);
     
@@ -123,6 +123,8 @@ const PaymentModal = ({ month, student, onSave, onClose }: { month: string, stud
                         <input type="number" value={discount} onChange={e => setDiscount(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="0" />
                     </div>
                     <div className="border-t pt-3 mt-3 space-y-2 text-sm">
+                        <div className="flex justify-between"><span className="text-gray-600">Tuition Fee:</span> <span className="font-semibold">₹{(student.feeAmount || 0).toFixed(2)}</span></div>
+                        {student.transportFee && <div className="flex justify-between"><span className="text-gray-600">Transport Fee:</span> <span className="font-semibold">₹{student.transportFee.toFixed(2)}</span></div>}
                         <div className="flex justify-between"><span className="text-gray-600">Total Amount:</span> <span className="font-semibold">₹{totalAmount.toFixed(2)}</span></div>
                         <div className="flex justify-between text-red-600"><span className="text-gray-600">Discount:</span> <span className="font-semibold">- ₹{discountAmount.toFixed(2)}</span></div>
                         <div className="flex justify-between text-lg font-bold text-indigo-700"><span className="text-gray-800">Final Amount:</span> <span>₹{finalAmount.toFixed(2)}</span></div>
@@ -173,7 +175,11 @@ export function StudentFeeDetailsPage({ onBack, student, feeCollections, onSaveP
                     <div className="p-4 bg-white dark:bg-gray-800 border-b dark:border-gray-700">
                         <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">{student.name}</h2>
                         <p className="text-sm text-gray-500 dark:text-gray-400">{student.rollNumber}</p>
-                        <p className="text-sm text-indigo-600 dark:text-indigo-400 font-semibold mt-1">{student.feeType} Fee: ₹{student.feeAmount || 0}</p>
+                        <div className="text-sm text-indigo-600 dark:text-indigo-400 font-semibold mt-1">
+                            <p>Tuition Fee: ₹{student.feeAmount || 0}</p>
+                            {student.transportFee && <p>Transport Fee: ₹{student.transportFee}</p>}
+                            <p className="font-bold text-base text-gray-800 dark:text-gray-100">Total Monthly: ₹{(student.feeAmount || 0) + (student.transportFee || 0)}</p>
+                        </div>
                     </div>
                 </div>
 
@@ -192,11 +198,12 @@ export function StudentFeeDetailsPage({ onBack, student, feeCollections, onSaveP
                                 } else {
                                     monthLabel = `${monthDate.toLocaleString('default', { month: 'long' })}, ${monthDate.getFullYear()}`;
                                 }
+                                const totalDue = (student.feeAmount || 0) + (student.transportFee || 0);
                                 return (
                                     <div key={month} className="bg-white p-3 rounded-lg shadow-sm border flex justify-between items-center">
                                         <div>
                                             <p className="font-semibold text-gray-800">{monthLabel}</p>
-                                            <p className="text-sm text-red-600">Amount Due: ₹{student.feeAmount || 0}</p>
+                                            <p className="text-sm text-red-600">Amount Due: ₹{totalDue}</p>
                                         </div>
                                         <button onClick={() => setSelectedMonth(month)} className="bg-green-600 text-white font-bold py-1.5 px-4 rounded-lg hover:bg-green-700 transition-colors text-sm">
                                             Pay Now

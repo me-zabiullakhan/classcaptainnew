@@ -9,6 +9,7 @@ import { ImageEditorModal } from './ImageEditorModal';
 interface NewStaffPageProps {
   onBack: () => void;
   onSave: (staffData: Omit<Staff, 'id'>) => void;
+  staff: Staff[];
 }
 
 const FormInput = ({ label, id, children, containerClassName, ...props }: { label: string, id: string, children?: React.ReactNode, containerClassName?: string } & React.InputHTMLAttributes<HTMLInputElement>) => (
@@ -25,7 +26,7 @@ const FormInput = ({ label, id, children, containerClassName, ...props }: { labe
   </div>
 );
 
-export function NewStaffPage({ onBack, onSave }: NewStaffPageProps): React.ReactNode {
+export function NewStaffPage({ onBack, onSave, staff }: NewStaffPageProps): React.ReactNode {
     const [formData, setFormData] = React.useState<Omit<Staff, 'id' | 'batchAccess' | 'isActive'>>({
         staffId: '',
         name: '',
@@ -43,12 +44,18 @@ export function NewStaffPage({ onBack, onSave }: NewStaffPageProps): React.React
     const [imageToEdit, setImageToEdit] = React.useState<string | null>(null);
 
     React.useEffect(() => {
-        // Suggest a staff ID based on the name if the ID field is empty
-        if (!formData.staffId && formData.name) {
-            const suggestedId = formData.name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().substring(0, 8);
-            setFormData(prev => ({...prev, staffId: suggestedId}));
+        if (staff) {
+            const lastId = staff.reduce((max, s) => {
+                const num = parseInt(s.staffId.replace(/\D/g, ''), 10);
+                return isNaN(num) ? max : Math.max(max, num);
+            }, 0);
+            const newIdNumber = lastId + 1;
+            const nextStaffId = `T${String(newIdNumber).padStart(2, '0')}`;
+            setFormData(prev => ({ ...prev, staffId: nextStaffId }));
+        } else {
+            setFormData(prev => ({...prev, staffId: 'T01'}));
         }
-    }, [formData.name]);
+    }, [staff]);
 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,7 +126,7 @@ export function NewStaffPage({ onBack, onSave }: NewStaffPageProps): React.React
             </div>
 
             <FormInput label="Full Name" id="name" name="name" value={formData.name} onChange={handleChange} required containerClassName="border-indigo-500 border-2" />
-            <FormInput label="Staff ID" id="staffId" name="staffId" value={formData.staffId} onChange={handleChange} placeholder="e.g. JOHNDOE" required />
+            <FormInput label="Staff ID" id="staffId" name="staffId" value={formData.staffId} onChange={handleChange} placeholder="e.g. T01" required />
             <FormInput label="Date of Birth" id="dob" name="dob" type="date" value={formData.dob} onChange={handleChange} required>
                 <CalendarIcon className="w-6 h-6 text-indigo-600" />
             </FormInput>

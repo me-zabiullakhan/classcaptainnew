@@ -1,6 +1,8 @@
+
 import React from 'react';
 import { BuildingIcon } from '../icons/BuildingIcon';
 import { EmailIcon } from '../icons/EmailIcon';
+import { UserIcon } from '../icons/UserIcon';
 import { LockIcon } from '../icons/LockIcon';
 import { auth, db } from '../../firebaseConfig';
 import { GoogleIcon } from '../icons/GoogleIcon';
@@ -32,6 +34,7 @@ export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
     const [isLoading, setIsLoading] = React.useState(false);
     const [email, setEmail] = React.useState('');
     const [instituteName, setInstituteName] = React.useState('');
+    const [adminName, setAdminName] = React.useState('');
     const [academyId, setAcademyId] = React.useState('');
     const [idStatus, setIdStatus] = React.useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
     const debouncedAcademyId = useDebounce(academyId, 500);
@@ -77,8 +80,8 @@ export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
 
     const handleGoogleRegister = async () => {
         setError('');
-        if (!instituteName.trim() || !academyId.trim()) {
-            setError("Please enter your institute's name and choose an Academy ID.");
+        if (!instituteName.trim() || !academyId.trim() || !adminName.trim()) {
+            setError("Please enter your name, institute's name, and choose an Academy ID.");
             return;
         }
         if (idStatus !== 'available') {
@@ -91,6 +94,7 @@ export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
             sessionStorage.setItem('google_reg_flow', 'true');
             sessionStorage.setItem('google_reg_institute_name', instituteName);
             sessionStorage.setItem('google_reg_academy_id', academyId);
+            sessionStorage.setItem('google_reg_admin_name', adminName);
             const provider = new firebase.auth.GoogleAuthProvider();
             await auth.signInWithPopup(provider);
             // The onAuthStateChanged listener in App.tsx will now handle academy creation.
@@ -105,8 +109,8 @@ export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
         e.preventDefault();
         setError('');
         
-        if (idStatus !== 'available') {
-            setError("Please choose an available Academy ID before creating an account.");
+        if (idStatus !== 'available' || !adminName.trim()) {
+            setError("Please enter your name and choose an available Academy ID.");
             return;
         }
 
@@ -126,6 +130,7 @@ export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
             // Store details for the onAuthStateChanged listener to pick up
             sessionStorage.setItem('registration_institute_name', instituteName);
             sessionStorage.setItem('registration_academy_id', academyId);
+            sessionStorage.setItem('registration_admin_name', adminName);
             
             await auth.createUserWithEmailAndPassword(email, password);
             // Listener in App.tsx will take over.
@@ -140,6 +145,7 @@ export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
             
             sessionStorage.removeItem('registration_institute_name');
             sessionStorage.removeItem('registration_academy_id');
+            sessionStorage.removeItem('registration_admin_name');
             setIsLoading(false);
         }
     };
@@ -159,6 +165,7 @@ export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
             <AuthCard>
                 <form onSubmit={handleRegister} className="space-y-4">
                     <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Institute Name" type="text" name="instituteName" placeholder="Enter institute name" required value={instituteName} onChange={e => setInstituteName(e.target.value)} />
+                    <FormInput icon={<UserIcon className="w-5 h-5" />} label="Your Name" type="text" name="adminName" placeholder="Enter your full name" required value={adminName} onChange={e => setAdminName(e.target.value)} />
                     <div>
                         <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Academy ID" type="text" name="academyId" placeholder="e.g. SUNSHINE" required value={academyId} onChange={e => setAcademyId(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} />
                         {renderIdStatus()}

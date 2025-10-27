@@ -1,7 +1,6 @@
 
-
 import React from 'react';
-import { LogoutIcon } from './icons/LogoutIcon';
+import { BellIcon } from './icons/BellIcon';
 import { MoonIcon } from './icons/MoonIcon';
 import { MenuIcon } from './icons/MenuIcon';
 import { SunIcon } from './icons/SunIcon';
@@ -14,6 +13,7 @@ interface HeaderProps {
     onNavigate: (page: string) => void;
     theme: 'light' | 'dark';
     onToggleTheme: () => void;
+    notificationCount: number;
 }
 
 const TrialIndicator = ({ trialEndsAt, onNavigate }: { trialEndsAt: any, onNavigate: (page: string) => void }) => {
@@ -40,7 +40,7 @@ const TrialIndicator = ({ trialEndsAt, onNavigate }: { trialEndsAt: any, onNavig
 };
 
 
-export function Header({ academy, onLogout, onToggleNav, onNavigate, theme, onToggleTheme }: HeaderProps): React.ReactNode {
+export function Header({ academy, onLogout, onToggleNav, onNavigate, theme, onToggleTheme, notificationCount }: HeaderProps): React.ReactNode {
     const [greeting, setGreeting] = React.useState('');
 
     React.useEffect(() => {
@@ -53,6 +53,8 @@ export function Header({ academy, onLogout, onToggleNav, onNavigate, theme, onTo
             setGreeting('Good Evening');
         }
     }, []);
+
+    const displayName = academy.adminName || academy.name;
 
     return (
         <header className="bg-indigo-700 text-white shadow-md sticky top-0 z-30">
@@ -68,7 +70,7 @@ export function Header({ academy, onLogout, onToggleNav, onNavigate, theme, onTo
                         <img src={academy.logoUrl} alt="Academy Logo" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                     )}
                     <div className="min-w-0">
-                        <h1 className="text-base sm:text-lg md:text-xl font-bold truncate">{greeting}, {academy.name}!</h1>
+                        <h1 className="text-base sm:text-lg md:text-xl font-bold truncate">{greeting}, {displayName}!</h1>
                         <p className="text-sm text-indigo-200 mt-1 truncate">Academy ID: {academy.academyId}</p>
                     </div>
                 </div>
@@ -76,8 +78,13 @@ export function Header({ academy, onLogout, onToggleNav, onNavigate, theme, onTo
                     <button onClick={onToggleTheme} className="text-indigo-200 hover:text-white transition-colors" aria-label="Toggle dark mode">
                         {theme === 'light' ? <MoonIcon className="w-6 h-6" /> : <SunIcon className="w-6 h-6" />}
                     </button>
-                    <button onClick={onLogout} className="text-indigo-200 hover:text-white transition-colors" aria-label="Logout">
-                        <LogoutIcon className="w-6 h-6" />
+                    <button onClick={() => onNavigate('notifications')} className="relative text-indigo-200 hover:text-white transition-colors" aria-label="Notifications">
+                        <BellIcon className="w-6 h-6" />
+                        {notificationCount > 0 && (
+                            <span className="absolute -top-1 -right-2 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center border-2 border-indigo-700">
+                                {notificationCount > 9 ? '9+' : notificationCount}
+                            </span>
+                        )}
                     </button>
                 </div>
             </div>

@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import { collection, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
@@ -9,6 +7,7 @@ import { LogoutIcon } from './icons/LogoutIcon';
 import { PauseIcon } from './icons/PauseIcon';
 import { PlayIcon } from './icons/PlayIcon';
 import { TrashIcon } from './icons/TrashIcon';
+import { LoadingSpinner } from './LoadingSpinner';
 
 interface SuperAdminPanelProps {
     onLogout: () => void;
@@ -86,7 +85,7 @@ export function SuperAdminPanel({ onLogout }: SuperAdminPanelProps): React.React
             </header>
             
             <main className="p-4 md:p-8">
-                {isLoading && <p className="text-center">Loading academies...</p>}
+                {isLoading && <LoadingSpinner message="Loading academies..." />}
                 {error && <p className="text-center text-red-400">{error}</p>}
                 {actionError && (
                     <div className="bg-red-900 border border-red-700 text-red-300 px-4 py-3 rounded-lg relative mb-4" role="alert">

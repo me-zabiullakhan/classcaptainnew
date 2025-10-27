@@ -99,6 +99,8 @@ export function SideNav({ isOpen, onClose, onNavigate, onLogout, onShowDevPopup 
         return () => handleNavigate('leave-manager');
       case 'To Do Task':
         return () => handleNavigate('todo-task');
+      case 'Notice Board':
+        return () => handleNavigate('notice-board');
       default:
         return () => {
             onShowDevPopup(name);

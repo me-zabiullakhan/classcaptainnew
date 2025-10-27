@@ -1,6 +1,8 @@
 
+
+
 import React from 'react';
-import { LogoutIcon } from '../icons/LogoutIcon';
+import { BellIcon } from '../icons/BellIcon';
 import { MoonIcon } from '../icons/MoonIcon';
 import { MenuIcon } from '../icons/MenuIcon';
 import { SunIcon } from '../icons/SunIcon';
@@ -12,9 +14,11 @@ interface StaffHeaderProps {
     onToggleNav: () => void;
     theme: 'light' | 'dark';
     onToggleTheme: () => void;
+    onNavigate: (page: string) => void;
+    notificationCount: number;
 }
 
-export function StaffHeader({ staffName, academyName, onLogout, onToggleNav, theme, onToggleTheme }: StaffHeaderProps): React.ReactNode {
+export function StaffHeader({ staffName, academyName, onLogout, onToggleNav, theme, onToggleTheme, onNavigate, notificationCount }: StaffHeaderProps): React.ReactNode {
     const [greeting, setGreeting] = React.useState('');
 
     React.useEffect(() => {
@@ -44,8 +48,13 @@ export function StaffHeader({ staffName, academyName, onLogout, onToggleNav, the
                     <button onClick={onToggleTheme} className="text-indigo-200 hover:text-white transition-colors" aria-label="Toggle dark mode">
                         {theme === 'light' ? <MoonIcon className="w-6 h-6" /> : <SunIcon className="w-6 h-6" />}
                     </button>
-                    <button onClick={onLogout} className="text-indigo-200 hover:text-white transition-colors" aria-label="Logout">
-                        <LogoutIcon className="w-6 h-6" />
+                     <button onClick={() => onNavigate('staff-notifications')} className="relative text-indigo-200 hover:text-white transition-colors" aria-label="Notifications">
+                        <BellIcon className="w-6 h-6" />
+                        {notificationCount > 0 && (
+                            <span className="absolute -top-1 -right-2 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center border-2 border-indigo-700">
+                                {notificationCount > 9 ? '9+' : notificationCount}
+                            </span>
+                        )}
                     </button>
                 </div>
             </div>

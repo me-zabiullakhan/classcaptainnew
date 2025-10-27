@@ -73,6 +73,7 @@ export function StaffDashboardPage({ onNavigate, academy, staff, onShowDevPopup 
       case 'Class Schedule': return () => onNavigate('class-schedule');
       case 'Manage Exams': return () => onNavigate('manage-exams');
       case 'Leave Manager': return () => onNavigate('leave-manager');
+      case 'Notice Board': return () => onNavigate('staff-notice-board');
       default: return () => onShowDevPopup(name);
     }
   }

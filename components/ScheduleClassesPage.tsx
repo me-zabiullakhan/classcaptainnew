@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import type { Batch, Staff, ScheduleItem, DailySchedule, ClassScheduleItem, BreakScheduleItem } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -11,6 +9,7 @@ import { ClockIcon } from './icons/ClockIcon';
 import { CustomDropdown } from './CustomDropdown';
 import { PencilIcon } from './icons/PencilIcon';
 import { CheckCircleIcon } from './icons/CheckCircleIcon';
+import { LoadingSpinner } from './LoadingSpinner';
 
 const formatTime12h = (timeString: string | undefined): string => {
     if (!timeString) {
@@ -174,7 +173,7 @@ const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ onBack, batches, staff,
             
             {selectedBatchId && (
                 <div className="space-y-4">
-                     {isLoading && <p>Loading...</p>}
+                     {isLoading && <LoadingSpinner message="Loading schedule..." />}
                      {error && <p className="text-red-500">{error}</p>}
                     {scheduleItems.map((item, index) => (
                         <div key={item.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border-l-4 border-indigo-500">
@@ -304,7 +303,7 @@ const ScheduleViewer: React.FC<{
             </button>
             
             <div className="space-y-4">
-                {isLoading && <p>Loading schedule...</p>}
+                {isLoading && <LoadingSpinner message="Loading schedule..." />}
                 {error && <p className="text-red-500">{error}</p>}
                 {!isLoading && !error && (
                     scheduledBatches.length > 0 ? (

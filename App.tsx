@@ -1,19 +1,21 @@
 
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 // Firebase
 import { auth, db, firebaseConfig, storage } from './firebaseConfig';
 import { ref, deleteObject } from "firebase/storage";
 // FIX: Replaced V9 modular 'firebase/auth' imports with the V8 compat 'firebase/compat/app' to match the auth instance setup.
 import firebase from 'firebase/compat/app';
-// UPDATED: Added 'increment' to handle atomic counter updates for batch student counts.
-import { collection, doc, onSnapshot, addDoc, updateDoc, setDoc, getDoc, query, where, getDocs, writeBatch, serverTimestamp, Timestamp, runTransaction, deleteDoc, increment } from 'firebase/firestore';
+// UPDATED: Added 'increment' and 'deleteField' to handle atomic counter updates and field deletion.
+import { collection, doc, onSnapshot, addDoc, updateDoc, setDoc, getDoc, query, where, getDocs, writeBatch, serverTimestamp, Timestamp, runTransaction, deleteDoc, increment, deleteField } from 'firebase/firestore';
 
 // Types
-import type { CurrentUser, Academy, Batch, Student, Staff, FeeCollection, BatchAccessPermissions, ScheduleItem, Transaction, Exam, Enquiry, StudyMaterial, Homework, Quiz, QuizSubmission, LeaveRequest, Task } from './types';
+// FIX: Added TransportRoute to the type imports.
+import type { CurrentUser, Academy, Batch, Student, Staff, FeeCollection, BatchAccessPermissions, ScheduleItem, Transaction, Exam, Enquiry, StudyMaterial, Homework, Quiz, QuizSubmission, LeaveRequest, Task, Notice, TransportRoute } from './types';
 
 // Demo Data
-import { demoStudents, demoBatches, demoStaff, demoTransactions, demoEnquiries } from './demoData';
+// FIX: Added demoTransportRoutes to the demo data imports.
+import { demoStudents, demoBatches, demoStaff, demoTransactions, demoEnquiries, demoTransportRoutes } from './demoData';
 
 // Components
 import { SplashScreen } from './components/SplashScreen';
@@ -70,6 +72,8 @@ import { CreateQuizPage } from './components/CreateQuizPage';
 import { QuizResultsPage } from './components/QuizResultsPage';
 import { LeaveManagerPage } from './components/LeaveManagerPage';
 import { TodoTaskPage } from './components/TodoTaskPage';
+import { NoticeBoardPage } from './components/NoticeBoardPage';
+import { NotificationsPage } from './components/NotificationsPage';
 
 // Student view components
 import { StudentDashboardPage } from './components/student/StudentDashboardPage';
@@ -86,6 +90,7 @@ import { TakeQuizPage } from './components/student/TakeQuizPage';
 import { QuizResultPage } from './components/student/QuizResultPage';
 import { MyLeavePage } from './components/student/MyLeavePage';
 import { ApplyLeavePage } from './components/student/ApplyLeavePage';
+import { StudentNoticeBoardPage } from './components/student/StudentNoticeBoardPage';
 
 // Staff view components
 import { StaffDashboardPage } from './components/staff/StaffDashboardPage';
@@ -100,6 +105,15 @@ import { StaffSchedulePage } from './components/staff/StaffSchedulePage';
 import { SettingsPage } from './components/SettingsPage';
 import { CustomSmsSettingsPage } from './components/CustomSmsSettingsPage';
 import { WrenchIcon } from './components/icons/WrenchIcon';
+import { StaffNoticeBoardPage } from './components/staff/StaffNoticeBoardPage';
+import { StaffNotificationsPage } from './components/staff/StaffNotificationsPage';
+
+// FIX: Added new transport components
+import { TransportOptionsPage } from './components/TransportOptionsPage';
+import { NewTransportRoutePage } from './components/NewTransportRoutePage';
+import { EditTransportRoutePage } from './components/EditTransportRoutePage';
+import { MapStudentsToRoutePage } from './components/MapStudentsToRoutePage';
+import { StudentTransportPage } from './components/student/StudentTransportPage';
 
 // Check if Firebase config is still the placeholder
 const isPlaceholderConfig = firebaseConfig.apiKey.includes('placeholder');
@@ -125,7 +139,7 @@ const DevInProgressPopup: React.FC<{ featureName: string; onClose: () => void }>
 );
 
 // FIX: Replaced V9 'User' type with V8 compat 'firebase.User'.
-const createAcademyInFirestore = async (user: firebase.User, instituteName: string, academyId: string): Promise<Academy> => {
+const createAcademyInFirestore = async (user: firebase.User, instituteName: string, academyId: string, adminName: string): Promise<Academy> => {
     // Final server-side-like check for uniqueness before creation
     const q = query(collection(db, "academies"), where("academyId", "==", academyId));
     const querySnapshot = await getDocs(q);
@@ -139,6 +153,7 @@ const createAcademyInFirestore = async (user: firebase.User, instituteName: stri
         name: instituteName,
         adminEmail: user.email!,
         adminUid: user.uid,
+        adminName: adminName,
         createdAt: Timestamp.now(),
         status: 'active' as const,
         academyId: academyId,
@@ -206,6 +221,11 @@ export default function App() {
     const [quizSubmissions, setQuizSubmissions] = useState<QuizSubmission[]>([]);
     const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
     const [tasks, setTasks] = useState<Task[]>([]);
+    const [notices, setNotices] = useState<Notice[]>([]);
+    // FIX: Added state for transport routes.
+    const [transportRoutes, setTransportRoutes] = useState<TransportRoute[]>([]);
+    const [todaysAttendance, setTodaysAttendance] = useState<Record<string, any>>({});
+
 
     // Page-specific state
     const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
@@ -217,6 +237,8 @@ export default function App() {
     const [selectedHomeworkId, setSelectedHomeworkId] = useState<string | null>(null);
     const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
     const [studentListFilter, setStudentListFilter] = useState('all');
+    // FIX: Added state for selected transport route.
+    const [selectedTransportRouteId, setSelectedTransportRouteId] = useState<string | null>(null);
 
     // UI State
     const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -307,11 +329,12 @@ export default function App() {
                     // NO USER MAPPING FOUND.
                     const instituteName = sessionStorage.getItem('google_reg_institute_name') || sessionStorage.getItem('registration_institute_name');
                     const academyId = sessionStorage.getItem('google_reg_academy_id') || sessionStorage.getItem('registration_academy_id');
+                    const adminName = sessionStorage.getItem('google_reg_admin_name') || sessionStorage.getItem('registration_admin_name');
 
-                    if (instituteName && academyId) {
+                    if (instituteName && academyId && adminName) {
                         // NEW REGISTRATION FLOW
                         try {
-                            const newAcademy = await createAcademyInFirestore(user, instituteName, academyId);
+                            const newAcademy = await createAcademyInFirestore(user, instituteName, academyId, adminName);
                             alert(`Registration successful! Your Academy ID is ${newAcademy.academyId}. Please save it for your students and staff to log in.`);
                             handleRegisterSuccess(newAcademy);
                         } catch (error: any) {
@@ -323,8 +346,10 @@ export default function App() {
                             sessionStorage.removeItem('google_reg_flow');
                             sessionStorage.removeItem('google_reg_institute_name');
                             sessionStorage.removeItem('google_reg_academy_id');
+                            sessionStorage.removeItem('google_reg_admin_name');
                             sessionStorage.removeItem('registration_institute_name');
                             sessionStorage.removeItem('registration_academy_id');
+                            sessionStorage.removeItem('registration_admin_name');
                         }
                     } else {
                         // ORPHANED AUTH USER: Logged in, but no data and not in reg flow. Go to complete registration.
@@ -365,6 +390,9 @@ export default function App() {
                 setQuizzes([]);
                 setLeaveRequests([]);
                 setTasks([]);
+                setNotices([]);
+                // FIX: Added demo data for transport routes.
+                setTransportRoutes(demoTransportRoutes);
             }
             return;
         };
@@ -388,11 +416,15 @@ export default function App() {
                 if (docSnap.exists()) {
                     setAcademy({ id: docSnap.id, ...docSnap.data() } as Academy);
                 }
+            }, err => {
+                console.error("Error fetching academy details:", err);
+                setConnectionError("Failed to connect to the database. Some information may be missing.");
             });
             unsubscribers.push(unsubAcademy);
         }
 
-        const collectionsToSubscribe = ['batches', 'students', 'staff', 'fees', 'transactions', 'exams', 'enquiries', 'studyMaterial', 'homework', 'quizzes', 'leaveRequests', 'tasks'];
+        // FIX: Added 'transportRoutes' to the list of collections to subscribe to.
+        const collectionsToSubscribe = ['batches', 'students', 'staff', 'fees', 'transactions', 'exams', 'enquiries', 'studyMaterial', 'homework', 'quizzes', 'leaveRequests', 'tasks', 'notices', 'transportRoutes'];
         const setters: any = {
             batches: setBatches,
             students: setStudents,
@@ -406,6 +438,9 @@ export default function App() {
             quizzes: setQuizzes,
             leaveRequests: setLeaveRequests,
             tasks: setTasks,
+            notices: setNotices,
+            // FIX: Added setter for transport routes.
+            transportRoutes: setTransportRoutes,
         };
 
         collectionsToSubscribe.forEach(coll => {
@@ -415,7 +450,11 @@ export default function App() {
             const unsub = onSnapshot(collRef, (snapshot) => {
                 const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                 setters[coll](list);
-            }, (err) => console.error(`Error fetching ${coll}:`, err));
+                setConnectionError(null); // Clear error on successful fetch
+            }, (err) => {
+                console.error(`Error fetching ${coll}:`, err);
+                setConnectionError("Failed to connect to the database. Some information may be missing or outdated.");
+            });
             unsubscribers.push(unsub);
         });
         
@@ -435,6 +474,47 @@ export default function App() {
         return () => unsubscribers.forEach(unsub => unsub());
 
     }, [currentUser, isDemoMode, page, selectedQuizId]);
+    
+    // Today's attendance listener for admin notifications
+    useEffect(() => {
+        if (currentUser?.role !== 'admin' || !academy || isDemoMode) {
+            setTodaysAttendance({});
+            return;
+        }
+
+        const todayString = new Date().toISOString().split('T')[0];
+        const activeBatchesWithStudents = batches.filter(b => b.isActive && b.currentStudents > 0);
+        const unsubscribers: (() => void)[] = [];
+
+        activeBatchesWithStudents.forEach(batch => {
+            const attendanceRef = doc(db, `academies/${academy.id}/batches/${batch.id}/attendance`, todayString);
+            const unsub = onSnapshot(attendanceRef, (docSnap) => {
+                setTodaysAttendance(prev => ({
+                    ...prev,
+                    [batch.id]: docSnap.exists() ? docSnap.data() : null // null means not found
+                }));
+            }, (err) => {
+                 console.error(`Error fetching attendance for batch ${batch.id}:`, err);
+            });
+            unsubscribers.push(unsub);
+        });
+
+        // Cleanup old listeners when batches change
+        return () => {
+            unsubscribers.forEach(unsub => unsub());
+            setTodaysAttendance(prev => {
+                const newAttendanceState: Record<string, any> = {};
+                const activeBatchIds = new Set(activeBatchesWithStudents.map(b => b.id));
+                for (const batchId in prev) {
+                    if (activeBatchIds.has(batchId)) {
+                        newAttendanceState[batchId] = prev[batchId];
+                    }
+                }
+                return newAttendanceState;
+            });
+        };
+    }, [currentUser, academy, batches, isDemoMode]);
+
 
     // Subscription status check effect
     useEffect(() => {
@@ -466,6 +546,55 @@ export default function App() {
     
         checkSubscription();
     }, [academy, currentUser, isDemoMode]);
+
+    // Notification logic
+    const adminNewEnquiries = useMemo(() => enquiries.filter(e => e.status === 'New'), [enquiries]);
+    const adminPendingLeaves = useMemo(() => leaveRequests.filter(lr => lr.status === 'Pending'), [leaveRequests]);
+    
+    const adminUnmarkedAttendanceBatches = useMemo(() => {
+        if (currentUser?.role !== 'admin' || isDemoMode) return [];
+        
+        const activeBatchesWithStudents = batches.filter(b => b.isActive && b.currentStudents > 0);
+        
+        const allChecked = activeBatchesWithStudents.every(b => todaysAttendance.hasOwnProperty(b.id));
+
+        if (!allChecked) {
+            return []; // Don't show any notification until all checks are complete to avoid flicker
+        }
+
+        return activeBatchesWithStudents.filter(batch => {
+            return todaysAttendance[batch.id] === null;
+        });
+    }, [currentUser, batches, todaysAttendance, isDemoMode]);
+
+
+    const staffPendingLeaves = useMemo(() => {
+        if (currentUser?.role !== 'staff') return [];
+        
+        const staffData = currentUser.data;
+        const permittedBatchIds = Object.keys(staffData.batchAccess || {}).filter(
+            batchId => staffData.batchAccess[batchId]?.leaveRequests
+        );
+        const permittedBatchNames = new Set(
+            batches.filter(b => permittedBatchIds.includes(b.id)).map(b => b.name)
+        );
+        const permittedStudentIds = new Set(
+            students.filter(s => s.batches.some(b => permittedBatchNames.has(b)))
+                   .map(s => s.id)
+        );
+
+        return leaveRequests.filter(req => req.status === 'Pending' && req.userRole === 'student' && permittedStudentIds.has(req.userId));
+    }, [currentUser, leaveRequests, batches, students]);
+
+    const notificationCount = useMemo(() => {
+        if (currentUser?.role === 'admin') {
+            return adminNewEnquiries.length + adminPendingLeaves.length + adminUnmarkedAttendanceBatches.length;
+        }
+        if (currentUser?.role === 'staff') {
+            return staffPendingLeaves.length;
+        }
+        return 0;
+    }, [currentUser, adminNewEnquiries, adminPendingLeaves, staffPendingLeaves, adminUnmarkedAttendanceBatches]);
 
 
     // Handlers
@@ -529,56 +658,47 @@ export default function App() {
         setPage('batches');
     };
 
-    const handleSaveStudent = async (studentData: Omit<Student, 'id' | 'isActive' | 'rollNumber'>, enquiryId?: string): Promise<Student | void> => {
+    const handleSaveStudent = async (studentData: Omit<Student, 'id' | 'isActive'>, enquiryId?: string): Promise<Student | void> => {
         if (!academy || isDemoMode) { alert("Demo mode: Cannot save data."); return; }
+
+        // Uniqueness check for rollNumber
+        const q = query(collection(db, `academies/${academy.id}/students`), where('rollNumber', '==', studentData.rollNumber));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            alert(`Roll Number "${studentData.rollNumber}" is already in use. Please choose a unique one.`);
+            return;
+        }
         
         try {
-            // FIX: Explicitly type the return value of runTransaction to avoid it being inferred as 'unknown'.
-            const studentWithDefaults = await runTransaction<Student>(db, async (transaction) => {
-                const counterRef = doc(db, 'counters', `studentCounter_${academy.id}`);
-                const counterDoc = await transaction.get(counterRef);
-
-                const lastId = counterDoc.exists() ? counterDoc.data().lastId : 0;
-                const newIdNumber = lastId + 1;
-                const rollNumber = `S${String(newIdNumber).padStart(4, '0')}`;
-
-                const newStudentRef = doc(collection(db, `academies/${academy.id}/students`));
-                const finalStudentData = {
-                    ...studentData,
-                    rollNumber,
-                    isActive: true,
-                    createdAt: serverTimestamp(),
-                };
-                transaction.set(newStudentRef, finalStudentData);
-                transaction.set(counterRef, { lastId: newIdNumber }, { merge: !counterDoc.exists() });
-                
-                if (enquiryId) {
-                    const enquiryRef = doc(db, `academies/${academy.id}/enquiries`, enquiryId);
-                    transaction.update(enquiryRef, { status: 'Converted' });
-                }
-
-                // FIX: The object returned by the transaction was inferred as `unknown` because it contained
-                // a `createdAt` field with a `FieldValue` type, which is not part of the `Student` interface.
-                // By destructuring `createdAt` out, the returned object becomes structurally compatible with `Student`,
-                // resolving the type error on the cast below.
-                const { createdAt, ...studentToReturn } = finalStudentData;
-                return { ...studentToReturn, id: newStudentRef.id };
-            });
-
+            const batch = writeBatch(db);
+            const newStudentRef = doc(collection(db, `academies/${academy.id}/students`));
+    
+            const finalStudentData = {
+                ...studentData,
+                isActive: true,
+                createdAt: serverTimestamp(),
+            };
+            batch.set(newStudentRef, finalStudentData);
+    
+            if (enquiryId) {
+                const enquiryRef = doc(db, `academies/${academy.id}/enquiries`, enquiryId);
+                batch.update(enquiryRef, { status: 'Converted' });
+            }
+            
             // Update batch counts atomically
-            const batchWriter = writeBatch(db);
-            // FIX: Replaced forEach with a for...of loop to ensure correct type inference for batchName.
             for (const batchName of (studentData.batches as string[])) {
-                // FIX: Explicitly cast batchName to string to satisfy type checker.
                 const batchDoc = batches.find(b => b.name === (batchName as string));
                 if (batchDoc) {
                     const batchRef = doc(db, `academies/${academy.id}/batches`, batchDoc.id);
-                    batchWriter.update(batchRef, { currentStudents: increment(1) });
+                    batch.update(batchRef, { currentStudents: increment(1) });
                 }
             }
-            await batchWriter.commit();
             
-            return studentWithDefaults;
+            await batch.commit();
+    
+            const { createdAt, ...studentToReturn } = finalStudentData;
+            return { ...studentToReturn, id: newStudentRef.id } as Student;
+    
         } catch (error) {
             console.error("Error saving student:", error);
             alert("Failed to save student. Please try again.");
@@ -1045,6 +1165,105 @@ export default function App() {
         await deleteDoc(doc(db, `academies/${academy.id}/tasks`, taskId));
     };
 
+    const handleSaveNotice = async (data: Omit<Notice, 'id' | 'createdAt'>, noticeId?: string) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode: Cannot save data."); }
+        const noticeData = {
+            ...data,
+            expiryDate: Timestamp.fromDate(new Date(data.expiryDate as any)),
+        };
+
+        if (noticeId) { // Update
+            const noticeRef = doc(db, `academies/${academy.id}/notices`, noticeId);
+            await updateDoc(noticeRef, noticeData);
+        } else { // Create
+            await addDoc(collection(db, `academies/${academy.id}/notices`), {
+                ...noticeData,
+                createdAt: serverTimestamp()
+            });
+        }
+    };
+    
+    const handleDeleteNotice = async (notice: Notice) => {
+        if (!academy || isDemoMode) { throw new Error("Demo mode: Cannot delete data."); }
+        if (!window.confirm(`Are you sure you want to delete the notice titled "${notice.title}"?`)) return;
+
+        const noticeDocRef = doc(db, `academies/${academy.id}/notices`, notice.id);
+        try {
+            if (notice.storagePath) {
+                const fileRef = ref(storage, notice.storagePath);
+                await deleteObject(fileRef);
+            }
+            await deleteDoc(noticeDocRef);
+        } catch (error) {
+            console.error("Error deleting notice:", error);
+            alert("Failed to delete notice. Please try again.");
+        }
+    };
+
+    // FIX: Added handlers for transport routes
+    const handleSaveTransportRoute = async (routeData: Omit<TransportRoute, 'id'>) => {
+        if (!academy || isDemoMode) { alert("Demo mode."); return; }
+        await addDoc(collection(db, `academies/${academy.id}/transportRoutes`), routeData);
+        setPage('transport-options');
+    };
+
+    const handleUpdateTransportRoute = async (routeId: string, routeData: Omit<TransportRoute, 'id'>) => {
+        if (!academy || isDemoMode) { alert("Demo mode."); return; }
+        const routeRef = doc(db, `academies/${academy.id}/transportRoutes`, routeId);
+        await updateDoc(routeRef, routeData);
+        setPage('transport-options');
+    };
+
+    const handleDeleteTransportRoute = async (routeId: string) => {
+        if (isDemoMode) {
+            alert("Demo mode: This action is disabled.");
+            throw new Error("Demo mode action disabled.");
+        }
+        if (!academy) return;
+
+        try {
+            const batchWriter = writeBatch(db);
+            const routeRef = doc(db, `academies/${academy.id}/transportRoutes`, routeId);
+            batchWriter.delete(routeRef);
+
+            const studentsToUpdate = students.filter(s => s.transportRouteId === routeId);
+            for (const student of studentsToUpdate) {
+                const studentRef = doc(db, `academies/${academy.id}/students`, student.id);
+                batchWriter.update(studentRef, { transportRouteId: deleteField(), transportFee: deleteField() });
+            }
+            await batchWriter.commit();
+        } catch (error) {
+            console.error("Error deleting transport route:", error);
+            alert("Failed to delete transport route.");
+            throw error;
+        }
+    };
+
+    const handleMapStudentsToRoute = async (routeId: string, assignedStudentIds: string[], unassignedStudentIds: string[]) => {
+        if (!academy || isDemoMode) { alert("Demo mode."); return; }
+        const route = transportRoutes.find(r => r.id === routeId);
+        if (!route) return;
+
+        try {
+            const batchWriter = writeBatch(db);
+
+            for (const studentId of assignedStudentIds) {
+                const studentRef = doc(db, `academies/${academy.id}/students`, studentId);
+                batchWriter.update(studentRef, { transportRouteId: routeId, transportFee: route.monthlyFee });
+            }
+            for (const studentId of unassignedStudentIds) {
+                const studentRef = doc(db, `academies/${academy.id}/students`, studentId);
+                batchWriter.update(studentRef, { transportRouteId: deleteField(), transportFee: deleteField() });
+            }
+
+            await batchWriter.commit();
+            setPage('transport-options');
+        } catch (error) {
+            console.error("Error mapping students to route:", error);
+            alert("Failed to update student assignments.");
+        }
+    };
+
 
     const handleNavigate = (page: string, params: { [key: string]: any } = {}) => {
         if (params.batchId !== undefined) setSelectedBatchId(params.batchId);
@@ -1056,6 +1275,8 @@ export default function App() {
         if (params.studyMaterialId !== undefined) setSelectedStudyMaterialId(params.studyMaterialId);
         if (params.homeworkId !== undefined) setSelectedHomeworkId(params.homeworkId);
         if (params.quizId !== undefined) setSelectedQuizId(params.quizId);
+        // FIX: Added handler for routeId param
+        if (params.routeId !== undefined) setSelectedTransportRouteId(params.routeId);
         setPage(page);
     };
 
@@ -1086,28 +1307,32 @@ export default function App() {
     const selectedStudyMaterial = studyMaterials.find(m => m.id === selectedStudyMaterialId);
     const selectedHomework = homework.find(h => h.id === selectedHomeworkId);
     const selectedQuiz = quizzes.find(q => q.id === selectedQuizId);
+    // FIX: Added derived state for selected transport route.
+    const selectedTransportRoute = transportRoutes.find(r => r.id === selectedTransportRouteId);
 
     const renderPage = (pageName: string) => {
         const staffPermissions = currentUser?.role === 'staff' ? currentUser.data.batchAccess : undefined;
         switch (pageName) {
             case 'dashboard':
                 if (currentUser?.role === 'admin' && academy) return <Dashboard onNavigate={handleNavigate} academy={academy} students={students} batches={batches} staff={staff} onShowDevPopup={setShowDevPopup} />;
-                if (currentUser?.role === 'student' && academy) return <StudentDashboardPage student={currentUser.data} academy={academy} onNavigate={handleNavigate} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme} onShowDevPopup={setShowDevPopup}/>;
+                if (currentUser?.role === 'student' && academy) return <StudentDashboardPage student={currentUser.data} academy={academy} feeCollections={feeCollections.filter(fc => fc.studentId === currentUser.data.id)} batches={batches} onNavigate={handleNavigate} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme} onShowDevPopup={setShowDevPopup}/>;
                 if (currentUser?.role === 'staff' && academy) return <StaffDashboardPage onNavigate={handleNavigate} academy={academy} staff={currentUser.data} onShowDevPopup={setShowDevPopup}/>;
                 return null;
 
             // Admin Pages
+            case 'notifications': return currentUser?.role === 'admin' && <NotificationsPage onBack={() => setPage('dashboard')} enquiries={adminNewEnquiries} leaveRequests={adminPendingLeaves} unmarkedAttendanceBatches={adminUnmarkedAttendanceBatches} onNavigate={handleNavigate} />;
             case 'batches': return <BatchesPage onBack={() => setPage('dashboard')} onCreate={() => setPage('new-batch')} batches={batches} onViewStudents={(batchName) => handleNavigate('active-students', { batchName })} onEditBatch={(batchId) => handleNavigate('edit-batch', { batchId })} />;
             case 'new-batch': return <NewBatchPage onBack={() => setPage('batches')} onSave={handleSaveBatch} />;
             case 'edit-batch': return selectedBatch && <EditBatchPage onBack={() => setPage('batches')} onSave={handleUpdateBatch} batch={selectedBatch} />;
             case 'student-options': return <StudentOptionsPage onBack={() => setPage('dashboard')} onNavigate={handleNavigate} onShowDevPopup={setShowDevPopup} />;
-            case 'new-student': return academy && <NewStudentPage onBack={() => setPage(selectedEnquiryId ? 'enquiry-manager' : 'student-options')} onSave={handleSaveStudent} batches={batches} academyId={academy.academyId} enquiryData={selectedEnquiry} />;
+            case 'new-student': return academy && <NewStudentPage onBack={() => setPage(selectedEnquiryId ? 'enquiry-manager' : 'student-options')} onSave={handleSaveStudent} batches={batches} academyId={academy.academyId} enquiryData={selectedEnquiry} students={students} />;
             case 'edit-student': return selectedStudent && <EditStudentPage onBack={() => setPage('active-students')} onUpdate={handleUpdateStudent} student={selectedStudent} batches={batches} />;
             case 'active-students': return <ActiveStudentsPage onBack={() => setPage('student-options')} students={students} batches={batches} onToggleStudentStatus={handleToggleStudentStatus} onEditStudent={(studentId) => handleNavigate('edit-student', { studentId })} onViewStudent={(studentId) => handleNavigate('registration-form-view', { studentId })} initialFilter={studentListFilter} staffPermissions={staffPermissions} />;
             case 'inactive-students': return <InactiveStudentsPage onBack={() => setPage('student-options')} students={students} batches={batches} onToggleStudentStatus={handleToggleStudentStatus} />;
             case 'birthday-list': return <BirthdayListPage onBack={() => setPage('student-options')} students={students} />;
             case 'registration-form-list': return <RegistrationFormListPage onBack={() => setPage('student-options')} students={students} onSelectStudent={(studentId) => handleNavigate('registration-form-view', { studentId })} />;
-            case 'registration-form-view': return selectedStudent && <RegistrationFormViewPage onBack={() => setPage('registration-form-list')} student={selectedStudent} />;
+            // FIX: Pass transportRoutes to RegistrationFormViewPage to fix missing prop error.
+            case 'registration-form-view': return selectedStudent && <RegistrationFormViewPage onBack={() => setPage('registration-form-list')} student={selectedStudent} transportRoutes={transportRoutes} />;
             case 'select-batch-attendance': return academy && <SelectBatchForAttendancePage onBack={() => setPage('dashboard')} batches={batches} onSelectBatch={(batchId) => handleNavigate('take-attendance', { batchId })} academyId={academy.id} staffPermissions={staffPermissions} />;
             case 'take-attendance': return selectedBatch && academy && <TakeAttendancePage onBack={() => setPage('select-batch-attendance')} batch={selectedBatch} students={students} academy={academy} isDemoMode={isDemoMode} />;
             case 'fees-options': return <FeesOptionsPage onBack={() => setPage('dashboard')} onNavigate={handleNavigate} />;
@@ -1118,7 +1343,7 @@ export default function App() {
             case 'fee-dues-list': return academy && <FeeDuesListPage onBack={() => setPage('fees-options')} students={students} batches={batches} feeCollections={feeCollections} academy={academy} />;
             case 'my-account': return academy && <MyAccountPage onBack={() => setPage('dashboard')} academy={academy} onSave={handleSaveAcademyDetails} onLogout={handleLogout} />;
             case 'staff-options': return <StaffOptionsPage onBack={() => setPage('dashboard')} onNavigate={handleNavigate} />;
-            case 'new-staff': return <NewStaffPage onBack={() => setPage('staff-options')} onSave={handleSaveStaff} />;
+            case 'new-staff': return <NewStaffPage onBack={() => setPage('staff-options')} onSave={handleSaveStaff} staff={staff} />;
             case 'staff-manager': return <StaffManagerPage onBack={() => setPage('staff-options')} staff={staff} onManageAccess={(staffId) => handleNavigate('staff-batch-access', { staffId })} onToggleStatus={handleToggleStaffStatus} onShowDevPopup={setShowDevPopup} />;
             case 'inactive-staff': return <InactiveStaffPage onBack={() => setPage('staff-options')} staff={staff} onToggleStatus={handleToggleStaffStatus} />;
             case 'staff-batch-access': return selectedStaff && <StaffBatchAccessPage onBack={() => setPage('staff-manager')} staff={selectedStaff} batches={batches} onSave={handleSaveStaffAccess} />;
@@ -1148,6 +1373,12 @@ export default function App() {
             case 'quiz-results': return selectedQuiz && <QuizResultsPage onBack={() => setPage('manage-quizzes')} quiz={selectedQuiz} submissions={quizSubmissions} students={students} />;
             case 'leave-manager': return currentUser && academy && <LeaveManagerPage onBack={() => setPage('dashboard')} leaveRequests={leaveRequests} students={students} staff={staff} onUpdateStatus={handleUpdateLeaveRequestStatus} currentUser={currentUser} batches={batches}/>;
             case 'todo-task': return academy && <TodoTaskPage onBack={() => setPage('dashboard')} tasks={tasks} staff={staff} onSaveTask={handleSaveTask} onToggleTaskStatus={handleToggleTaskStatus} onDeleteTask={handleDeleteTask} isDemoMode={isDemoMode}/>;
+            case 'notice-board': return academy && <NoticeBoardPage onBack={() => setPage('dashboard')} notices={notices} onSaveNotice={handleSaveNotice} onDeleteNotice={handleDeleteNotice} isDemoMode={isDemoMode} academyId={academy.id}/>;
+            // FIX: Added cases for transport management pages.
+            case 'transport-options': return <TransportOptionsPage onBack={() => setPage('dashboard')} onCreate={() => handleNavigate('new-transport-route')} routes={transportRoutes} onNavigate={handleNavigate} onDelete={handleDeleteTransportRoute} />;
+            case 'new-transport-route': return <NewTransportRoutePage onBack={() => setPage('transport-options')} onSave={handleSaveTransportRoute} />;
+            case 'edit-transport-route': return selectedTransportRoute && <EditTransportRoutePage onBack={() => setPage('transport-options')} onSave={handleUpdateTransportRoute} route={selectedTransportRoute} />;
+            case 'map-students-to-route': return selectedTransportRoute && <MapStudentsToRoutePage onBack={() => setPage('transport-options')} route={selectedTransportRoute} students={students} onSave={handleMapStudentsToRoute} />;
 
 
             // Student/Staff common pages
@@ -1165,9 +1396,14 @@ export default function App() {
             case 'student-quizzes': return currentUser?.role === 'student' && <StudentQuizzesPage onBack={() => setPage('dashboard')} quizzes={quizzes} student={currentUser.data} onNavigate={handleNavigate} academyId={currentUser.academyId}/>;
             case 'take-quiz': return currentUser?.role === 'student' && selectedQuiz && <TakeQuizPage onBack={() => handleNavigate('student-quizzes')} quiz={selectedQuiz} onSaveSubmission={handleSaveQuizSubmission} studentId={currentUser.data.id} academyId={currentUser.academyId} />;
             case 'quiz-result': return currentUser?.role === 'student' && selectedQuiz && <QuizResultPage onBack={() => handleNavigate('student-quizzes')} quiz={selectedQuiz} studentId={currentUser.data.id} academyId={currentUser.academyId} />;
+            case 'student-notice-board': return <StudentNoticeBoardPage onBack={() => setPage('dashboard')} notices={notices} />;
+            // FIX: Added case for student transport page.
+            case 'student-transport': return currentUser?.role === 'student' && <StudentTransportPage student={currentUser.data} transportRoutes={transportRoutes} onBack={() => setPage('dashboard')} />;
 
             // Staff Pages
+            case 'staff-notifications': return currentUser?.role === 'staff' && <StaffNotificationsPage onBack={() => setPage('dashboard')} pendingLeaves={staffPendingLeaves} onNavigate={handleNavigate} />;
             case 'class-schedule': return currentUser?.role === 'staff' && <StaffSchedulePage onBack={() => setPage('dashboard')} staff={currentUser.data} academyId={currentUser.academyId} />;
+            case 'staff-notice-board': return <StaffNoticeBoardPage onBack={() => setPage('dashboard')} notices={notices} />;
 
             default: return <div>Page not found</div>;
         }
@@ -1198,7 +1434,7 @@ export default function App() {
     } else if (currentUser.role === 'admin' && academy) {
         mainContent = (
              <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900">
-                {page === 'dashboard' && <Header academy={academy} onLogout={handleLogout} onToggleNav={() => setIsNavOpen(true)} onNavigate={handleNavigate} theme={theme} onToggleTheme={handleToggleTheme} />}
+                {page === 'dashboard' && <Header academy={academy} onLogout={handleLogout} onToggleNav={() => setIsNavOpen(true)} onNavigate={handleNavigate} theme={theme} onToggleTheme={handleToggleTheme} notificationCount={notificationCount} />}
                 <SideNav isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} onNavigate={handleNavigate} onLogout={handleLogout} onShowDevPopup={setShowDevPopup}/>
                 <div className="flex-grow overflow-y-auto pb-16">
                     {renderPage(page)}
@@ -1216,7 +1452,7 @@ export default function App() {
     } else if (currentUser.role === 'staff' && academy) {
         mainContent = (
              <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900">
-                {page === 'dashboard' && <StaffHeader staffName={currentUser.data.name} academyName={academy.name} onLogout={handleLogout} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme}/>}
+                {page === 'dashboard' && <StaffHeader staffName={currentUser.data.name} academyName={academy.name} onLogout={handleLogout} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme} onNavigate={handleNavigate} notificationCount={notificationCount} />}
                 <StaffSideNav isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} onNavigate={handleNavigate} onLogout={handleLogout} staff={currentUser.data} onShowDevPopup={setShowDevPopup} />
                 <div className="flex-grow overflow-y-auto">
                     {renderPage(page)}

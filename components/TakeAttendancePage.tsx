@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import type { Batch, Student, AttendanceStatus, Academy } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -14,6 +12,7 @@ import { PhoneIcon } from './icons/PhoneIcon';
 import { BatchesIcon } from './icons/BatchesIcon';
 import { XMarkIcon } from './icons/XMarkIcon';
 import { SendAttendanceSmsModal } from './SendAttendanceSmsModal';
+import { LoadingSpinner } from './LoadingSpinner';
 
 interface TakeAttendancePageProps {
   onBack: () => void;
@@ -286,7 +285,7 @@ export function TakeAttendancePage({ onBack, batch, students, academy, isDemoMod
                 )}
                 {isLoading ? (
                     <div className="flex justify-center items-center h-full">
-                        <p className="text-gray-500">Loading attendance...</p>
+                        <LoadingSpinner message="Loading attendance..." />
                     </div>
                 ) : error ? (
                      <div className="text-center py-20 px-4">

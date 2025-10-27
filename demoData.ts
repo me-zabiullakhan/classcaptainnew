@@ -1,4 +1,4 @@
-import type { Batch, Student, Staff, Transaction, Enquiry } from './types';
+import type { Batch, Student, Staff, Transaction, Enquiry, TransportRoute } from './types';
 import { Timestamp } from 'firebase/firestore';
 
 export const demoBatches: Batch[] = [
@@ -63,6 +63,8 @@ export const demoStudents: Student[] = [
         batches: ['Morning Physics - Grade 12', 'Evening Maths - Grade 11'],
         schoolOrCollege: 'Shelbyville High',
         transport: 'USE_TRANSPORT',
+        transportRouteId: 'demo-route-1',
+        transportFee: 800,
         isActive: true,
         feeAmount: 900,
         feeType: 'Monthly',
@@ -232,4 +234,16 @@ export const demoEnquiries: Enquiry[] = [
         notes: 'Called once, needs a callback next week.',
         createdAt: Timestamp.fromMillis(Date.now() - 86400 * 5 * 1000), // 5 days ago
     }
+];
+
+export const demoTransportRoutes: TransportRoute[] = [
+    {
+        id: 'demo-route-1',
+        routeName: 'City Center Route',
+        vehicleNumber: 'KA-01-AB-1234',
+        driverName: 'John Doe',
+        driverContact: '9988776655',
+        points: 'Main Square, Central Mall, Library Corner',
+        monthlyFee: 800,
+    },
 ];

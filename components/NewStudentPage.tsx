@@ -12,10 +12,11 @@ import { ImageEditorModal } from './ImageEditorModal';
 
 interface NewStudentPageProps {
   onBack: () => void;
-  onSave: (studentData: Omit<Student, 'id' | 'isActive' | 'rollNumber'>, enquiryId?: string) => Promise<Student | void>;
+  onSave: (studentData: Omit<Student, 'id' | 'isActive'>, enquiryId?: string) => Promise<Student | void>;
   batches: Batch[];
   academyId: string;
   enquiryData?: Enquiry | null;
+  students: Student[];
 }
 
 const StudentCreationSuccessModal: React.FC<{ student: Student, academyId: string, onClose: () => void }> = ({ student, academyId, onClose }) => {
@@ -90,8 +91,9 @@ const FormInput = ({ label, id, children, containerClassName, ...props }: { labe
   </div>
 );
 
-export function NewStudentPage({ onBack, onSave, batches, academyId, enquiryData }: NewStudentPageProps): React.ReactNode {
-    const [formData, setFormData] = React.useState<Omit<Student, 'id' | 'feeAmount' | 'isActive' | 'rollNumber'> & { feeAmount: string }>({
+export function NewStudentPage({ onBack, onSave, batches, academyId, enquiryData, students }: NewStudentPageProps): React.ReactNode {
+    const [formData, setFormData] = React.useState<Omit<Student, 'id' | 'feeAmount' | 'isActive'> & { feeAmount: string }>({
+        rollNumber: '',
         name: '',
         fatherName: '',
         motherName: '',
@@ -119,6 +121,20 @@ export function NewStudentPage({ onBack, onSave, batches, academyId, enquiryData
     const cameraInputRef = React.useRef<HTMLInputElement>(null);
 
     const activeBatches = batches.filter(b => b.isActive);
+
+    React.useEffect(() => {
+        if (students && students.length > 0) {
+            const lastId = students.reduce((max, s) => {
+                const num = parseInt(s.rollNumber.replace(/\D/g, ''), 10);
+                return isNaN(num) ? max : Math.max(max, num);
+            }, 0);
+            const newIdNumber = lastId + 1;
+            const nextRollNumber = `S${String(newIdNumber).padStart(4, '0')}`;
+            setFormData(prev => ({ ...prev, rollNumber: nextRollNumber }));
+        } else {
+            setFormData(prev => ({ ...prev, rollNumber: 'S0001' }));
+        }
+    }, [students]);
     
     React.useEffect(() => {
         if (enquiryData) {
@@ -197,7 +213,7 @@ export function NewStudentPage({ onBack, onSave, batches, academyId, enquiryData
     };
 
     const handleSave = async () => {
-        if (!formData.name.trim() || !formData.fatherName.trim() || !formData.motherName.trim() || !formData.dob || !formData.mobile1 || !formData.address || !formData.admissionDate) {
+        if (!formData.rollNumber.trim() || !formData.name.trim() || !formData.fatherName.trim() || !formData.motherName.trim() || !formData.dob || !formData.mobile1 || !formData.address || !formData.admissionDate) {
             alert("Please fill all required fields.");
             return;
         }
@@ -250,6 +266,7 @@ export function NewStudentPage({ onBack, onSave, batches, academyId, enquiryData
                 <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} onChange={handleFileChange} className="hidden" />
             </div>
 
+            <FormInput label="Roll Number / Student ID" id="rollNumber" name="rollNumber" placeholder="Unique ID for login" value={formData.rollNumber} onChange={handleChange} required />
             <FormInput label="Student Name" id="studentName" name="name" value={formData.name} onChange={handleChange} required containerClassName="border-indigo-500 border-2" />
             <FormInput label="Father Name" id="fatherName" name="fatherName" value={formData.fatherName} onChange={handleChange} required />
             <FormInput label="Mother Name" id="motherName" name="motherName" value={formData.motherName} onChange={handleChange} required />
