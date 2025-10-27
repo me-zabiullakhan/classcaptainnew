@@ -57,6 +57,7 @@ const EnquiryCard: React.FC<{
                 </button>
                 <button onClick={() => onDelete(enquiry.id)} className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-100 dark:bg-red-900/40 rounded-md hover:bg-red-200 dark:hover:bg-red-900/60 transition-colors">
                     <TrashIcon className="w-4 h-4" />
+                    <span>Delete</span>
                 </button>
             </div>
         </div>
@@ -81,12 +82,6 @@ export function EnquiryManagerPage({ onBack, enquiries, onNavigate, onDelete, on
             .filter(e => e.studentName.toLowerCase().includes(searchTerm.toLowerCase()) || e.mobile.includes(searchTerm))
             .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
     }, [enquiries, activeTab, searchTerm]);
-
-    const handleDelete = async (enquiryId: string) => {
-        if(window.confirm("Are you sure you want to delete this enquiry?")) {
-            await onDelete(enquiryId);
-        }
-    }
 
     return (
         <div className="animate-fade-in flex flex-col h-full">
@@ -125,7 +120,7 @@ export function EnquiryManagerPage({ onBack, enquiries, onNavigate, onDelete, on
                 ) : (
                     <div className="space-y-4 pb-20">
                         {filteredEnquiries.map(enquiry => (
-                           <EnquiryCard key={enquiry.id} enquiry={enquiry} onNavigate={onNavigate} onDelete={handleDelete} />
+                           <EnquiryCard key={enquiry.id} enquiry={enquiry} onNavigate={onNavigate} onDelete={onDelete} />
                         ))}
                     </div>
                 )}
