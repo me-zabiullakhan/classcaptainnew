@@ -118,8 +118,8 @@ export function ApplyLeavePage({ onBack, onSave, currentUser, academyId, isDemoM
             
             const userData = currentUser.data;
             const userBatches = currentUser.role === 'student' ? (userData as Student).batches : [];
-
-            await onSave({
+            
+            const dataToSave: Omit<LeaveRequest, 'id'> = {
                 userId: userData.id,
                 userName: userData.name,
                 userRole: currentUser.role,
@@ -128,11 +128,18 @@ export function ApplyLeavePage({ onBack, onSave, currentUser, academyId, isDemoM
                 fromDate: Timestamp.fromDate(new Date(formData.fromDate)),
                 toDate: Timestamp.fromDate(new Date(formData.toDate)),
                 reason: formData.reason,
-                attachmentUrl,
-                storagePath,
                 status: 'Pending',
                 requestedAt: serverTimestamp(),
-            } as Omit<LeaveRequest, 'id'>);
+            };
+
+            if (attachmentUrl) {
+                dataToSave.attachmentUrl = attachmentUrl;
+            }
+            if (storagePath) {
+                dataToSave.storagePath = storagePath;
+            }
+
+            await onSave(dataToSave);
 
             setShowSuccess(true);
 

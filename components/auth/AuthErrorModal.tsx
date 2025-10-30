@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import { WarningIcon } from '../icons/WarningIcon';
 import { ClipboardDocumentIcon } from '../icons/ClipboardDocumentIcon';
@@ -26,50 +24,54 @@ service cloud.firestore {
       allow read, create: if request.auth.uid == userId;
     }
 
-    // Allow admins to create/update student/staff ID counters
-    match /counters/{counterId} {
-        // Checks if a user document exists, which is a proxy for being an admin.
-        allow write: if request.auth != null && exists(/databases/$(database)/documents/users/$(request.auth.uid));
-    }
-    
     // Allow academy creation and lookup by any authenticated user
     match /academies/{academyId} {
       allow get, list: if request.auth != null;
       allow create: if request.auth != null;
       allow update: if isOwner(academyId);
-    }
-    
-    // Rules for top-level collections within an academy (students, staff, etc.)
-    match /academies/{academyId}/{collection}/{docId} {
-      allow read: if request.auth != null;
-      allow write: if isOwner(academyId);
-    }
-    
-    // --- Specific rules for nested collections ---
-    // These are more explicit and override the general rule above.
-    
-    // Attendance rules
-    match /academies/{academyId}/batches/{batchId}/attendance/{date} {
-       // Allow any authenticated user (admin, or staff via anonymous auth) to read and write.
-       // The app's UI logic must restrict access to only authorized staff.
-       allow read, write: if request.auth != null;
-    }
-    
-    // Exam marks rules
-    match /academies/{academyId}/exams/{examId}/marks/{studentId} {
-       // Allow any authenticated user to read marks (e.g., students reading their own).
-       allow read: if request.auth != null;
 
-       // Allow writes for admins or authorized staff. For simplicity with anonymous auth,
-       // we allow any authenticated user to write, relying on UI controls.
-       allow write: if request.auth != null;
-    }
-    
-    // Quiz submission rules
-    match /academies/{academyId}/quizzes/{quizId}/submissions/{studentId} {
-       // Allow any authenticated user to read/write. App logic restricts students
-       // to their own submissions. Admin needs read access to all for the leaderboard.
-       allow read, write: if request.auth != null;
+      // --- Academy Sub-collections ---
+
+      // Admin-only write collections
+      match /(students|staff|fees|transactions|enquiries|studyMaterial|homework|quizzes|tasks|notices|transportRoutes)/{docId} {
+        allow read: if request.auth != null;
+        allow write: if isOwner(academyId);
+      }
+      
+      // Batches can be written by admin
+      match /batches/{batchId} {
+        allow read, write: if isOwner(academyId);
+
+        // Attendance can be written by anyone authenticated (staff)
+        match /attendance/{date} {
+           allow read, write: if request.auth != null;
+        }
+      }
+
+      // Exams can be written by admin
+      match /exams/{examId} {
+        allow read, write: if isOwner(academyId);
+
+        // Marks can be written by anyone authenticated (staff)
+        match /marks/{studentId} {
+           allow read, write: if request.auth != null;
+        }
+      }
+      
+      // Quiz Submissions (students can write)
+      match /quizzes/{quizId}/submissions/{studentId} {
+         allow read, write: if request.auth != null;
+      }
+      
+      // Homework Submissions (students can write)
+      match /homework/{homeworkId}/submissions/{studentId} {
+        allow read, write: if request.auth != null;
+      }
+
+      // Leave Requests (students/staff can write)
+      match /leaveRequests/{leaveId} {
+          allow read, write: if request.auth != null;
+      }
     }
   }
 }`;

@@ -74,27 +74,29 @@ export function StudentDetailsPage({ onBack, student, feeCollections, academyId,
       </header>
       
       <div className="flex-grow overflow-y-auto">
-        <div className="p-4 bg-white dark:bg-gray-800 flex items-center space-x-4 border-b dark:border-gray-700 sticky top-[60px] z-10">
-            <button onClick={() => onShowImage(photoUrl)} className="flex-shrink-0 group relative">
-                <img src={photoUrl} alt={student.name} className="w-20 h-20 rounded-full object-cover bg-gray-200 border-2 border-indigo-300 group-hover:opacity-80 transition-opacity" />
-                 <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 rounded-full flex items-center justify-center transition-opacity">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
-                    </svg>
+        <div className="bg-white dark:bg-gray-800">
+            <div className="p-4 flex items-center space-x-4">
+                <button onClick={() => onShowImage(photoUrl)} className="flex-shrink-0 group relative">
+                    <img src={photoUrl} alt={student.name} className="w-20 h-20 rounded-full object-cover bg-gray-200 border-2 border-indigo-300 group-hover:opacity-80 transition-opacity" />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 rounded-full flex items-center justify-center transition-opacity">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
+                        </svg>
+                    </div>
+                </button>
+                <div className="min-w-0">
+                    <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 truncate">{student.name}</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Roll No: {student.rollNumber}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">Batches: {student.batches.join(', ')}</p>
                 </div>
-            </button>
-            <div className="min-w-0">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 truncate">{student.name}</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Roll No: {student.rollNumber}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 truncate">Batches: {student.batches.join(', ')}</p>
             </div>
-        </div>
 
-        <div className="p-2 bg-white dark:bg-gray-800 shadow-sm flex-shrink-0 sticky top-[152px] z-10">
-            <div className="flex justify-around bg-gray-100 dark:bg-gray-900 p-1 rounded-lg">
-                <button onClick={() => setActiveTab('details')} className={`w-full py-2 rounded-md font-semibold ${activeTab === 'details' ? 'bg-indigo-600 text-white shadow-sm' : 'dark:text-gray-300'}`}>Details</button>
-                <button onClick={() => setActiveTab('attendance')} className={`w-full py-2 rounded-md font-semibold ${activeTab === 'attendance' ? 'bg-indigo-600 text-white shadow-sm' : 'dark:text-gray-300'}`}>Attendance</button>
-                <button onClick={() => setActiveTab('fees')} className={`w-full py-2 rounded-md font-semibold ${activeTab === 'fees' ? 'bg-indigo-600 text-white shadow-sm' : 'dark:text-gray-300'}`}>Fees</button>
+            <div className="px-4 pb-4">
+                <div className="flex justify-around bg-gray-100 dark:bg-gray-900 p-1 rounded-lg">
+                    <button onClick={() => setActiveTab('details')} className={`w-full py-2 rounded-md font-semibold ${activeTab === 'details' ? 'bg-indigo-600 text-white shadow-sm' : 'dark:text-gray-300'}`}>Details</button>
+                    <button onClick={() => setActiveTab('attendance')} className={`w-full py-2 rounded-md font-semibold ${activeTab === 'attendance' ? 'bg-indigo-600 text-white shadow-sm' : 'dark:text-gray-300'}`}>Attendance</button>
+                    <button onClick={() => setActiveTab('fees')} className={`w-full py-2 rounded-md font-semibold ${activeTab === 'fees' ? 'bg-indigo-600 text-white shadow-sm' : 'dark:text-gray-300'}`}>Fees</button>
+                </div>
             </div>
         </div>
         

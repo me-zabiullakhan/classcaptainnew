@@ -94,6 +94,7 @@ const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ onBack, batches, staff,
     const [error, setError] = useState<string | null>(null);
 
     const dateString = date.toISOString().split('T')[0];
+    const activeBatches = batches.filter(b => b.isActive);
 
     useEffect(() => {
         if (!selectedBatchId || isDemoMode) {
@@ -164,7 +165,7 @@ const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ onBack, batches, staff,
                 </div>
                 <CustomDropdown
                     label="Batch"
-                    options={batches.map(b => ({ value: b.id, label: b.name }))}
+                    options={activeBatches.map(b => ({ value: b.id, label: b.name }))}
                     selectedValue={selectedBatchId}
                     onSelect={setSelectedBatchId}
                     placeholder="Select a Batch"
