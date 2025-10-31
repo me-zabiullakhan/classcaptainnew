@@ -1,4 +1,4 @@
-import type { Batch, Student, Staff, Transaction, Enquiry, TransportRoute } from './types';
+import type { Batch, Student, Staff, Transaction, Enquiry, TransportRoute, StaffAttendance } from './types';
 import { Timestamp } from 'firebase/firestore';
 
 export const demoBatches: Batch[] = [
@@ -178,6 +178,34 @@ export const demoStaff: Staff[] = [
         isActive: true,
     }
 ];
+
+export const demoStaffAttendance: StaffAttendance[] = [
+    {
+        id: 'demo-sa-1',
+        staffId: 'demo-staff-2',
+        staffName: 'Dr. Evelyn Reed',
+        date: Timestamp.fromMillis(Date.now() - 86400 * 2 * 1000), // 2 days ago
+        batchId: 'demo-batch-1',
+        batchName: 'Morning Physics - Grade 12',
+        subject: 'Physics',
+        startTime: '08:00',
+        endTime: '09:00',
+        durationMinutes: 60,
+    },
+    {
+        id: 'demo-sa-2',
+        staffId: 'demo-staff-1',
+        staffName: 'Alan Grant',
+        date: Timestamp.fromMillis(Date.now() - 86400 * 1 * 1000), // yesterday
+        batchId: 'demo-batch-2',
+        batchName: 'Evening Maths - Grade 11',
+        subject: 'Maths',
+        startTime: '17:30',
+        endTime: '19:00',
+        durationMinutes: 90,
+    }
+];
+
 
 export const demoTransactions: Transaction[] = [
     {

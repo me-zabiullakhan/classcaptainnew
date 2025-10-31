@@ -4,6 +4,7 @@ import { AttendanceIcon } from './icons/AttendanceIcon';
 import { FeeCollectionReportIcon } from './icons/FeeCollectionReportIcon';
 import { FeesDuesListIcon } from './icons/FeesDuesListIcon';
 import { ExamsIcon } from './icons/ExamsIcon';
+import { StaffIcon } from './icons/StaffIcon';
 
 interface ReportsPageProps {
   onBack: () => void;
@@ -15,6 +16,7 @@ const reportOptions = [
   { name: 'Attendance Report', Icon: AttendanceIcon, key: 'attendance-report' },
   { name: 'Fee Collection Report', Icon: FeeCollectionReportIcon, key: 'fee-collection-report' },
   { name: 'Fee Dues List', Icon: FeesDuesListIcon, key: 'fee-dues-list' },
+  { name: 'Staff Attendance Report', Icon: StaffIcon, key: 'staff-attendance-report' },
   { name: 'Exam Reports', Icon: ExamsIcon, key: 'exam-reports' },
 ];
 
@@ -24,6 +26,7 @@ export function ReportsPage({ onBack, onNavigate, onShowDevPopup }: ReportsPageP
       case 'attendance-report':
       case 'fee-collection-report':
       case 'fee-dues-list':
+      case 'staff-attendance-report':
         onNavigate(key);
         break;
       default:

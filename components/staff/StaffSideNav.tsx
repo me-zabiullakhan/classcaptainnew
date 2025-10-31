@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import type { FeatureItem, Staff, BatchAccessPermissions } from '../../types';
 import { LogoIcon } from '../icons/LogoIcon';
@@ -108,6 +106,10 @@ export function StaffSideNav({ isOpen, onClose, onNavigate, onLogout, staff, onS
             </nav>
 
             <footer className="p-4 border-t">
+                 <button onClick={() => handleNavigate('staff-attendance')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors rounded-lg">
+                    <AttendanceIcon className="w-6 h-6 mr-4 text-gray-400"/>
+                    <span className="font-medium">My Attendance</span>
+                </button>
                  <button onClick={() => handleNavigate('staff-notice-board')} className="w-full flex items-center px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors rounded-lg">
                     <NoticeIcon className="w-6 h-6 mr-4 text-gray-400"/>
                     <span className="font-medium">Notice Board</span>

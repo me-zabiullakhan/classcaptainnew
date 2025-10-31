@@ -1,4 +1,3 @@
-
 import type { FC } from 'react';
 import type { Timestamp } from 'firebase/firestore';
 
@@ -341,4 +340,19 @@ export interface TransportRoute {
   driverContact: string;
   points: string; // comma-separated list of pickup/drop points
   monthlyFee: number;
+}
+
+export interface StaffAttendance {
+  id: string; // Firestore document ID
+  staffId: string;
+  staffName: string;
+  date: Timestamp;
+  batchId: string;
+  batchName: string;
+  subject: string;
+  startTime: string; // "HH:MM"
+  endTime: string;   // "HH:MM"
+  durationMinutes: number; // calculated on save
+  notes?: string;
+  scheduleItemId?: string | null; // Link to the original schedule item if it exists
 }

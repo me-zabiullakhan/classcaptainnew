@@ -3,6 +3,7 @@ import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { NewStaffIcon } from './icons/NewStaffIcon';
 import { StudentsListIcon } from './icons/StudentsListIcon';
 import { InactiveStudentsIcon } from './icons/InactiveStudentsIcon';
+import { AttendanceIcon } from './icons/AttendanceIcon';
 
 interface StaffOptionsPageProps {
   onBack: () => void;
@@ -12,6 +13,7 @@ interface StaffOptionsPageProps {
 const staffOptions = [
   { name: 'Add New Staff', Icon: NewStaffIcon, key: 'new-staff' },
   { name: 'Active Staff List', Icon: StudentsListIcon, key: 'staff-manager' },
+  { name: 'Staff Attendance', Icon: AttendanceIcon, key: 'mark-staff-attendance' },
   { name: 'Inactive Staff List', Icon: InactiveStudentsIcon, key: 'inactive-staff' },
 ];
 

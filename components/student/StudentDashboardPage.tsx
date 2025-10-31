@@ -88,14 +88,6 @@ export function StudentDashboardPage({ student, academy, feeCollections, batches
     const photoUrl = student.photo || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(student.name)}`;
 
     useEffect(() => {
-        const popupsShown = sessionStorage.getItem('studentPopupsShown');
-        if (popupsShown) {
-            setIsScheduleLoading(false);
-            return;
-        }
-
-        let didShowPopup = false;
-
         const fetchSchedule = async () => {
             const studentBatchIds = batches
                 .filter(b => student.batches.includes(b.name))
@@ -136,6 +128,11 @@ export function StudentDashboardPage({ student, academy, feeCollections, batches
         };
 
         const runChecks = async () => {
+            if (sessionStorage.getItem('dashboardPopupsShown') === 'true') {
+                setIsScheduleLoading(false);
+                return;
+            }
+            
             const schedule = await fetchSchedule();
             const fees = calculatePendingFees();
             
@@ -145,19 +142,13 @@ export function StudentDashboardPage({ student, academy, feeCollections, batches
 
             if(schedule !== null) { // Show schedule popup even if empty
                 setShowSchedulePopup(true);
-                didShowPopup = true;
             } else if (fees) { // If schedule fetch fails or no batches, check for fees
                 setShowFeePopup(true);
-                didShowPopup = true;
             }
-
-            if(didShowPopup) {
-                sessionStorage.setItem('studentPopupsShown', 'true');
-            }
+            sessionStorage.setItem('dashboardPopupsShown', 'true');
         };
 
         runChecks();
-
     }, [student, academy.id, batches, feeCollections]);
 
     const handleScheduleClose = () => {

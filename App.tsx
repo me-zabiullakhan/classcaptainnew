@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import React, { useState, useEffect, useMemo } from 'react';
 // Firebase
 import { auth, db, firebaseConfig, storage } from './firebaseConfig';
@@ -15,11 +9,11 @@ import { collection, doc, onSnapshot, addDoc, updateDoc, setDoc, getDoc, query, 
 
 // Types
 // FIX: Added TransportRoute to the type imports.
-import type { CurrentUser, Academy, Batch, Student, Staff, FeeCollection, BatchAccessPermissions, ScheduleItem, Transaction, Exam, Enquiry, StudyMaterial, Homework, Quiz, QuizSubmission, LeaveRequest, Task, Notice, TransportRoute, DailySchedule } from './types';
+import type { CurrentUser, Academy, Batch, Student, Staff, FeeCollection, BatchAccessPermissions, ScheduleItem, Transaction, Exam, Enquiry, StudyMaterial, Homework, Quiz, QuizSubmission, LeaveRequest, Task, Notice, TransportRoute, DailySchedule, StaffAttendance } from './types';
 
 // Demo Data
 // FIX: Added demoTransportRoutes to the demo data imports.
-import { demoStudents, demoBatches, demoStaff, demoTransactions, demoEnquiries, demoTransportRoutes } from './demoData';
+import { demoStudents, demoBatches, demoStaff, demoTransactions, demoEnquiries, demoTransportRoutes, demoStaffAttendance } from './demoData';
 
 // Components
 import { SplashScreen } from './components/SplashScreen';
@@ -114,6 +108,9 @@ import { CustomSmsSettingsPage } from './components/CustomSmsSettingsPage';
 import { WrenchIcon } from './components/icons/WrenchIcon';
 import { StaffNoticeBoardPage } from './components/staff/StaffNoticeBoardPage';
 import { StaffNotificationsPage } from './components/staff/StaffNotificationsPage';
+import { MarkStaffAttendancePage } from './components/MarkStaffAttendancePage';
+import { StaffAttendanceReportPage } from './components/StaffAttendanceReportPage';
+import { StaffAttendancePage } from './components/staff/StaffAttendancePage';
 
 // FIX: Added new transport components
 import { TransportOptionsPage } from './components/TransportOptionsPage';
@@ -219,6 +216,7 @@ export default function App() {
     const [batches, setBatches] = useState<Batch[]>([]);
     const [students, setStudents] = useState<Student[]>([]);
     const [staff, setStaff] = useState<Staff[]>([]);
+    const [staffAttendance, setStaffAttendance] = useState<StaffAttendance[]>([]);
     const [feeCollections, setFeeCollections] = useState<FeeCollection[]>([]);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [exams, setExams] = useState<Exam[]>([]);
@@ -395,6 +393,7 @@ export default function App() {
                 setStudents(demoStudents);
                 setBatches(demoBatches);
                 setStaff(demoStaff);
+                setStaffAttendance(demoStaffAttendance);
                 setFeeCollections([]);
                 setTransactions(demoTransactions);
                 setExams([]);
@@ -438,7 +437,7 @@ export default function App() {
         }
 
         // FIX: Added 'transportRoutes' to the list of collections to subscribe to.
-        const collectionsToSubscribe = ['batches', 'students', 'staff', 'fees', 'transactions', 'exams', 'enquiries', 'studyMaterial', 'homework', 'quizzes', 'leaveRequests', 'tasks', 'notices', 'transportRoutes'];
+        const collectionsToSubscribe = ['batches', 'students', 'staff', 'fees', 'transactions', 'exams', 'enquiries', 'studyMaterial', 'homework', 'quizzes', 'leaveRequests', 'tasks', 'notices', 'transportRoutes', 'staffAttendance'];
         const setters: any = {
             batches: setBatches,
             students: setStudents,
@@ -455,6 +454,7 @@ export default function App() {
             notices: setNotices,
             // FIX: Added setter for transport routes.
             transportRoutes: setTransportRoutes,
+            staffAttendance: setStaffAttendance,
         };
 
         collectionsToSubscribe.forEach(coll => {
@@ -1160,6 +1160,44 @@ export default function App() {
         await setDoc(doc(db, `academies/${academy.id}/quizzes/${quiz.id}/submissions`, currentUser.data.id), submissionData);
     };
 
+    const handleSaveStaffAttendance = async (data: Partial<Omit<StaffAttendance, 'id'>>, id?: string): Promise<string | void> => {
+        if (!academy || isDemoMode) {
+            throw new Error("Cannot save data in demo mode.");
+        }
+        
+        // Calculate duration
+        let durationMinutes = 0;
+        if (data.startTime && data.endTime) {
+            const start = new Date(`1970-01-01T${data.startTime}`);
+            const end = new Date(`1970-01-01T${data.endTime}`);
+            if (end > start) {
+                durationMinutes = (end.getTime() - start.getTime()) / 60000;
+            }
+        }
+
+        const dataToSave = {
+            ...data,
+            durationMinutes
+        };
+
+        const collectionRef = collection(db, `academies/${academy.id}/staffAttendance`);
+        try {
+            if (id) {
+                await updateDoc(doc(collectionRef, id), dataToSave);
+            } else {
+                const newDocRef = doc(collectionRef);
+                await setDoc(newDocRef, dataToSave);
+                return newDocRef.id;
+            }
+        } catch (error) {
+            console.error(`Error saving staff attendance:`, error);
+            alert(`Failed to save staff attendance.`);
+            throw error;
+        }
+    };
+
+    const handleDeleteStaffAttendance = createDeleteHandler('staffAttendance');
+
 
     if (isPlaceholderConfig) {
         return (
@@ -1270,6 +1308,8 @@ export default function App() {
                 return <InactiveStaffPage onBack={() => setPage('staff-options')} staff={staff} onToggleStatus={handleToggleStaffStatus} />;
             case 'staff-batch-access':
                 return selectedStaff && <StaffBatchAccessPage onBack={() => setPage('staff-manager')} staff={selectedStaff} batches={batches} onSave={handleUpdateStaffBatchAccess} />;
+            case 'mark-staff-attendance':
+                return <MarkStaffAttendancePage onBack={() => setPage('staff-options')} batches={batches} staff={staff} academyId={academy!.id} isDemoMode={isDemoMode} staffAttendance={staffAttendance} onSave={handleSaveStaffAttendance} onDelete={handleDeleteStaffAttendance} />;
             case 'settings':
                 return <SettingsPage onBack={() => setPage('dashboard')} onNavigate={setPage} onShowDevPopup={setShowDevPopup} />;
             case 'custom-sms-settings':
@@ -1298,6 +1338,8 @@ export default function App() {
                 return <ReportsPage onBack={() => setPage('dashboard')} onNavigate={setPage} onShowDevPopup={setShowDevPopup} />;
             case 'attendance-report':
                 return <AttendanceReportPage onBack={() => setPage('reports-options')} batches={batches} students={students} academyId={academy!.id} />;
+            case 'staff-attendance-report':
+                return <StaffAttendanceReportPage onBack={() => setPage('reports-options')} staff={staff} staffAttendance={staffAttendance} />;
             case 'study-material':
                 return <StudyMaterialPage onBack={() => setPage('dashboard')} materials={studyMaterials} batches={batches} onNavigate={(page, params) => { if(params?.studyMaterialId) setSelectedStudyMaterialId(params.studyMaterialId); handleNavigate(page, params); }} onDelete={handleDeleteStudyMaterial} />;
             case 'upload-study-material':
@@ -1394,6 +1436,9 @@ export default function App() {
             case 'staff-notice-board':
                  if (currentUser.role === 'staff') return <StaffNoticeBoardPage onBack={() => setPage('dashboard')} notices={notices} />;
                  return null;
+            case 'staff-attendance':
+                 if (currentUser.role === 'staff') return <StaffAttendancePage onBack={() => setPage('dashboard')} staff={currentUser.data} staffAttendance={staffAttendance} />;
+                 return null;
 
             default:
                 // Fallback to dashboard if page is not found or user role doesn't match
@@ -1430,7 +1475,7 @@ export default function App() {
 
             {currentUser?.role === 'staff' && academy && (
                 <>
-                    <StaffHeader staffName={currentUser.data.name} academyName={academy.name} onLogout={handleLogout} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme} onNavigate={setPage} notificationCount={notificationCount} />
+                    {page === 'dashboard' && <StaffHeader staffName={currentUser.data.name} academyName={academy.name} onLogout={handleLogout} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme} onNavigate={setPage} notificationCount={notificationCount} />}
                     <StaffSideNav isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} onNavigate={setPage} onLogout={handleLogout} staff={currentUser.data} onShowDevPopup={setShowDevPopup} />
                     <main>{children}</main>
                 </>

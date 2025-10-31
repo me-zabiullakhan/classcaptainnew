@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback, useEffect } from 'react';
 import type { Student, Batch, FeeCollection, Academy } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -221,7 +220,7 @@ const getDuesData = (students: Student[], feeCollections: FeeCollection[]) => {
     return studentsWithDues;
 };
 
-export function FeeDuesListPage({ onBack, students, batches, feeCollections, academy }: FeeDuesListPageProps): React.ReactNode {
+export function FeeDuesListPage({ onBack, students, batches, feeCollections, academy }: FeeDuesListPageProps) {
     const [filter, setFilter] = React.useState('all');
     const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
     
@@ -247,7 +246,7 @@ export function FeeDuesListPage({ onBack, students, batches, feeCollections, aca
                         className="w-full px-4 py-2 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                     >
                         <option value="all">All Batches</option>
-                        {batches.map(batch => (
+                        {batches.filter(b => b.isActive).map(batch => (
                             <option key={batch.id} value={batch.name}>{batch.name}</option>
                         ))}
                     </select>
