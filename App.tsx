@@ -253,6 +253,11 @@ export default function App() {
     const [showDevPopup, setShowDevPopup] = useState<string | null>(null);
     const [imageToView, setImageToView] = useState<string | null>(null);
 
+    // Scroll to top on page change
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, [page]);
+
     const isDemoMode = (currentUser?.role === 'admin' && currentUser.data.id === 'demo-academy-id') ||
         ((currentUser?.role === 'student' || currentUser?.role === 'staff') && currentUser.academyId === 'DEMO');
 

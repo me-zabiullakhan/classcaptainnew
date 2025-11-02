@@ -3,13 +3,19 @@ import type { Academy } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { CheckIcon } from './icons/CheckIcon';
 
+// Add this global declaration for TypeScript to recognize the Razorpay script
+declare global {
+    interface Window {
+        Razorpay: any;
+    }
+}
+
 interface SubscriptionPageProps {
     onBack: () => void;
     academy: Academy;
     onSubscribe: (plan: 'monthly' | 'quarterly' | 'yearly', months: number) => Promise<void>;
 }
 
-// FIX: Refactored to use React.FC and a separate props interface to correctly handle React's special `key` prop and avoid TypeScript errors.
 interface PlanCardProps {
     title: string;
     price: string;
@@ -53,22 +59,68 @@ const PlanCard: React.FC<PlanCardProps> = ({ title, price, period, features, isP
 );
 
 const plans = [
-    { id: 'monthly', title: 'Monthly', price: '₹499', period: 'mo', months: 1, features: ["Up to 100 students", "All core features", "Email support"] },
-    { id: 'quarterly', title: 'Quarterly', price: '₹1299', period: '3-mo', months: 3, features: ["Up to 300 students", "All core features", "Priority email support"], isPopular: true },
-    { id: 'yearly', title: 'Yearly', price: '₹4999', period: 'yr', months: 12, features: ["Unlimited students", "All core features", "Phone & email support"] },
+    { id: 'monthly', title: 'Monthly', price: '₹499', period: 'mo', months: 1, amount: 49900, features: ["Up to 100 students", "All core features", "Email support"] },
+    { id: 'quarterly', title: 'Quarterly', price: '₹1299', period: '3-mo', months: 3, amount: 129900, features: ["Up to 300 students", "All core features", "Priority email support"], isPopular: true },
+    { id: 'yearly', title: 'Yearly', price: '₹4999', period: 'yr', months: 12, amount: 499900, features: ["Unlimited students", "All core features", "Phone & email support"] },
 ];
 
 export function SubscriptionPage({ onBack, academy, onSubscribe }: SubscriptionPageProps) {
     const [isLoading, setIsLoading] = React.useState<string | null>(null);
 
-    const handleSubscribe = async (plan: 'monthly' | 'quarterly' | 'yearly', months: number) => {
-        setIsLoading(plan);
+    const handlePayment = async (plan: typeof plans[0]) => {
+        setIsLoading(plan.id);
+
+        // NOTE: For a production application, you must generate the 'order_id' on your backend
+        // using Razorpay's Orders API with your secret key. This is skipped for this frontend-only demo.
+        const options = {
+            key: 'rzp_test_ILz21I2p3wQp4P', // This is a public test key, fine for prototyping
+            amount: plan.amount,
+            currency: "INR",
+            name: "Class Captain Subscription",
+            description: `Payment for ${plan.title} Plan`,
+            image: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCAyOCAyNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgMTIgSDE4IFYxNSBIMjIgVjIxIEg2IFYxNSBIMTAgVjEyIFoiIGZpbGw9IiNENUwMDAwIi8+PHBhdGggZD0iTTggNSBIMjAgTDE4IDExIEgxMCBaIiBmaWxsPSIjRDUwMDAwIi8+PC9zdmc+",
+            handler: async (response: any) => {
+                // In a real app, send `response.razorpay_payment_id` to your backend for verification.
+                // Here, we'll assume success and update the subscription in Firestore.
+                try {
+                    await onSubscribe(plan.id as any, plan.months);
+                } catch (error) {
+                    console.error("Firestore update failed after payment:", error);
+                    alert("Payment was successful, but we couldn't update your subscription. Please contact support.");
+                } finally {
+                    setIsLoading(null);
+                }
+            },
+            prefill: {
+                name: academy.adminName || academy.name,
+                email: academy.adminEmail,
+                contact: academy.contactPhone || ""
+            },
+            notes: {
+                academy_id: academy.id,
+                academy_name: academy.name
+            },
+            theme: {
+                color: "#4f46e5" // Indigo-600
+            },
+            modal: {
+                ondismiss: () => {
+                    setIsLoading(null); // Stop loading if user closes the modal
+                }
+            }
+        };
+
         try {
-            await onSubscribe(plan, months);
+            const rzp = new window.Razorpay(options);
+            rzp.on('payment.failed', function (response: any){
+                alert("Payment failed. Please try again. Error: " + response.error.description);
+                console.error('Payment Failed:', response.error);
+                setIsLoading(null);
+            });
+            rzp.open();
         } catch (error) {
-            console.error("Subscription failed:", error);
-            alert("Subscription failed. Please try again.");
-        } finally {
+            console.error("Razorpay Error:", error);
+            alert("Could not initialize payment gateway. Please check your internet connection and try again.");
             setIsLoading(null);
         }
     };
@@ -114,7 +166,7 @@ export function SubscriptionPage({ onBack, academy, onSubscribe }: SubscriptionP
                             period={plan.period}
                             features={plan.features}
                             isPopular={plan.isPopular}
-                            onSelect={() => handleSubscribe(plan.id as any, plan.months)}
+                            onSelect={() => handlePayment(plan)}
                             isCurrent={academy.plan === plan.id && academy.subscriptionStatus === 'active'}
                             isLoading={isLoading === plan.id}
                             disabled={!!isLoading}
