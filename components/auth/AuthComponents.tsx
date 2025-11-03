@@ -1,9 +1,17 @@
 import React from 'react';
 import { FullLogoIcon } from '../icons/LogoIcon';
+import { ArrowLeftIcon } from '../icons/ArrowLeftIcon';
 
-export const AuthLayout: React.FC<{ title: string, subtitle: string, children: React.ReactNode }> = ({ title, subtitle, children }) => (
-    <div className="min-h-screen flex flex-col justify-center items-center px-4 py-8 bg-gradient-to-br from-purple-50 to-slate-100 dark:from-indigo-900 dark:to-gray-900">
-        <div className="text-center mb-8">
+export const AuthLayout: React.FC<{ title: string, subtitle: string, children: React.ReactNode, onBack?: () => void }> = ({ title, subtitle, children, onBack }) => (
+    <div className="min-h-screen flex flex-col justify-center items-center px-4 py-4 bg-gradient-to-br from-purple-50 to-slate-100 dark:from-indigo-900 dark:to-gray-900">
+        {onBack && (
+           <div className="absolute top-5 left-5">
+               <button onClick={onBack} className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700">
+                   <ArrowLeftIcon className="w-6 h-6" />
+               </button>
+           </div>
+       )}
+        <div className="text-center mb-4">
             <div className="flex justify-center mb-4">
                 <FullLogoIcon className="w-64" />
             </div>

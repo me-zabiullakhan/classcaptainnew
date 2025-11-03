@@ -2,6 +2,7 @@ import React from 'react';
 import type { Academy } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { CheckIcon } from './icons/CheckIcon';
+import { XMarkIcon } from './icons/XMarkIcon';
 
 // Add this global declaration for TypeScript to recognize the Razorpay script
 declare global {
@@ -14,6 +15,7 @@ interface SubscriptionPageProps {
     onBack: () => void;
     academy: Academy;
     onSubscribe: (plan: 'monthly' | 'quarterly' | 'yearly', months: number) => Promise<void>;
+    isModal?: boolean;
 }
 
 interface PlanCardProps {
@@ -64,24 +66,20 @@ const plans = [
     { id: 'yearly', title: 'Yearly', price: '₹4999', period: 'yr', months: 12, amount: 499900, features: ["Unlimited students", "All core features", "Phone & email support"] },
 ];
 
-export function SubscriptionPage({ onBack, academy, onSubscribe }: SubscriptionPageProps) {
+export function SubscriptionPage({ onBack, academy, onSubscribe, isModal = false }: SubscriptionPageProps) {
     const [isLoading, setIsLoading] = React.useState<string | null>(null);
 
     const handlePayment = async (plan: typeof plans[0]) => {
         setIsLoading(plan.id);
 
-        // NOTE: For a production application, you must generate the 'order_id' on your backend
-        // using Razorpay's Orders API with your secret key. This is skipped for this frontend-only demo.
         const options = {
-            key: 'rzp_test_ILz21I2p3wQp4P', // This is a public test key, fine for prototyping
+            key: 'rzp_test_ILz21I2p3wQp4P',
             amount: plan.amount,
             currency: "INR",
             name: "Class Captain Subscription",
             description: `Payment for ${plan.title} Plan`,
             image: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCAyOCAyNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgMTIgSDE4IFYxNSBIMjIgVjIxIEg2IFYxNSBIMTAgVjEyIFoiIGZpbGw9IiNENUwMDAwIi8+PHBhdGggZD0iTTggNSBIMjAgTDE4IDExIEgxMCBaIiBmaWxsPSIjRDUwMDAwIi8+PC9zdmc+",
             handler: async (response: any) => {
-                // In a real app, send `response.razorpay_payment_id` to your backend for verification.
-                // Here, we'll assume success and update the subscription in Firestore.
                 try {
                     await onSubscribe(plan.id as any, plan.months);
                 } catch (error) {
@@ -101,11 +99,11 @@ export function SubscriptionPage({ onBack, academy, onSubscribe }: SubscriptionP
                 academy_name: academy.name
             },
             theme: {
-                color: "#4f46e5" // Indigo-600
+                color: "#4f46e5"
             },
             modal: {
                 ondismiss: () => {
-                    setIsLoading(null); // Stop loading if user closes the modal
+                    setIsLoading(null);
                 }
             }
         };
@@ -143,6 +141,50 @@ export function SubscriptionPage({ onBack, academy, onSubscribe }: SubscriptionP
         return <div className={`p-3 rounded-lg text-sm font-semibold text-center ${color}`}>{text}</div>;
     };
 
+    const plansContent = (
+         <>
+            <StatusIndicator />
+            <div className="text-center my-8">
+                <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Choose Your Plan</h2>
+                <p className="mt-2 text-gray-600 dark:text-gray-400">Select the perfect plan for your institute's needs.</p>
+            </div>
+            <div className="space-y-8 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-8">
+                {plans.map(plan => (
+                    <PlanCard 
+                        key={plan.id}
+                        title={plan.title}
+                        price={plan.price}
+                        period={plan.period}
+                        features={plan.features}
+                        isPopular={plan.isPopular}
+                        onSelect={() => handlePayment(plan)}
+                        isCurrent={academy.plan === plan.id && academy.subscriptionStatus === 'active'}
+                        isLoading={isLoading === plan.id}
+                        disabled={!!isLoading}
+                    />
+                ))}
+            </div>
+        </>
+    );
+
+    if (isModal) {
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 animate-fade-in">
+                <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
+                    <header className="flex-shrink-0 p-4 flex justify-between items-center border-b dark:border-gray-700 bg-white dark:bg-gray-800 rounded-t-2xl">
+                         <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Subscription & Billing</h1>
+                         <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                            <XMarkIcon className="w-6 h-6 text-gray-600 dark:text-gray-300"/>
+                        </button>
+                    </header>
+                    <main className="flex-grow p-4 overflow-y-auto">
+                        {plansContent}
+                    </main>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="animate-fade-in flex flex-col h-full bg-gray-100 dark:bg-gray-900">
             <header className="bg-indigo-700 text-white p-3 flex items-center shadow-md flex-shrink-0 sticky top-0 z-10">
@@ -152,27 +194,7 @@ export function SubscriptionPage({ onBack, academy, onSubscribe }: SubscriptionP
                 <h1 className="text-xl font-bold ml-2">Subscription & Billing</h1>
             </header>
             <main className="flex-grow p-4 overflow-y-auto">
-                <StatusIndicator />
-                <div className="text-center my-8">
-                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Choose Your Plan</h2>
-                    <p className="mt-2 text-gray-600 dark:text-gray-400">Select the perfect plan for your institute's needs.</p>
-                </div>
-                <div className="space-y-8 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-8">
-                    {plans.map(plan => (
-                        <PlanCard 
-                            key={plan.id}
-                            title={plan.title}
-                            price={plan.price}
-                            period={plan.period}
-                            features={plan.features}
-                            isPopular={plan.isPopular}
-                            onSelect={() => handlePayment(plan)}
-                            isCurrent={academy.plan === plan.id && academy.subscriptionStatus === 'active'}
-                            isLoading={isLoading === plan.id}
-                            disabled={!!isLoading}
-                        />
-                    ))}
-                </div>
+                {plansContent}
             </main>
         </div>
     );

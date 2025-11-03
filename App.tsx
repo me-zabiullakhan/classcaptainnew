@@ -17,6 +17,7 @@ import { demoStudents, demoBatches, demoStaff, demoTransactions, demoEnquiries, 
 
 // Components
 import { SplashScreen } from './components/SplashScreen';
+import { RoleSelectionPage } from './components/auth/RoleSelectionPage';
 import { LoginPage } from './components/auth/LoginPage';
 import { RegisterPage } from './components/auth/RegisterPage';
 import { CompleteRegistrationPage } from './components/auth/CompleteRegistrationPage';
@@ -203,8 +204,11 @@ export default function App() {
         return 'light';
     });
 
+    type Role = 'academy' | 'student' | 'staff';
+
     // App state
-    const [page, setPage] = useState('login');
+    const [page, setPage] = useState('role-selection');
+    const [loginPageRole, setLoginPageRole] = useState<Role>('academy');
     const [pageParams, setPageParams] = useState<{[key: string]: any}>({});
     const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -303,6 +307,7 @@ export default function App() {
     useEffect(() => {
         if (isPlaceholderConfig) {
             setIsLoading(false);
+            setPage('login');
             return;
         }
 
@@ -378,7 +383,13 @@ export default function App() {
                 // User is signed out.
                 setCurrentUser(null);
                 setAcademy(null);
-                setPage('login');
+                const lastSelectedRole = localStorage.getItem('lastSelectedRole');
+                if (lastSelectedRole) {
+                    setLoginPageRole(lastSelectedRole as Role);
+                    setPage('login');
+                } else {
+                    setPage('role-selection');
+                }
             }
             setIsLoading(false);
         }, (error) => {
@@ -640,7 +651,8 @@ export default function App() {
         }
         setCurrentUser(null);
         setAcademy(null);
-        setPage('login');
+        localStorage.removeItem('lastSelectedRole');
+        setPage('role-selection');
     };
     
     const handleCompleteRegistration = async (instituteName: string) => {
@@ -1208,7 +1220,7 @@ export default function App() {
         return (
             <div className="min-h-screen flex flex-col">
                 <ConfigurationWarning />
-                <LoginPage onLogin={handleLogin} onNavigateToRegister={() => setPage('register')} externalError={authError} clearExternalError={() => setAuthError(null)} />
+                <LoginPage onLogin={handleLogin} onNavigateToRegister={() => setPage('register')} externalError={authError} clearExternalError={() => setAuthError(null)} initialRole="academy" onGoBack={() => {}} />
             </div>
         );
     }
@@ -1219,19 +1231,44 @@ export default function App() {
 
     if (!currentUser) {
         switch (page) {
+            case 'role-selection':
+                return <RoleSelectionPage onSelectRole={(role) => {
+                    localStorage.setItem('lastSelectedRole', role);
+                    setLoginPageRole(role);
+                    setPage('login');
+                }} onBack={() => {
+                     if (window.history.length > 1) {
+                        window.history.back();
+                    }
+                }} />;
             case 'register':
                 return <RegisterPage onNavigateToLogin={() => setPage('login')} />;
             case 'complete-registration':
                 return <CompleteRegistrationPage onComplete={handleCompleteRegistration} onLogout={handleLogout} userEmail={auth.currentUser?.email || ''} externalError={authError} clearExternalError={() => setAuthError(null)} />;
             default:
-                return <LoginPage onLogin={handleLogin} onNavigateToRegister={() => setPage('register')} externalError={authError} clearExternalError={() => setAuthError(null)} />;
+                return <LoginPage 
+                    onLogin={handleLogin} 
+                    onNavigateToRegister={() => setPage('register')} 
+                    externalError={authError} 
+                    clearExternalError={() => setAuthError(null)}
+                    initialRole={loginPageRole}
+                    onGoBack={() => {
+                        localStorage.removeItem('lastSelectedRole');
+                        setPage('role-selection');
+                    }}
+                />;
         }
     }
 
     // After this point, currentUser is guaranteed to be defined.
 
     if (currentUser.role === 'admin' && academy?.subscriptionStatus === 'expired') {
-        return <SubscriptionExpiredPage onNavigate={setPage} onLogout={handleLogout} />;
+        return <SubscriptionExpiredPage 
+            onNavigate={setPage} 
+            onLogout={handleLogout} 
+            academy={academy}
+            onSubscribe={handleSubscribe}
+        />;
     }
 
     // FIX: Super admin has a standalone page and should not be wrapped in the main layout, which causes nested layouts and a TypeScript error.

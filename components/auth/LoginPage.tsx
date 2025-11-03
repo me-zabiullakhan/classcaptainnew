@@ -24,6 +24,8 @@ interface LoginPageProps {
     onNavigateToRegister: () => void;
     externalError: string | null;
     clearExternalError: () => void;
+    initialRole: Role;
+    onGoBack: () => void;
 }
 
 const RoleSwitcher = ({ activeRole, onRoleChange }: { activeRole: Role, onRoleChange: (role: Role) => void }) => {
@@ -340,13 +342,17 @@ const StaffLoginForm = (props: any) => {
     );
 };
 
-export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearExternalError }: LoginPageProps): React.ReactNode {
-    const [role, setRole] = React.useState<Role>('academy');
+export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearExternalError, initialRole, onGoBack }: LoginPageProps): React.ReactNode {
+    const [role, setRole] = React.useState<Role>(initialRole);
     const [isLoading, setIsLoading] = React.useState(false);
     const [error, setError] = React.useState('');
     const [showAcademyNotFound, setShowAcademyNotFound] = React.useState(false);
     const [isSuperAdminModalOpen, setIsSuperAdminModalOpen] = React.useState(false);
     const [showConfigError, setShowConfigError] = React.useState(false);
+    
+    React.useEffect(() => {
+        setRole(initialRole);
+    }, [initialRole]);
 
     React.useEffect(() => {
         if (externalError) {
@@ -371,7 +377,7 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
         <>
         {showConfigError && <AuthErrorModal onClose={() => { setShowConfigError(false); setIsLoading(false); }} />}
 
-        <AuthLayout title="Welcome Back!" subtitle="Please sign in to continue">
+        <AuthLayout title="Welcome Back!" subtitle="Please sign in to continue" onBack={onGoBack}>
             <AuthCard>
                 <RoleSwitcher activeRole={role} onRoleChange={handleRoleChange} />
                 
