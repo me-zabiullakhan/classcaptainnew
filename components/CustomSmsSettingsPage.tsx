@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { RefreshIcon } from './icons/RefreshIcon';
@@ -66,6 +65,19 @@ const DEFAULT_TEMPLATES: Record<string, TemplateData> = {
             '[BATCH_NAME]': 'for batch name',
             '[STATUS]': 'for present/absent',
             '[DATE]': 'for attendance date'
+        }
+    },
+    monthlyAttendanceReport: {
+        title: "Monthly Attendance Report SMS",
+        template: "Dear Parents, Monthly attendance report for [STUDENT_NAME] ([BATCH_NAME]) for [MONTH]: Present-[P_DAYS], Absent-[A_DAYS], Leave-[L_DAYS].\nRegards,\n[ACADEMY_NAME] ~",
+        placeholders: {
+            '[STUDENT_NAME]': 'for student name',
+            '[BATCH_NAME]': 'for batch name',
+            '[MONTH]': 'for the report month',
+            '[P_DAYS]': 'for present days count',
+            '[A_DAYS]': 'for absent days count',
+            '[L_DAYS]': 'for leave days count',
+            '[ACADEMY_NAME]': 'for academy name'
         }
     },
     staffAttendance: {

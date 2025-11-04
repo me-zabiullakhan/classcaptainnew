@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import type { Student, Batch, FeeCollection, Academy } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -8,6 +7,9 @@ import { XMarkIcon } from './icons/XMarkIcon';
 import { WhatsappIcon } from './icons/WhatsappIcon';
 import { SmsIcon } from './icons/SmsIcon';
 import { CheckCircleIcon } from './icons/CheckCircleIcon';
+import { LogoIcon } from './icons/LogoIcon';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface SendDuesReminderModalProps {
     onClose: () => void;
@@ -42,7 +44,7 @@ const SendDuesReminderModal: React.FC<SendDuesReminderModalProps> = ({ onClose, 
 
         const { student, pendingMonths } = studentsWithDues[currentIndex];
         const template = academy.smsTemplates?.[FEE_REMINDER_TEMPLATE_KEY] || DEFAULT_FEE_REMINDER_TEMPLATE;
-        const totalDue = (student.feeAmount || 0) * pendingMonths.length;
+        const totalDue = ((student.feeAmount || 0) + (student.transportFee || 0)) * pendingMonths.length;
 
         const message = template
             .replace(/\[STUDENT_NAME\]/g, student.name)
@@ -170,6 +172,73 @@ const SendDuesReminderModal: React.FC<SendDuesReminderModalProps> = ({ onClose, 
     );
 }
 
+const FeeDuesPrintableReport = ({ academy, dues, batchFilterName }: { academy: Academy; dues: { student: Student; pendingMonths: string[] }[], batchFilterName: string; }) => {
+    const totalDueAmount = dues.reduce((sum, { student, pendingMonths }) => {
+        const studentDue = ((student.feeAmount || 0) + (student.transportFee || 0)) * pendingMonths.length;
+        return sum + studentDue;
+    }, 0);
+
+    return (
+        <div className="printable-form bg-white text-black font-sans">
+            <div className="p-8">
+                <div className="flex justify-between items-center pb-4 border-b-2 border-gray-300">
+                    <div className="flex items-center space-x-4">
+                        {academy.logoUrl ? <img src={academy.logoUrl} alt="Logo" className="w-16 h-16 object-contain" /> : <LogoIcon className="w-16 h-16 text-indigo-600" />}
+                        <div>
+                            <h1 className="text-2xl font-bold">{academy.name}</h1>
+                            <p className="text-sm">Fee Dues List</p>
+                        </div>
+                    </div>
+                    <div className="text-right text-sm">
+                        <p>Date: {new Date().toLocaleDateString('en-GB')}</p>
+                        <p>Batch: {batchFilterName}</p>
+                    </div>
+                </div>
+
+                <table className="w-full text-left mt-8 border-collapse">
+                    <thead>
+                        <tr className="bg-gray-100">
+                            <th className="p-2 border border-gray-300">S.No.</th>
+                            <th className="p-2 border border-gray-300">Student Name</th>
+                            <th className="p-2 border border-gray-300">Phone Number</th>
+                            <th className="p-2 border border-gray-300 text-right">Amount Due (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {dues.map(({ student, pendingMonths }, index) => {
+                            const studentDue = ((student.feeAmount || 0) + (student.transportFee || 0)) * pendingMonths.length;
+                            return (
+                                <tr key={student.id}>
+                                    <td className="p-2 border border-gray-300">{index + 1}</td>
+                                    <td className="p-2 border border-gray-300">{student.name}</td>
+                                    <td className="p-2 border border-gray-300">{student.mobile1}</td>
+                                    <td className="p-2 border border-gray-300 text-right">{studentDue.toFixed(2)}</td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                    <tfoot>
+                        <tr className="font-bold bg-gray-100">
+                            <td className="p-2 border border-gray-300" colSpan={3}>Total Due Amount</td>
+                            <td className="p-2 border border-gray-300 text-right">{totalDueAmount.toFixed(2)}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                 <div className="pt-24 text-sm">
+                    <div className="flex justify-end">
+                        <div className="text-center">
+                            <div className="w-48 border-b-2 border-gray-400"></div>
+                            <p className="mt-2 font-semibold">Authorised Signature</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 interface FeeDuesListPageProps {
   onBack: () => void;
   students: Student[];
@@ -223,80 +292,164 @@ const getDuesData = (students: Student[], feeCollections: FeeCollection[]) => {
 export function FeeDuesListPage({ onBack, students, batches, feeCollections, academy }: FeeDuesListPageProps) {
     const [filter, setFilter] = React.useState('all');
     const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
+    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     
     const duesData = getDuesData(students, feeCollections);
 
     const filteredDues = duesData.filter(({ student }) =>
         filter === 'all' || student.batches.includes(filter)
     );
+    
+    const batchFilterName = filter === 'all' ? 'All Batches' : batches.find(b => b.name === filter)?.name || 'All Batches';
+
+    const handleExportPdf = async () => {
+        setIsGeneratingPdf(true);
+    
+        // Use a short timeout to allow React to render the hidden component before capturing
+        setTimeout(async () => {
+            const reportElement = document.getElementById('pdf-report-container');
+            if (!reportElement) {
+                console.error("Report element not found");
+                setIsGeneratingPdf(false);
+                return;
+            }
+    
+            try {
+                const canvas = await html2canvas(reportElement, { scale: 2, useCORS: true });
+                const imgData = canvas.toDataURL('image/png');
+    
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'px',
+                    format: 'a4'
+                });
+    
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+                const imgProps = pdf.getImageProperties(imgData);
+                const imgRatio = imgProps.height / imgProps.width;
+                
+                let finalWidth = pdfWidth - 20; // with some margin
+                let finalHeight = finalWidth * imgRatio;
+
+                if (finalHeight > pdfHeight - 20) {
+                    finalHeight = pdfHeight - 20;
+                    finalWidth = finalHeight / imgRatio;
+                }
+                
+                const x = (pdfWidth - finalWidth) / 2;
+                const y = 10;
+    
+                pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
+                
+                const pdfBlob = pdf.output('blob');
+                const fileName = `Fee-Dues-${batchFilterName.replace(/ /g, '_')}-${new Date().toLocaleDateString('en-CA')}.pdf`;
+                const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+    
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+                    await navigator.share({
+                        title: 'Fee Dues Report',
+                        text: `Fee Dues for ${batchFilterName}`,
+                        files: [pdfFile],
+                    });
+                } else {
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(pdfFile);
+                    link.download = fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(link.href);
+                }
+            } catch (error) {
+                console.error("Error generating PDF:", error);
+                alert("Sorry, there was an error generating the PDF.");
+            } finally {
+                setIsGeneratingPdf(false);
+            }
+        }, 100);
+    };
 
     return (
-        <div className="animate-fade-in flex flex-col h-full">
-            <div className="flex-shrink-0 sticky top-0 z-10 bg-slate-100 dark:bg-gray-900 shadow-md">
-                <header className="bg-indigo-700 text-white p-3 flex items-center">
-                    <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back">
-                        <ArrowLeftIcon className="w-6 h-6" />
-                    </button>
-                    <h1 className="text-xl font-bold ml-2">Fee Dues List</h1>
-                </header>
-                <div className="p-4">
-                    <select
-                        value={filter}
-                        onChange={e => setFilter(e.target.value)}
-                        className="w-full px-4 py-2 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                        <option value="all">All Batches</option>
-                        {batches.filter(b => b.isActive).map(batch => (
-                            <option key={batch.id} value={batch.name}>{batch.name}</option>
-                        ))}
-                    </select>
-                </div>
+        <>
+            <div style={{ position: 'fixed', left: '-9999px', top: 0, zIndex: -1 }}>
+                 {isGeneratingPdf && (
+                     <div id="pdf-report-container" style={{ width: '210mm' }}>
+                         <FeeDuesPrintableReport
+                            academy={academy}
+                            dues={filteredDues}
+                            batchFilterName={batchFilterName}
+                        />
+                     </div>
+                 )}
             </div>
-            <main className="flex-grow overflow-y-auto px-4">
-                {filteredDues.length > 0 ? (
-                    <div className="space-y-4 pb-4">
-                        {filteredDues.map(({ student, pendingMonths }) => {
-                            const totalDue = (student.feeAmount || 0) * pendingMonths.length;
-                            return (
-                                <div key={student.id} className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-red-500">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="font-bold text-gray-800">{student.name}</p>
-                                            <p className="text-sm text-gray-500">{student.rollNumber}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="font-bold text-lg text-red-600">₹{totalDue.toFixed(2)}</p>
-                                            <p className="text-xs text-gray-500">{pendingMonths.length} {student.feeType === 'Monthly' ? 'month(s)' : 'year(s)'} due</p>
+            <div className={'animate-fade-in flex flex-col h-full'}>
+                <div className="flex-shrink-0 sticky top-0 z-10 bg-slate-100 dark:bg-gray-900 shadow-md">
+                    <header className="bg-indigo-700 text-white p-3 flex items-center">
+                        <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800 transition-colors" aria-label="Go back">
+                            <ArrowLeftIcon className="w-6 h-6" />
+                        </button>
+                        <h1 className="text-xl font-bold ml-2">Fee Dues List</h1>
+                    </header>
+                    <div className="p-4">
+                        <select
+                            value={filter}
+                            onChange={e => setFilter(e.target.value)}
+                            className="w-full px-4 py-2 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                            <option value="all">All Batches</option>
+                            {batches.filter(b => b.isActive).map(batch => (
+                                <option key={batch.id} value={batch.name}>{batch.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+                <main className="flex-grow overflow-y-auto px-4">
+                    {filteredDues.length > 0 ? (
+                        <div className="space-y-4 pb-4">
+                            {filteredDues.map(({ student, pendingMonths }) => {
+                                const totalDue = ((student.feeAmount || 0) + (student.transportFee || 0)) * pendingMonths.length;
+                                return (
+                                    <div key={student.id} className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-red-500">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="font-bold text-gray-800">{student.name}</p>
+                                                <p className="text-sm text-gray-500">{student.rollNumber}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-bold text-lg text-red-600">₹{totalDue.toFixed(2)}</p>
+                                                <p className="text-xs text-gray-500">{pendingMonths.length} {student.feeType === 'Monthly' ? 'month(s)' : 'year(s)'} due</p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <div className="text-center py-20 px-4">
-                        <p className="text-lg text-gray-500">No fee dues found!</p>
-                        <p className="text-sm text-gray-400 mt-2">All student fees are up to date for the selected filter.</p>
-                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="text-center py-20 px-4">
+                            <p className="text-lg text-gray-500">No fee dues found!</p>
+                            <p className="text-sm text-gray-400 mt-2">All student fees are up to date for the selected filter.</p>
+                        </div>
+                    )}
+                </main>
+                 <footer className="p-3 bg-white border-t grid grid-cols-2 gap-3 flex-shrink-0">
+                    <button onClick={() => setIsSmsModalOpen(true)} className="flex items-center justify-center space-x-2 w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors shadow-md">
+                        <BellIcon className="w-5 h-5" />
+                        <span>Send Reminder</span>
+                    </button>
+                    <button onClick={handleExportPdf} disabled={isGeneratingPdf} className="flex items-center justify-center space-x-2 w-full bg-slate-800 text-white font-bold py-3 px-4 rounded-lg hover:bg-slate-900 transition-colors shadow-md disabled:bg-slate-600">
+                        <PdfIcon className="w-5 h-5" />
+                        <span>{isGeneratingPdf ? 'Generating...' : 'Export PDF'}</span>
+                    </button>
+                 </footer>
+                 {isSmsModalOpen && (
+                    <SendDuesReminderModal
+                        onClose={() => setIsSmsModalOpen(false)}
+                        studentsWithDues={filteredDues}
+                        academy={academy}
+                    />
                 )}
-            </main>
-             <footer className="p-3 bg-white border-t grid grid-cols-2 gap-3 flex-shrink-0">
-                <button onClick={() => setIsSmsModalOpen(true)} className="flex items-center justify-center space-x-2 w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors shadow-md">
-                    <BellIcon className="w-5 h-5" />
-                    <span>Send Reminder</span>
-                </button>
-                <button onClick={() => alert('Feature under development')} className="flex items-center justify-center space-x-2 w-full bg-slate-800 text-white font-bold py-3 px-4 rounded-lg hover:bg-slate-900 transition-colors shadow-md">
-                    <PdfIcon className="w-5 h-5" />
-                    <span>Export PDF</span>
-                </button>
-             </footer>
-             {isSmsModalOpen && (
-                <SendDuesReminderModal
-                    onClose={() => setIsSmsModalOpen(false)}
-                    studentsWithDues={filteredDues}
-                    academy={academy}
-                />
-            )}
-        </div>
+            </div>
+        </>
     );
 }

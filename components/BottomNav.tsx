@@ -2,14 +2,15 @@
 import React from 'react';
 import { DashboardIcon } from './icons/DashboardIcon';
 import { AccountIcon } from './icons/AccountIcon';
-import { CentralIcon } from './icons/CentralIcon';
+import { ChatbotIcon } from './icons/CentralIcon';
 
 interface BottomNavProps {
   onNavigate: (page: string) => void;
   activePage: string;
+  onOpenChatbot: () => void;
 }
 
-export function BottomNav({ onNavigate, activePage }: BottomNavProps): React.ReactNode {
+export function BottomNav({ onNavigate, activePage, onOpenChatbot }: BottomNavProps): React.ReactNode {
   return (
     <footer className="bg-white sticky bottom-0 w-full border-t border-gray-200 md:rounded-b-xl dark:bg-gray-800 dark:border-gray-700">
       <div className="flex justify-around items-center h-16">
@@ -23,8 +24,12 @@ export function BottomNav({ onNavigate, activePage }: BottomNavProps): React.Rea
         </button>
         
         <div className="relative -mt-12">
-          <button className="w-16 h-16 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg border-4 border-white dark:border-gray-800" aria-label="Central Action">
-            <CentralIcon className="w-8 h-8"/>
+          <button
+            onClick={onOpenChatbot}
+            className="w-16 h-16 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg border-4 border-white dark:border-gray-800"
+            aria-label="AI Chatbot"
+          >
+            <ChatbotIcon className="w-8 h-8"/>
           </button>
         </div>
         

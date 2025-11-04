@@ -2,7 +2,8 @@
   "name": "Class Captain - Institute Management",
   "description": "A React and Tailwind CSS web application for institute management, now with full Firebase integration. This application uses Firebase Authentication for academy admin logins and Firestore for real-time database management of students, batches, and more. To run this project, you must create your own Firebase project and populate the `firebaseConfig.ts` file with your credentials.",
   "requestFramePermissions": [
-    "camera"
+    "camera",
+    "microphone"
   ],
   "prompt": ""
 }

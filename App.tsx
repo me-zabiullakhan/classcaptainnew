@@ -119,6 +119,7 @@ import { NewTransportRoutePage } from './components/NewTransportRoutePage';
 import { EditTransportRoutePage } from './components/EditTransportRoutePage';
 import { MapStudentsToRoutePage } from './components/MapStudentsToRoutePage';
 import { StudentTransportPage } from './components/student/StudentTransportPage';
+import { AIChatbot } from './components/AIChatbot';
 
 // Check if Firebase config is still the placeholder
 const isPlaceholderConfig = firebaseConfig.apiKey.includes('placeholder');
@@ -256,6 +257,7 @@ export default function App() {
     const [showConsent, setShowConsent] = useState(!localStorage.getItem('dataConsentAccepted'));
     const [showDevPopup, setShowDevPopup] = useState<string | null>(null);
     const [imageToView, setImageToView] = useState<string | null>(null);
+    const [isChatbotOpen, setIsChatbotOpen] = useState(false);
 
     // Scroll to top on page change
     useEffect(() => {
@@ -1379,7 +1381,7 @@ export default function App() {
             case 'reports-options':
                 return <ReportsPage onBack={() => setPage('dashboard')} onNavigate={setPage} onShowDevPopup={setShowDevPopup} />;
             case 'attendance-report':
-                return <AttendanceReportPage onBack={() => setPage('reports-options')} batches={batches} students={students} academyId={academy!.id} />;
+                return <AttendanceReportPage onBack={() => setPage('reports-options')} batches={batches} students={students} academyId={academy!.id} academy={academy!} />;
             case 'staff-attendance-report':
                 return <StaffAttendanceReportPage onBack={() => setPage('reports-options')} staff={staff} staffAttendance={staffAttendance} />;
             case 'study-material':
@@ -1504,7 +1506,7 @@ export default function App() {
                      {page === 'dashboard' && <Header academy={academy} onLogout={handleLogout} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme} onNavigate={setPage} notificationCount={notificationCount} />}
                      <SideNav isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} onNavigate={setPage} onLogout={handleLogout} onShowDevPopup={setShowDevPopup} />
                      <main>{children}</main>
-                     <BottomNav onNavigate={setPage} activePage={page} />
+                     <BottomNav onNavigate={setPage} activePage={page} onOpenChatbot={() => setIsChatbotOpen(true)} />
                  </>
             )}
             
@@ -1526,6 +1528,20 @@ export default function App() {
             {showConsent && <DataConsentModal onAccept={() => { localStorage.setItem('dataConsentAccepted', 'true'); setShowConsent(false); }} />}
             {showDevPopup && <DevInProgressPopup featureName={showDevPopup} onClose={() => setShowDevPopup(null)} />}
             {imageToView && <FullScreenImageViewer src={imageToView} alt="Full screen view" onClose={() => setImageToView(null)} />}
+             {isChatbotOpen && academy && (
+                <AIChatbot
+                    isOpen={isChatbotOpen}
+                    onClose={() => setIsChatbotOpen(false)}
+                    onNavigate={(page: string) => {
+                        handleNavigate(page);
+                        setIsChatbotOpen(false);
+                    }}
+                    students={students}
+                    feeCollections={feeCollections}
+                    batches={batches}
+                    academyId={academy.id}
+                />
+            )}
         </div>
     );
 
