@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import type { Notice } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -110,7 +109,8 @@ const NoticeModal: React.FC<NoticeModalProps> = ({ onClose, onSave, noticeToEdit
                 <form onSubmit={handleSave} className="flex-grow overflow-y-auto pr-2 space-y-4">
                     <input type="text" name="title" placeholder="Notice Title" value={formData.title} onChange={handleChange} required className="w-full p-3 bg-gray-50 dark:bg-gray-700 border rounded-lg" />
                     <textarea name="description" placeholder="Message / Description" value={formData.description} onChange={handleChange} rows={5} required className="w-full p-3 bg-gray-50 dark:bg-gray-700 border rounded-lg" />
-                    <CustomDropdown label="Target Audience" options={TARGET_AUDIENCE.map(p => ({ value: p, label: p }))} selectedValue={formData.targetAudience} onSelect={val => setFormData(p => ({ ...p, targetAudience: val }))} />
+                    {/* FIX: Cast the value from onSelect to the correct union type for 'targetAudience'. */}
+                    <CustomDropdown label="Target Audience" options={TARGET_AUDIENCE.map(p => ({ value: p, label: p }))} selectedValue={formData.targetAudience} onSelect={val => setFormData(p => ({ ...p, targetAudience: val as Notice['targetAudience'] }))} />
                     <div>
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Expiry Date</label>
                         <input type="date" name="expiryDate" value={formData.expiryDate} onChange={handleChange} required className="w-full mt-1 p-3 bg-gray-50 dark:bg-gray-700 border rounded-lg" />

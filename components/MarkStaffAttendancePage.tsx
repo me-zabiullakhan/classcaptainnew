@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import type { Batch, Staff, ScheduleItem, DailySchedule, StaffAttendance } from '../types';
+import type { Batch, Staff, ScheduleItem, DailySchedule, StaffAttendance, ClassScheduleItem } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { db } from '../firebaseConfig';
 // FIX: Import `Timestamp` from `firebase/firestore` to fix 'Cannot find name Timestamp' error.
@@ -28,7 +28,7 @@ const AttendanceModal: React.FC<{
     staffMember: Staff;
     date: Date;
     batches: Batch[];
-    scheduledClasses: (ScheduleItem & { batchName: string })[];
+    scheduledClasses: (ClassScheduleItem & { batchName: string })[];
     existingEntry?: StaffAttendance | null;
 }> = ({ onClose, onSave, staffMember, date, batches, scheduledClasses, existingEntry }) => {
     const isEditMode = !!existingEntry;
@@ -128,7 +128,8 @@ export function MarkStaffAttendancePage({ onBack, batches, staff, academyId, isD
     const [showModal, setShowModal] = useState(false);
     const [editingEntry, setEditingEntry] = useState<StaffAttendance | null>(null);
     const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
-    const [scheduledClasses, setScheduledClasses] = useState<(ScheduleItem & { batchName: string })[]>([]);
+    // FIX: Narrowed the type from ScheduleItem to ClassScheduleItem as only class items are relevant here.
+    const [scheduledClasses, setScheduledClasses] = useState<(ClassScheduleItem & { batchName: string })[]>([]);
     
     const dateString = selectedDate.toISOString().split('T')[0];
     const activeStaff = staff.filter(s => s.isActive);
@@ -144,7 +145,8 @@ export function MarkStaffAttendancePage({ onBack, batches, staff, academyId, isD
             try {
                 const scheduleRef = doc(db, `academies/${academyId}/schedules/${dateString}`);
                 const docSnap = await getDoc(scheduleRef);
-                const staffClasses: (ScheduleItem & { batchName: string })[] = [];
+                // FIX: Narrowed the type from ScheduleItem to ClassScheduleItem.
+                const staffClasses: (ClassScheduleItem & { batchName: string })[] = [];
                 if (docSnap.exists()) {
                     const data = docSnap.data() as DailySchedule;
                     for (const batchId in data) {

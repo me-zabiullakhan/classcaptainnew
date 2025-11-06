@@ -15,8 +15,21 @@ interface FeeCollectionReportPageProps {
 }
 
 const EditFeeModal = ({ fee, onSave, onClose, isDemoMode }: { fee: FeeCollection; onSave: (id: string, data: any) => Promise<void>; onClose: () => void; isDemoMode: boolean; }) => {
+    const getSafeDateString = (d: any) => {
+        if (!d) return new Date().toISOString().split('T')[0];
+        if (typeof d.toDate === 'function') { // Firestore Timestamp
+            return d.toDate().toISOString().split('T')[0];
+        }
+        // Fallback for strings or JS Date objects
+        const date = new Date(d);
+        if (!isNaN(date.getTime())) {
+            return date.toISOString().split('T')[0];
+        }
+        return new Date().toISOString().split('T')[0];
+    };
+
     const [formData, setFormData] = useState({
-        paymentDate: fee.paymentDate.toDate().toISOString().split('T')[0],
+        paymentDate: getSafeDateString(fee.paymentDate),
         paymentMode: fee.paymentMode,
         discount: String(fee.discount),
     });
@@ -128,7 +141,7 @@ const DeleteConfirmationModal = ({ onConfirm, onCancel, isDeleting }: { onConfir
 );
 
 
-export function FeeCollectionReportPage({ onBack, feeCollections, onDelete, onUpdate, isDemoMode }: FeeCollectionReportPageProps): React.ReactNode {
+export function FeeCollectionReportPage({ onBack, feeCollections, onDelete, onUpdate, isDemoMode }: FeeCollectionReportPageProps) {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [editingFee, setEditingFee] = React.useState<FeeCollection | null>(null);
   const [deletingFee, setDeletingFee] = React.useState<FeeCollection | null>(null);
@@ -192,7 +205,7 @@ export function FeeCollectionReportPage({ onBack, feeCollections, onDelete, onUp
         {filteredCollections.length > 0 ? (
           <div className="space-y-3">
             {filteredCollections.map(fc => {
-                const paymentDate = fc.paymentDate.toDate();
+                const paymentDate = (fc.paymentDate as any)?.toDate ? (fc.paymentDate as any).toDate() : new Date(fc.paymentDate as any);
                 const monthDate = new Date(fc.feeForMonth + '-02');
                 return (
                     <div key={fc.id} className="bg-white p-4 rounded-lg shadow-sm border">

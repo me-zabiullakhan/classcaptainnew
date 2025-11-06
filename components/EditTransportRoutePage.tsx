@@ -57,7 +57,10 @@ interface EditTransportRoutePageProps {
   route: TransportRoute;
 }
 
-const FormInput = ({ label, id, ...props }: { label: string, id: string } & React.InputHTMLAttributes<HTMLInputElement | HTMLTextAreaElement>) => (
+// FIX: Corrected the prop type to be a union of Input and Textarea attributes, allowing 'rows' prop for textareas.
+type FormInputProps = { label: string, id: string } & (React.InputHTMLAttributes<HTMLInputElement> | React.TextareaHTMLAttributes<HTMLTextAreaElement>);
+
+const FormInput = ({ label, id, ...props }: FormInputProps) => (
   <div>
     <label htmlFor={id} className="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-1">{label}</label>
     {props.type === 'textarea' ? (

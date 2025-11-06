@@ -10,7 +10,6 @@ import type { CurrentUser, Student, Staff, Academy } from '../../types';
 import { demoStudents, demoStaff } from '../../demoData';
 import { GoogleIcon } from '../icons/GoogleIcon';
 import firebase from 'firebase/compat/app';
-import { XMarkIcon } from '../icons/XMarkIcon';
 import { AuthLayout, AuthCard, FormInput } from './AuthComponents';
 import { CalendarIcon } from '../icons/CalendarIcon';
 import { AuthErrorModal } from './AuthErrorModal';
@@ -69,46 +68,6 @@ const AcademyLoginFailedPopup = ({ onCancel, onRegister }: { onCancel: () => voi
         </div>
     </div>
 );
-
-const SuperAdminLoginModal = ({ onLogin, onClose }: { onLogin: (user: CurrentUser) => void, onClose: () => void }) => {
-    const [email, setEmail] = React.useState('');
-    const [password, setPassword] = React.useState('');
-    const [error, setError] = React.useState('');
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
-
-        if (email === 'admin@classcaptain.com' && password === 'superadmin123') {
-            onLogin({
-                role: 'superadmin',
-                data: { uid: 'super-admin-static-uid', email: 'admin@classcaptain.com' }
-            });
-            onClose();
-        } else {
-            setError('Invalid super admin credentials.');
-        }
-    };
-
-    return (
-         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fade-in p-4">
-            <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-lg w-full max-w-sm relative">
-                 <button onClick={onClose} className="absolute top-3 right-3 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Close modal">
-                    <XMarkIcon className="w-6 h-6 text-gray-500 dark:text-gray-300" />
-                </button>
-                <h2 className="text-xl font-bold text-center text-gray-800 dark:text-gray-100 mb-6">Super Admin Login</h2>
-                <form onSubmit={handleSubmit}>
-                    <FormInput icon={<EmailIcon className="w-5 h-5" />} label="Email Address" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-                    <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
-                    {error && <p className="text-red-500 text-sm text-center mt-2">{error}</p>}
-                    <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4">
-                        Login
-                    </button>
-                </form>
-            </div>
-        </div>
-    );
-};
 
 const DemoCredentials: React.FC<{ credentials: Record<string, string> }> = ({ credentials }) => (
     <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg border dark:border-gray-600">
@@ -347,7 +306,6 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
     const [isLoading, setIsLoading] = React.useState(false);
     const [error, setError] = React.useState('');
     const [showAcademyNotFound, setShowAcademyNotFound] = React.useState(false);
-    const [isSuperAdminModalOpen, setIsSuperAdminModalOpen] = React.useState(false);
     const [showConfigError, setShowConfigError] = React.useState(false);
     
     React.useEffect(() => {
@@ -403,9 +361,6 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
                         </button>
                     </p>
                 )}
-                 <button onClick={() => setIsSuperAdminModalOpen(true)} className="text-xs text-gray-500 dark:text-gray-400 hover:underline">
-                    Super Admin Login
-                </button>
             </div>
             
             {showAcademyNotFound && (
@@ -418,10 +373,6 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
                 />
             )}
         </AuthLayout>
-
-        {isSuperAdminModalOpen && (
-            <SuperAdminLoginModal onLogin={onLogin} onClose={() => setIsSuperAdminModalOpen(false)} />
-        )}
         </>
     );
 }

@@ -50,13 +50,10 @@ const SuccessModal: React.FC<{
     );
 };
 
+// FIX: Corrected the prop type to be a union of Input and Textarea attributes, allowing 'rows' prop for textareas.
+type FormInputProps = { label: string, id: string } & (React.InputHTMLAttributes<HTMLInputElement> | React.TextareaHTMLAttributes<HTMLTextAreaElement>);
 
-interface NewTransportRoutePageProps {
-  onBack: () => void;
-  onSave: (routeData: Omit<TransportRoute, 'id'>) => Promise<void>;
-}
-
-const FormInput = ({ label, id, ...props }: { label: string, id: string } & React.InputHTMLAttributes<HTMLInputElement | HTMLTextAreaElement>) => (
+const FormInput = ({ label, id, ...props }: FormInputProps) => (
   <div>
     <label htmlFor={id} className="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-1">{label}</label>
     {props.type === 'textarea' ? (
@@ -66,6 +63,12 @@ const FormInput = ({ label, id, ...props }: { label: string, id: string } & Reac
     )}
   </div>
 );
+
+interface NewTransportRoutePageProps {
+  onBack: () => void;
+  onSave: (routeData: Omit<TransportRoute, 'id'>) => Promise<void>;
+}
+
 
 export function NewTransportRoutePage({ onBack, onSave }: NewTransportRoutePageProps): React.ReactNode {
   const [formData, setFormData] = React.useState({

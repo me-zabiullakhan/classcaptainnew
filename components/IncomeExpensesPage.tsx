@@ -1,10 +1,12 @@
 
+
 import React, { useState, useMemo } from 'react';
 import type { Transaction } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { FilterIcon } from './icons/FilterIcon';
 import { TrashIcon } from './icons/TrashIcon';
 import { PencilIcon } from './icons/PencilIcon';
+import { Timestamp, serverTimestamp } from 'firebase/firestore';
 
 interface IncomeExpensesPageProps {
   onBack: () => void;
@@ -64,22 +66,32 @@ const TransactionForm = ({ onSave, onCancel, initialData, isDemoMode }: {
     initialData?: Transaction | null;
     isDemoMode: boolean;
 }) => {
+    const getInitialDateString = (d: any) => {
+        if (!d) return new Date().toISOString().split('T')[0];
+        if (typeof d.toDate === 'function') { // Firestore Timestamp
+            return d.toDate().toISOString().split('T')[0];
+        }
+        // Fallback for strings or JS Date objects
+        const date = new Date(d);
+        if (!isNaN(date.getTime())) {
+            return date.toISOString().split('T')[0];
+        }
+        return new Date().toISOString().split('T')[0];
+    };
+
     const [formData, setFormData] = useState({
         type: initialData?.type || 'Expense',
         category: initialData?.category || '',
         amount: initialData?.amount || '',
         paymentMethod: initialData?.paymentMethod || 'Cash',
         description: initialData?.description || '',
-        date: initialData?.date.toDate().toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+        date: getInitialDateString(initialData?.date),
     });
     const [isSaving, setIsSaving] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         if (name === 'type') {
-            // FIX: Cast `value` to the correct type to resolve TypeScript error.
-            // The `value` is known to be 'Income' or 'Expense' from the button's onClick handler,
-            // but the generic event signature types it as `string`.
             setFormData(prev => ({ ...prev, type: value as 'Income' | 'Expense', category: '' }));
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
@@ -112,28 +124,28 @@ const TransactionForm = ({ onSave, onCancel, initialData, isDemoMode }: {
                     </button>
                 ))}
             </div>
-             <div>
+             <div className="relative z-50">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
                 <select name="category" value={formData.category} onChange={handleChange} required className="mt-1 w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600">
                     <option value="">Select Category</option>
                     {CATEGORIES[formData.type as 'Income' | 'Expense'].map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
             </div>
-             <div>
+             <div className="relative z-40">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Amount</label>
                 <input type="number" name="amount" value={formData.amount} onChange={handleChange} required placeholder="0.00" className="mt-1 w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600" />
             </div>
-            <div>
+            <div className="relative z-30">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Payment Method</label>
                 <select name="paymentMethod" value={formData.paymentMethod} onChange={handleChange} required className="mt-1 w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600">
                     {PAYMENT_METHODS.map(method => <option key={method} value={method}>{method}</option>)}
                 </select>
             </div>
-             <div>
+             <div className="relative z-20">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
                 <input type="date" name="date" value={formData.date} onChange={handleChange} required className="mt-1 w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600" />
             </div>
-             <div>
+             <div className="relative z-10">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
                 <textarea name="description" value={formData.description} onChange={handleChange} rows={3} placeholder="Add a note..." className="mt-1 w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600"></textarea>
             </div>
@@ -158,11 +170,27 @@ export function IncomeExpensesPage({ onBack, transactions, onSave, onUpdate, onD
     const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     
-    const sortedTransactions = useMemo(() => [...transactions].sort((a, b) => b.date.toMillis() - a.date.toMillis()), [transactions]);
+    const sortedTransactions = useMemo(() => {
+        return [...transactions].sort((a, b) => {
+            const timeB = b.date && typeof b.date.toMillis === 'function' 
+                ? b.date.toMillis() 
+                : new Date(b.date as any).getTime();
+            
+            const timeA = a.date && typeof a.date.toMillis === 'function' 
+                ? a.date.toMillis() 
+                : new Date(a.date as any).getTime();
+    
+            if (isNaN(timeA) || isNaN(timeB)) return 0;
+    
+            return timeB - timeA;
+        });
+    }, [transactions]);
     
     const filteredTransactions = useMemo(() => {
         return sortedTransactions.filter(tx => {
-            const txDate = tx.date.toDate();
+            const txDate = tx.date && typeof tx.date.toDate === 'function' ? tx.date.toDate() : new Date(tx.date as any);
+            if(isNaN(txDate.getTime())) return false;
+
             const start = filterState.startDate ? new Date(filterState.startDate) : null;
             const end = filterState.endDate ? new Date(filterState.endDate) : null;
             if(start) start.setHours(0,0,0,0);
@@ -186,13 +214,22 @@ export function IncomeExpensesPage({ onBack, transactions, onSave, onUpdate, onD
     const allCategories = useMemo(() => ['all', ...new Set(transactions.map(t => t.category))], [transactions]);
 
     const handleSaveNew = async (data: any) => {
-        await onSave(data);
+        const dataToSave = {
+            ...data,
+            date: Timestamp.fromDate(new Date(data.date)),
+            createdAt: serverTimestamp(),
+        };
+        await onSave(dataToSave as any);
         setActiveTab('view');
     };
     
     const handleUpdate = async (data: any) => {
         if(!editingTransaction) return;
-        await onUpdate(editingTransaction.id, data);
+        const dataToSave = {
+            ...data,
+            date: Timestamp.fromDate(new Date(data.date)),
+        };
+        await onUpdate(editingTransaction.id, dataToSave);
         setEditingTransaction(null);
     };
 
@@ -256,7 +293,7 @@ export function IncomeExpensesPage({ onBack, transactions, onSave, onUpdate, onD
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <p className="font-bold text-gray-800 dark:text-gray-100">{tx.category}</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">{tx.date.toDate().toLocaleDateString()}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">{(tx.date as any)?.toDate ? (tx.date as any).toDate().toLocaleDateString() : new Date(tx.date as any).toLocaleDateString()}</p>
                                     </div>
                                     <p className={`font-bold text-lg ${tx.type === 'Income' ? 'text-green-600' : 'text-red-600'}`}>₹{tx.amount.toFixed(2)}</p>
                                 </div>

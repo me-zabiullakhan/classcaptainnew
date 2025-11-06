@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { BuildingIcon } from '../icons/BuildingIcon';
 import { EmailIcon } from '../icons/EmailIcon';
@@ -9,6 +10,9 @@ import { GoogleIcon } from '../icons/GoogleIcon';
 import firebase from 'firebase/compat/app';
 import { AuthLayout, AuthCard, FormInput, InfoNote } from './AuthComponents';
 import { collection, query, where, getDocs } from 'firebase/firestore';
+import { RefreshIcon } from '../icons/RefreshIcon';
+import { CheckCircleIcon } from '../icons/CheckCircleIcon';
+import { XCircleIcon } from '../icons/XCircleIcon';
 
 
 interface RegisterPageProps {
@@ -37,7 +41,7 @@ export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
     const [adminName, setAdminName] = React.useState('');
     const [academyId, setAcademyId] = React.useState('');
     const [idStatus, setIdStatus] = React.useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
-    const debouncedAcademyId = useDebounce(academyId, 500);
+    const debouncedAcademyId = useDebounce(academyId, 200);
 
 
     React.useEffect(() => {
@@ -151,12 +155,38 @@ export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
     };
     
     const renderIdStatus = () => {
-        if (debouncedAcademyId.length < 3) return <p className="text-xs text-gray-500 mt-1 pl-1">ID must be at least 3 characters.</p>;
+        if (academyId.length > 0 && academyId.length < 3) {
+            return <p className="text-xs text-gray-500 mt-1 pl-1">ID must be at least 3 characters.</p>;
+        }
+
+        if (academyId.length < 3 || (idStatus === 'idle' && debouncedAcademyId.length < 3)) {
+             return <div className="h-[20px] mt-1"></div>;
+        }
+    
         switch(idStatus) {
-            case 'checking': return <p className="text-xs text-gray-500 mt-1 pl-1">Checking availability...</p>;
-            case 'available': return <p className="text-xs text-green-600 mt-1 pl-1">✓ Available!</p>;
-            case 'taken': return <p className="text-xs text-red-600 mt-1 pl-1">This ID is already taken.</p>;
-            default: return null;
+            case 'checking': 
+                return (
+                    <p className="flex items-center gap-1 text-xs text-gray-500 mt-1 pl-1">
+                        <RefreshIcon className="w-4 h-4 animate-spin" />
+                        <span>Checking availability...</span>
+                    </p>
+                );
+            case 'available': 
+                return (
+                    <p className="flex items-center gap-1 text-xs text-green-600 mt-1 pl-1">
+                        <CheckCircleIcon className="w-4 h-4" />
+                        <span>Available!</span>
+                    </p>
+                );
+            case 'taken': 
+                return (
+                    <p className="flex items-center gap-1 text-xs text-red-600 mt-1 pl-1">
+                        <XCircleIcon className="w-4 h-4" />
+                        <span>This ID is already taken.</span>
+                    </p>
+                );
+            default:
+                return <div className="h-[20px] mt-1"></div>;
         }
     };
 

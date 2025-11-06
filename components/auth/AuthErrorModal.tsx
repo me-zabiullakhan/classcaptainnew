@@ -32,8 +32,9 @@ service cloud.firestore {
 
       // --- Academy Sub-collections ---
 
-      // Admin-only write collections
-      match /(students|staff|fees|transactions|enquiries|studyMaterial|homework|quizzes|tasks|notices|transportRoutes)/{docId} {
+      // Admin-only write access for most sub-collections.
+      // Specific sub-collections like 'leaveRequests' have their own rules below.
+      match /(students|staff|fees|transactions|enquiries|studyMaterial|homework|quizzes|tasks|notices|transportRoutes|staffAttendance)/{docId} {
         allow read: if request.auth != null;
         allow write: if isOwner(academyId);
       }
@@ -68,9 +69,27 @@ service cloud.firestore {
         allow read, write: if request.auth != null;
       }
 
-      // Leave Requests (students/staff can write)
+      // Leave Requests (students/staff can create, admin/staff can update)
       match /leaveRequests/{leaveId} {
-          allow read, write: if request.auth != null;
+          allow read: if request.auth != null;
+
+          // Allow any authenticated user (student, staff via anonymous auth) to create a leave request.
+          // We validate the incoming data to ensure it has the correct shape and values.
+          allow create: if request.auth != null
+                        && request.resource.data.status == 'Pending'
+                        && request.resource.data.userId is string && request.resource.data.userId != ''
+                        && request.resource.data.userName is string && request.resource.data.userName != ''
+                        && request.resource.data.userRole in ['student', 'staff']
+                        && request.resource.data.reason is string && request.resource.data.reason.size() > 0;
+
+          // Allow authenticated users (admins/staff via anonymous auth) to update status.
+          // NOTE: This rule is permissive due to the anonymous auth model for staff/students.
+          // Any logged-in user can approve/reject any leave request. A more secure implementation
+          // would use custom auth tokens for staff.
+          allow update: if request.auth != null;
+
+          // Only Admins should delete.
+          allow delete: if isOwner(academyId);
       }
     }
   }

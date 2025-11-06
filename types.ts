@@ -110,13 +110,7 @@ export type CurrentUser = {
   data: Staff;
   academyId: string;
   academyName: string;
-} | {
-  role: 'superadmin';
-  data: {
-    uid: string;
-    email: string;
-  };
-}
+};
 
 
 export type AttendanceStatus = 'Not Set' | 'Holiday' | 'Leave' | 'Present' | 'Absent';

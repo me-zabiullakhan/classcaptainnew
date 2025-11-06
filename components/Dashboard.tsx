@@ -1,7 +1,7 @@
 
 
-import React from 'react';
-import type { FeatureItem, Academy, Student, Batch, Staff } from '../types';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import type { FeatureItem, Academy, Student, Batch, Staff, Transaction } from '../types';
 import { FeatureIcon } from './FeatureIcon';
 
 import { BatchesIcon } from './icons/BatchesIcon';
@@ -54,21 +54,203 @@ interface DashboardProps {
     students: Student[];
     batches: Batch[];
     staff: Staff[];
+    transactions: Transaction[];
     onShowDevPopup: (featureName: string) => void;
 }
 
-const SummaryCard = ({ title, active, inactive, colorClass, onNavigate }: { title: string, active: number, inactive: number, colorClass: string, onNavigate: () => void }) => (
-  <button onClick={onNavigate} className={`p-4 rounded-xl shadow-md text-white w-full ${colorClass} text-left transition-transform transform hover:scale-105`}>
-    <h3 className="text-xl font-bold">{title}</h3>
-    <div className="mt-2 text-sm">
-      <div className="flex justify-between"><span>Active</span> <span>{active}</span></div>
-      <div className="flex justify-between"><span>Inactive</span> <span>{inactive}</span></div>
+// FIX: Extracted SummaryCard props to a dedicated interface for better type inference and reusability.
+interface SummaryCardProps {
+    title: string; 
+    total: number; 
+    active: number; 
+    inactive: number; 
+    Icon: React.FC<{className?: string}>; 
+    onNavigate: () => void;
+}
+
+const SummaryCard: React.FC<SummaryCardProps> = ({ title, total, active, inactive, Icon, onNavigate }) => (
+  <button onClick={onNavigate} className="flex-1 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md flex items-center gap-4 transition-transform transform hover:scale-105 w-full">
+    <div className="bg-indigo-100 dark:bg-indigo-900/40 p-3 rounded-full">
+      <Icon className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+    </div>
+    <div className="text-left">
+      <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
+      <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{total}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400">
+        {active} Active / {inactive} Inactive
+      </p>
     </div>
   </button>
 );
 
+const StatsSlider: React.FC<{ stats: SummaryCardProps[] }> = ({ stats }) => {
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const sliderRef = useRef<HTMLDivElement>(null);
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-export function Dashboard({ onNavigate, academy, students, batches, staff, onShowDevPopup }: DashboardProps): React.ReactNode {
+    const resetTimeout = () => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
+    };
+
+    useEffect(() => {
+        resetTimeout();
+        timeoutRef.current = setTimeout(
+            () => setCurrentIndex((prevIndex) => (prevIndex + 1) % stats.length),
+            4000
+        );
+
+        return () => {
+            resetTimeout();
+        };
+    }, [currentIndex, stats.length]);
+
+    useEffect(() => {
+        if (sliderRef.current) {
+            const slideWidth = sliderRef.current.offsetWidth;
+            sliderRef.current.scrollTo({
+                left: currentIndex * slideWidth,
+                behavior: 'smooth',
+            });
+        }
+    }, [currentIndex]);
+    
+    return (
+        <div className="mt-8">
+             <h3 className="text-base font-bold text-gray-800 dark:text-gray-100 mb-3 text-center">Institute Stats</h3>
+            <div 
+                ref={sliderRef} 
+                className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth scrollbar-hide -mx-2"
+            >
+                {stats.map((stat, index) => (
+                    <div key={index} className="flex-shrink-0 w-full snap-center px-2">
+                        <SummaryCard {...stat} />
+                    </div>
+                ))}
+            </div>
+            <div className="flex justify-center items-center gap-2 mt-4">
+                {stats.map((_, index) => (
+                    <button
+                        key={index}
+                        onClick={() => setCurrentIndex(index)}
+                        className={`w-2 h-2 rounded-full transition-all duration-300 ${currentIndex === index ? 'w-4 bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+                        aria-label={`Go to stat card ${index + 1}`}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+};
+
+const FinancialOverview: React.FC<{ 
+    transactions: Transaction[], 
+    onNavigate: (page: string) => void,
+    viewMode: 'month' | 'overall',
+    setViewMode: (mode: 'month' | 'overall') => void
+}> = ({ transactions, onNavigate, viewMode, setViewMode }) => {
+    const { totalIncome, totalExpenses } = useMemo(() => {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth();
+
+        const transactionsToProcess = viewMode === 'month'
+            ? transactions.filter(tx => {
+                if (!tx.date) return false;
+                
+                // Handle both Timestamp and other date formats (string, Date)
+                const txDate = tx.date && typeof tx.date.toDate === 'function' 
+                    ? tx.date.toDate() 
+                    : new Date(tx.date as any);
+                
+                if (isNaN(txDate.getTime())) return false;
+        
+                return txDate.getFullYear() === currentYear && txDate.getMonth() === currentMonth;
+            })
+            : transactions;
+
+        return transactionsToProcess
+            .reduce((acc, tx) => {
+                if (tx.type === 'Income') {
+                    acc.totalIncome += tx.amount;
+                } else {
+                    acc.totalExpenses += tx.amount;
+                }
+                return acc;
+            }, { totalIncome: 0, totalExpenses: 0 });
+    }, [transactions, viewMode]);
+
+    const netBalance = totalIncome - totalExpenses;
+    const totalTransactionsValue = totalIncome + totalExpenses;
+    const incomePercentage = totalTransactionsValue > 0 ? (totalIncome / totalTransactionsValue) * 100 : 0;
+
+    return (
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md mt-8">
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-base font-bold text-gray-800 dark:text-gray-100">Financial Overview</h3>
+                 <div className="bg-gray-200 dark:bg-gray-700 p-1 rounded-lg flex text-xs font-semibold">
+                    <button
+                        onClick={() => setViewMode('month')}
+                        className={`px-3 py-1 rounded-md transition-all ${viewMode === 'month' ? 'bg-white dark:bg-gray-800 shadow text-indigo-600' : 'text-gray-600 dark:text-gray-300'}`}
+                    >
+                        This Month
+                    </button>
+                    <button
+                        onClick={() => setViewMode('overall')}
+                        className={`px-3 py-1 rounded-md transition-all ${viewMode === 'overall' ? 'bg-white dark:bg-gray-800 shadow text-indigo-600' : 'text-gray-600 dark:text-gray-300'}`}
+                    >
+                        Overall
+                    </button>
+                </div>
+            </div>
+
+            <div className="w-full bg-red-200 dark:bg-red-900/40 rounded-full h-3 mb-4">
+                <div 
+                    className="bg-green-500 h-3 rounded-full" 
+                    style={{ width: `${incomePercentage}%` }}
+                    title={`Income: ${incomePercentage.toFixed(1)}%`}
+                ></div>
+            </div>
+
+            <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                    <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Income</p>
+                        <p className="font-bold text-gray-800 dark:text-gray-100">₹{totalIncome.toLocaleString('en-IN')}</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2 text-right">
+                    <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Expenses</p>
+                        <p className="font-bold text-gray-800 dark:text-gray-100">₹{totalExpenses.toLocaleString('en-IN')}</p>
+                    </div>
+                    <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <div>
+                    <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Net Balance</p>
+                    <p className={`text-xl font-bold ${netBalance >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-red-600 dark:text-red-400'}`}>
+                        ₹{netBalance.toLocaleString('en-IN')}
+                    </p>
+                </div>
+                <button 
+                    onClick={() => onNavigate('income-expenses')} 
+                    className="px-4 py-2 text-sm font-semibold text-indigo-600 bg-indigo-100 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900"
+                >
+                    View Details →
+                </button>
+            </div>
+        </div>
+    );
+};
+
+
+export function Dashboard({ onNavigate, academy, students, batches, staff, transactions, onShowDevPopup }: DashboardProps): React.ReactNode {
+  const [financialViewMode, setFinancialViewMode] = useState<'month' | 'overall'>('month');
+
   const getClickHandler = (name: string) => {
     switch (name) {
       case 'Batches':
@@ -123,8 +305,35 @@ export function Dashboard({ onNavigate, academy, students, batches, staff, onSho
 
   const hasContactInfo = academy.contactEmail || academy.contactPhone || academy.address;
 
+  const statsData = [
+    { 
+        title: "Total Batches", 
+        total: batches.length,
+        active: activeBatches, 
+        inactive: inactiveBatches, 
+        Icon: BatchesIcon, 
+        onNavigate: () => onNavigate('batches') 
+    },
+    { 
+        title: "Total Students",
+        total: students.length,
+        active: activeStudents, 
+        inactive: inactiveStudents, 
+        Icon: StudentsIcon, 
+        onNavigate: () => onNavigate('student-options') 
+    },
+    { 
+        title: "Total Staff",
+        total: staff.length,
+        active: activeStaff, 
+        inactive: inactiveStaff, 
+        Icon: StaffIcon, 
+        onNavigate: () => onNavigate('staff-options') 
+    }
+  ];
+
   return (
-    <div className="p-4 flex-grow">
+    <div className="p-4 flex-grow pb-24 sm:pb-4">
       <div className="bg-indigo-600 text-white p-4 rounded-xl shadow-lg mb-6 flex items-center space-x-4">
           <div className="bg-white/30 w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0">
                {academy.logoUrl ? (
@@ -166,6 +375,14 @@ export function Dashboard({ onNavigate, academy, students, batches, staff, onSho
         </div>
       )}
 
+      {/* DESKTOP: Stats Cards */}
+      <div className="hidden sm:flex flex-col sm:flex-row gap-4 mb-8">
+        {statsData.map((stat, index) => (
+            <SummaryCard key={index} {...stat} />
+        ))}
+      </div>
+      
+      {/* ALL SCREENS: Feature Grid */}
       <div className="grid grid-cols-3 sm:grid-cols-4 gap-y-6 gap-x-3 sm:gap-x-4 text-center">
         {features.map((feature) => (
           <FeatureIcon
@@ -176,11 +393,19 @@ export function Dashboard({ onNavigate, academy, students, batches, staff, onSho
         ))}
       </div>
       
-      <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <SummaryCard title="Batches" active={activeBatches} inactive={inactiveBatches} colorClass="bg-teal-500" onNavigate={() => onNavigate('batches')} />
-        <SummaryCard title="Students" active={activeStudents} inactive={inactiveStudents} colorClass="bg-orange-500" onNavigate={() => onNavigate('student-options')} />
-        <SummaryCard title="Staff" active={activeStaff} inactive={inactiveStaff} colorClass="bg-red-500" onNavigate={() => onNavigate('staff-options')} />
+       {/* MOBILE: Stats Slider */}
+      <div className="sm:hidden">
+        <StatsSlider stats={statsData} />
       </div>
+
+      {/* Financial Overview */}
+      <FinancialOverview 
+        transactions={transactions} 
+        onNavigate={onNavigate} 
+        viewMode={financialViewMode}
+        setViewMode={setFinancialViewMode}
+      />
+      
     </div>
   );
 }

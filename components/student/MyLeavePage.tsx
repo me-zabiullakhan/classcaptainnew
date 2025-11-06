@@ -1,6 +1,4 @@
 
-
-
 import React from 'react';
 import { ArrowLeftIcon } from '../icons/ArrowLeftIcon';
 import type { LeaveRequest, CurrentUser } from '../../types';
@@ -22,7 +20,6 @@ const getStatusColor = (status: LeaveRequest['status']) => {
 };
 
 export function MyLeavePage({ onBack, onNavigate, currentUser, leaveRequests }: MyLeavePageProps) {
-    // FIX: Property 'id' does not exist on type '{ uid: string; email: string; }'. Added a type guard to ensure the user is a student or staff member before accessing properties like 'id'.
     const userId = (currentUser.role === 'student' || currentUser.role === 'staff') ? currentUser.data.id : null;
 
     const myRequests = leaveRequests

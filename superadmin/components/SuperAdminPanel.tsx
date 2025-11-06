@@ -217,8 +217,8 @@ export function SuperAdminPanel({ onLogout }: SuperAdminPanelProps): React.React
         let color = 'bg-gray-600';
         let subtext = '';
 
-        if (subscriptionStatus === 'trialing') {
-            const daysLeft = trialEndsAt ? Math.ceil((trialEndsAt.toMillis() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
+        if (subscriptionStatus === 'trialing' && trialEndsAt) {
+            const daysLeft = Math.ceil((trialEndsAt.toMillis() - Date.now()) / (1000 * 60 * 60 * 24));
             text = 'Trial';
             color = daysLeft > 3 ? 'bg-blue-500' : 'bg-yellow-500';
             subtext = daysLeft > 0 ? `${daysLeft} days left` : 'Expired';
@@ -305,4 +305,64 @@ export function SuperAdminPanel({ onLogout }: SuperAdminPanelProps): React.React
                                                 <option value="active">Active</option>
                                                 <option value="paused">Paused</option>
                                             </select>
-                                            <select value={subFilter} onChange={(e) => setSubFilter(e.target.value)} className="bg-gray-7
+                                            <select value={subFilter} onChange={(e) => setSubFilter(e.target.value)} className="bg-gray-700 p-2 rounded-lg border border-gray-600">
+                                                <option value="all">All Subscriptions</option>
+                                                <option value="trialing">Trialing</option>
+                                                <option value="active">Active</option>
+                                                <option value="expired">Expired</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-gray-800 rounded-lg overflow-hidden shadow-xl">
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm text-left">
+                                                <thead className="bg-gray-700 text-xs uppercase tracking-wider">
+                                                    <tr>
+                                                        <th className="p-3">Academy Name</th>
+                                                        <th className="p-3">Users</th>
+                                                        <th className="p-3">Subscription</th>
+                                                        <th className="p-3">Status</th>
+                                                        <th className="p-3 text-right">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-700">
+                                                    {filteredAcademies.map(academy => (
+                                                        <tr key={academy.id} className="hover:bg-gray-700/50">
+                                                            <td className="p-3 font-medium">
+                                                                {academy.name}
+                                                                <span className="block text-xs text-gray-400">{academy.academyId} | {academy.adminEmail}</span>
+                                                            </td>
+                                                            <td className="p-3">{academy.studentCount} S / {academy.staffCount} T</td>
+                                                            <td className="p-3">{getSubscriptionStatusPill(academy)}</td>
+                                                            <td className="p-3">
+                                                                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${academy.status === 'active' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}`}>{academy.status}</span>
+                                                            </td>
+                                                            <td className="p-3 text-right">
+                                                                <div className="flex justify-end items-center space-x-2">
+                                                                    <button title="Login as Admin" className="p-2 rounded-full hover:bg-gray-600"><EyeIcon className="w-5 h-5 text-cyan-400"/></button>
+                                                                    <button title="Manage Subscription" onClick={() => setManagingSub(academy)} className="p-2 rounded-full hover:bg-gray-600"><PencilIcon className="w-5 h-5 text-gray-300"/></button>
+                                                                    <button title={academy.status === 'active' ? 'Pause Academy' : 'Activate Academy'} onClick={() => toggleAcademyStatus(academy)} className="p-2 rounded-full hover:bg-gray-600">
+                                                                        {academy.status === 'active' ? <PauseIcon className="w-5 h-5 text-yellow-400"/> : <PlayIcon className="w-5 h-5 text-green-400"/>}
+                                                                    </button>
+                                                                    <button title="Delete Academy" onClick={() => deleteAcademy(academy.id, academy.name)} className="p-2 rounded-full hover:bg-gray-600"><TrashIcon className="w-5 h-5 text-red-400"/></button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                           )}
+                           {activeTab === 'analytics' && <UnderDevelopment title="Analytics" />}
+                           {activeTab === 'settings' && <UnderDevelopment title="Platform Settings" />}
+                        </>
+                    )}
+                </main>
+            </div>
+             {managingSub && <SubscriptionModal academy={managingSub} onClose={() => setManagingSub(null)} onSave={handleSaveSubscription} />}
+        </div>
+    );
+}

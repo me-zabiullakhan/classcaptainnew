@@ -1,4 +1,10 @@
+
+
 import React, { useState, useEffect, useMemo } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { SplashScreen as CapSplashScreen } from '@capacitor/splash-screen';
+import { StatusBar, Style } from '@capacitor/status-bar';
+
 // Firebase
 import { auth, db, firebaseConfig, storage } from './firebaseConfig';
 import { ref, deleteObject, uploadBytesResumable, getDownloadURL } from "firebase/storage";
@@ -45,7 +51,6 @@ import { MyAccountPage } from './components/MyAccountPage';
 import { ConfigurationWarning } from './components/ConfigurationWarning';
 import { ConnectionErrorBanner } from './components/ConnectionErrorBanner';
 import { OfflineIndicator } from './components/OfflineIndicator';
-import { SuperAdminPanel } from './components/SuperAdminPanel';
 import { DataConsentModal } from './components/DataConsentModal';
 import { EditStudentPage } from './components/EditStudentPage';
 import { InactiveStudentsPage } from './components/InactiveStudentsPage';
@@ -259,6 +264,18 @@ export default function App() {
     const [imageToView, setImageToView] = useState<string | null>(null);
     const [isChatbotOpen, setIsChatbotOpen] = useState(false);
 
+    // Capacitor platform setup
+    useEffect(() => {
+        const initializeApp = async () => {
+            if (Capacitor.isNativePlatform()) {
+                await StatusBar.setStyle({ style: Style.Light });
+                await CapSplashScreen.hide();
+            }
+        };
+        initializeApp();
+    }, []);
+
+
     // Scroll to top on page change
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -313,89 +330,98 @@ export default function App() {
             return;
         }
 
-        // FIX: Replaced V9 'onAuthStateChanged(auth, ...)' with V8 'auth.onAuthStateChanged(...)' and updated 'User' type.
         const unsubscribe = auth.onAuthStateChanged(async (user: firebase.User | null) => {
-            if (user) {
-                if (user.isAnonymous) {
-                    // This is a temporary session used by the student/staff login form
-                    // to gain read access to Firestore. The login form itself handles
-                    // the logic, so we should ignore this state change at the app level.
-                    return;
-                }
+            try {
+                if (user) {
+                    if (user.isAnonymous) {
+                        // This is a temporary session used by the student/staff login form
+                        // to gain read access to Firestore. The login form handles the logic,
+                        // so we just let the `finally` block dismiss the loading screen.
+                        return;
+                    }
 
-                const userDocRef = doc(db, "users", user.uid);
-                const userDocSnap = await getDoc(userDocRef);
+                    const userDocRef = doc(db, "users", user.uid);
+                    const userDocSnap = await getDoc(userDocRef);
 
-                if (userDocSnap.exists()) {
-                    const userData = userDocSnap.data();
-                    if (userData.role === 'admin' && userData.academyId) {
-                        const academyDocRef = doc(db, "academies", userData.academyId);
-                        const academyDocSnap = await getDoc(academyDocRef);
+                    if (userDocSnap.exists()) {
+                        const userData = userDocSnap.data();
+                        if (userData.role === 'admin' && userData.academyId) {
+                            const academyDocRef = doc(db, "academies", userData.academyId);
+                            const academyDocSnap = await getDoc(academyDocRef);
 
-                        if (academyDocSnap.exists()) {
-                            // ACADEMY FOUND - NORMAL LOGIN
-                            const academyData = { id: academyDocSnap.id, ...academyDocSnap.data() } as Academy;
-                            setAcademy(academyData);
-                            setCurrentUser({ role: 'admin', data: academyData });
-                            setPage('dashboard');
+                            if (academyDocSnap.exists()) {
+                                // ACADEMY FOUND - NORMAL LOGIN
+                                const academyData = { id: academyDocSnap.id, ...academyDocSnap.data() } as Academy;
+                                setAcademy(academyData);
+                                setCurrentUser({ role: 'admin', data: academyData });
+                                setPage('dashboard');
+                            } else {
+                                // BROKEN STATE: mapping exists, academy doc is gone. Go to complete registration.
+                                setAuthError("Your academy data is missing. Please re-enter your institute's name to restore your account.");
+                                setPage('complete-registration');
+                            }
                         } else {
-                            // BROKEN STATE: mapping exists, academy doc is gone. Go to complete registration.
-                            setAuthError("Your academy data is missing. Please re-enter your institute's name to restore your account.");
+                            // User exists but is not an admin (student/staff). For admin login, this is an error.
+                            setAuthError("Your account is not configured as an admin account.");
+                            await auth.signOut();
+                        }
+                    } else {
+                        // NO USER MAPPING FOUND.
+                        const instituteName = sessionStorage.getItem('google_reg_institute_name') || sessionStorage.getItem('registration_institute_name');
+                        const academyId = sessionStorage.getItem('google_reg_academy_id') || sessionStorage.getItem('registration_academy_id');
+                        const adminName = sessionStorage.getItem('google_reg_admin_name') || sessionStorage.getItem('registration_admin_name');
+
+                        if (instituteName && academyId && adminName) {
+                            // NEW REGISTRATION FLOW
+                            try {
+                                const newAcademy = await createAcademyInFirestore(user, instituteName, academyId, adminName);
+                                alert(`Registration successful! Your Academy ID is ${newAcademy.academyId}. Please save it for your students and staff to log in.`);
+                                handleRegisterSuccess(newAcademy);
+                            } catch (error: any) {
+                                console.error("Error creating academy:", error);
+                                setAuthError(error.message || "Failed to create your academy account. This can happen due to permission issues or a duplicate Academy ID. Please check your Firestore security rules and try again.");
+                                await auth.signOut();
+                            } finally {
+                                sessionStorage.removeItem('google_reg_flow');
+                                sessionStorage.removeItem('google_reg_institute_name');
+                                sessionStorage.removeItem('google_reg_academy_id');
+                                sessionStorage.removeItem('google_reg_admin_name');
+                                sessionStorage.removeItem('registration_institute_name');
+                                sessionStorage.removeItem('registration_academy_id');
+                                sessionStorage.removeItem('registration_admin_name');
+                            }
+                        } else {
+                            // ORPHANED AUTH USER: Logged in, but no data and not in reg flow. Go to complete registration.
+                            setAuthError("Your registration is incomplete. Please enter your institute name to continue.");
                             setPage('complete-registration');
                         }
-                    } else {
-                        // User exists but is not an admin (student/staff). For admin login, this is an error.
-                        setAuthError("Your account is not configured as an admin account.");
-                        // FIX: Replaced V9 'signOut(auth)' with V8 'auth.signOut()'.
-                        await auth.signOut();
                     }
                 } else {
-                    // NO USER MAPPING FOUND.
-                    const instituteName = sessionStorage.getItem('google_reg_institute_name') || sessionStorage.getItem('registration_institute_name');
-                    const academyId = sessionStorage.getItem('google_reg_academy_id') || sessionStorage.getItem('registration_academy_id');
-                    const adminName = sessionStorage.getItem('google_reg_admin_name') || sessionStorage.getItem('registration_admin_name');
-
-                    if (instituteName && academyId && adminName) {
-                        // NEW REGISTRATION FLOW
-                        try {
-                            const newAcademy = await createAcademyInFirestore(user, instituteName, academyId, adminName);
-                            alert(`Registration successful! Your Academy ID is ${newAcademy.academyId}. Please save it for your students and staff to log in.`);
-                            handleRegisterSuccess(newAcademy);
-                        } catch (error: any) {
-                            console.error("Error creating academy:", error);
-                            setAuthError(error.message || "Failed to create your academy account. This can happen due to permission issues or a duplicate Academy ID. Please check your Firestore security rules and try again.");
-                            // FIX: Replaced V9 'signOut(auth)' with V8 'auth.signOut()'.
-                            await auth.signOut();
-                        } finally {
-                            sessionStorage.removeItem('google_reg_flow');
-                            sessionStorage.removeItem('google_reg_institute_name');
-                            sessionStorage.removeItem('google_reg_academy_id');
-                            sessionStorage.removeItem('google_reg_admin_name');
-                            sessionStorage.removeItem('registration_institute_name');
-                            sessionStorage.removeItem('registration_academy_id');
-                            sessionStorage.removeItem('registration_admin_name');
-                        }
+                    // User is signed out.
+                    setCurrentUser(null);
+                    setAcademy(null);
+                    const lastSelectedRole = localStorage.getItem('lastSelectedRole');
+                    if (lastSelectedRole) {
+                        setLoginPageRole(lastSelectedRole as Role);
+                        setPage('login');
                     } else {
-                        // ORPHANED AUTH USER: Logged in, but no data and not in reg flow. Go to complete registration.
-                        setAuthError("Your registration is incomplete. Please enter your institute name to continue.");
-                        setPage('complete-registration');
+                        setPage('role-selection');
                     }
                 }
-            } else {
-                // User is signed out.
+            } catch (error) {
+                console.error("Critical error in auth state handler:", error);
+                setAuthError("A critical error occurred. Please refresh and try again.");
+                if (auth.currentUser) {
+                    await auth.signOut().catch(e => console.error("Signout failed during error handling:", e));
+                }
                 setCurrentUser(null);
                 setAcademy(null);
-                const lastSelectedRole = localStorage.getItem('lastSelectedRole');
-                if (lastSelectedRole) {
-                    setLoginPageRole(lastSelectedRole as Role);
-                    setPage('login');
-                } else {
-                    setPage('role-selection');
-                }
+                setPage('login');
+            } finally {
+                setIsLoading(false);
             }
-            setIsLoading(false);
         }, (error) => {
-            console.error("Auth state error:", error);
+            console.error("Auth state listener error:", error);
             setConnectionError("Authentication service is unavailable. Please check your connection.");
             setIsLoading(false);
         });
@@ -428,19 +454,12 @@ export default function App() {
             return;
         };
 
-        // FIX: The superadmin role does not have an academyId and should not trigger data fetching for an academy.
-        if (currentUser.role === 'superadmin') {
-            return;
-        }
-
         const academyId = (currentUser.role === 'admin') ? currentUser.data.id : currentUser.academyId;
         if (!academyId) return;
 
         const unsubscribers: (() => void)[] = [];
 
         // Academy details for non-admins
-        // FIX: The 'superadmin' role is already handled by a guard clause at the start of this effect.
-        // This removes the redundant and incorrect type comparison.
         if (currentUser.role !== 'admin') {
             const academyDocRef = doc(db, 'academies', academyId);
             const unsubAcademy = onSnapshot(academyDocRef, (docSnap) => {
@@ -635,8 +654,6 @@ export default function App() {
         setCurrentUser(user);
         if (user.role === 'admin') {
             setAcademy(user.data);
-        } else if (user.role === 'superadmin') {
-             setAcademy(null);
         }
         setPage('dashboard');
     };
@@ -701,12 +718,22 @@ export default function App() {
             alert("Cannot save data in demo mode.");
             throw new Error("Demo mode: cannot save data.");
         }
+        
+        const sanitizedData: { [key: string]: any } = {};
+        for (const key in data) {
+            if (Object.prototype.hasOwnProperty.call(data, key)) {
+                if (data[key] !== undefined) {
+                    sanitizedData[key] = data[key];
+                }
+            }
+        }
+
         const collectionRef = collection(db, `academies/${academy.id}/${collectionName}`);
         try {
             if (docId) {
-                await updateDoc(doc(collectionRef, docId), data);
+                await updateDoc(doc(collectionRef, docId), sanitizedData);
             } else {
-                await addDoc(collectionRef, data);
+                await addDoc(collectionRef, sanitizedData);
             }
             if (successPage) setPage(successPage);
         } catch (error) {
@@ -958,7 +985,33 @@ export default function App() {
     
     const handleSaveTransaction = createDataHandler('transactions');
     const handleUpdateTransaction = async (id: string, data: any) => await handleSaveTransaction(data, id);
-    const handleDeleteTransaction = createDeleteHandler('transactions');
+    const handleDeleteTransaction = async (transactionId: string) => {
+        if (!academy || isDemoMode) {
+            throw new Error("Cannot delete data in demo mode.");
+        }
+
+        const transactionToDelete = transactions.find(t => t.id === transactionId);
+        if (!transactionToDelete) {
+            throw new Error("Could not find the transaction to delete.");
+        }
+        
+        try {
+            const batch = writeBatch(db);
+            
+            const transactionRef = doc(db, `academies/${academy.id}/transactions`, transactionId);
+            batch.delete(transactionRef);
+            
+            if (transactionToDelete.feeCollectionId) {
+                const feeRef = doc(db, `academies/${academy.id}/fees`, transactionToDelete.feeCollectionId);
+                batch.delete(feeRef);
+            }
+
+            await batch.commit();
+        } catch (error) {
+            console.error(`Error deleting transaction:`, error);
+            throw new Error(`Failed to delete transaction.`);
+        }
+    };
     
     const handleSaveExam = async (examData: Omit<Exam, 'id'>) => {
         const id = pageParams.examId;
@@ -1272,11 +1325,6 @@ export default function App() {
             onSubscribe={handleSubscribe}
         />;
     }
-
-    // FIX: Super admin has a standalone page and should not be wrapped in the main layout, which causes nested layouts and a TypeScript error.
-    if (currentUser.role === 'superadmin') {
-        return <SuperAdminPanel onLogout={handleLogout} />;
-    }
     
     // FIX: Explicitly providing generic types for `findSelected` calls to ensure correct type inference. Without this, TypeScript may infer a less specific type, causing cascading type errors in components.
     const findSelected = <T extends {id: string}>(collection: T[], id: string | null): T | undefined => {
@@ -1298,7 +1346,7 @@ export default function App() {
         
         switch (page) {
             case 'dashboard':
-                if (currentUser.role === 'admin') return <Dashboard onNavigate={setPage} academy={academy!} students={students} batches={batches} staff={staff} onShowDevPopup={setShowDevPopup} />;
+                if (currentUser.role === 'admin') return <Dashboard onNavigate={setPage} academy={academy!} students={students} batches={batches} staff={staff} transactions={transactions} onShowDevPopup={setShowDevPopup} />;
                 if (currentUser.role === 'student') return <StudentDashboardPage student={currentUser.data} academy={academy!} feeCollections={feeCollections} batches={batches} onNavigate={setPage} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme} onShowDevPopup={setShowDevPopup} />;
                 if (currentUser.role === 'staff') return <StaffDashboardPage onNavigate={setPage} academy={academy!} staff={currentUser.data} onShowDevPopup={setShowDevPopup} />;
                 return null;
@@ -1325,11 +1373,11 @@ export default function App() {
             case 'registration-form-list':
                 return <RegistrationFormListPage onBack={() => setPage('student-options')} students={students} onSelectStudent={(id) => { setSelectedStudentId(id); setPage('registration-form-view'); }} />;
             case 'registration-form-view':
-                return selectedStudent && <RegistrationFormViewPage onBack={() => setPage('registration-form-list')} student={selectedStudent} transportRoutes={transportRoutes} />;
+                return selectedStudent && academy && <RegistrationFormViewPage onBack={() => setPage('registration-form-list')} student={selectedStudent} transportRoutes={transportRoutes} academy={academy} />;
             case 'select-batch-attendance':
                  return <SelectBatchForAttendancePage onBack={() => setPage('dashboard')} batches={batches} onSelectBatch={(id) => { setSelectedBatchId(id); setPage('take-attendance'); }} academyId={academy!.id} staffPermissions={currentUser.role === 'staff' ? currentUser.data.batchAccess : undefined} />;
             case 'take-attendance':
-                return selectedBatch && <TakeAttendancePage onBack={() => setPage('select-batch-attendance')} batch={selectedBatch} students={students} academy={academy!} isDemoMode={isDemoMode} />;
+                return selectedBatch && <TakeAttendancePage onBack={() => setPage('select-batch-attendance')} batch={selectedBatch} students={students} academy={academy!} isDemoMode={isDemoMode} onShowImage={setImageToView} />;
             case 'fees-options':
                 return <FeesOptionsPage onBack={() => setPage('dashboard')} onNavigate={setPage} />;
             case 'select-batch-for-fees':
@@ -1488,7 +1536,7 @@ export default function App() {
                 // Fallback to dashboard if page is not found or user role doesn't match
                 // FIX: Calling setPage during render causes an infinite loop.
                 // Render the dashboard directly as a fallback.
-                if (currentUser.role === 'admin') return <Dashboard onNavigate={setPage} academy={academy!} students={students} batches={batches} staff={staff} onShowDevPopup={setShowDevPopup} />;
+                if (currentUser.role === 'admin') return <Dashboard onNavigate={setPage} academy={academy!} students={students} batches={batches} staff={staff} transactions={transactions} onShowDevPopup={setShowDevPopup} />;
                 if (currentUser.role === 'student') return <StudentDashboardPage student={currentUser.data} academy={academy!} feeCollections={feeCollections} batches={batches} onNavigate={setPage} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme} onShowDevPopup={setShowDevPopup} />;
                 if (currentUser.role === 'staff') return <StaffDashboardPage onNavigate={setPage} academy={academy!} staff={currentUser.data} onShowDevPopup={setShowDevPopup} />;
                 return null;

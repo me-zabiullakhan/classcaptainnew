@@ -1,10 +1,17 @@
 
 
-import React from 'react';
-import type { Student, TransportRoute } from '../types';
+import React, { useState } from 'react';
+import type { Student, TransportRoute, Academy } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { MoreVertIcon } from './icons/MoreVertIcon';
 import { LogoIcon } from './icons/LogoIcon';
+import { Capacitor } from '@capacitor/core';
+import { Share } from '@capacitor/share';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { LoadingSpinner } from './LoadingSpinner';
+
 
 const formatDate = (dateString: string | undefined) => {
     if (!dateString) return '-';
@@ -22,17 +29,74 @@ const FormRow = ({ label, value }: { label: string, value?: string | number | nu
     </div>
 );
 
-export function RegistrationFormViewPage({ onBack, student, transportRoutes }: { onBack: () => void; student: Student; transportRoutes: TransportRoute[] }) {
+export function RegistrationFormViewPage({ onBack, student, transportRoutes, academy }: { onBack: () => void; student: Student; transportRoutes: TransportRoute[]; academy: Academy }) {
     const [menuOpen, setMenuOpen] = React.useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
 
-    const handlePrint = () => {
+    const handleExportPdf = async () => {
         setMenuOpen(false);
-        window.print();
+        const formElement = document.getElementById('registration-form');
+        if (!formElement) return;
+
+        setIsGenerating(true);
+
+        try {
+            const canvas = await html2canvas(formElement, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                width: formElement.scrollWidth,
+                height: formElement.scrollHeight,
+                windowWidth: formElement.scrollWidth,
+                windowHeight: formElement.scrollHeight,
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'pt',
+                format: 'a4'
+            });
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            
+            if (Capacitor.isNativePlatform()) {
+                // Native: Share via Filesystem
+                const pdfData = pdf.output('datauristring').split(',')[1];
+                const fileName = `registration-form-${student.name}.pdf`;
+
+                const result = await Filesystem.writeFile({
+                    path: fileName,
+                    data: pdfData,
+                    directory: Directory.Cache,
+                });
+
+                await Share.share({
+                    title: `Registration Form - ${student.name}`,
+                    text: `Here is the registration form for ${student.name}.`,
+                    files: [result.uri],
+                    dialogTitle: 'Share Registration Form',
+                });
+            } else {
+                // Web fallback: download as PDF
+                pdf.save(`registration-form-${student.name}.pdf`);
+            }
+
+        } catch (error) {
+            console.error('Error exporting PDF:', error);
+            alert('Could not export the PDF. Please try again.');
+        } finally {
+            setIsGenerating(false);
+        }
     };
 
     const assignedRoute = transportRoutes.find(r => r.id === student.transportRouteId);
     
     return (
+        <>
         <div className="bg-slate-200 min-h-screen">
             <header className="no-print bg-indigo-700 text-white p-3 flex items-center justify-between shadow-md sticky top-0 z-10">
                 <div className="flex items-center">
@@ -47,8 +111,8 @@ export function RegistrationFormViewPage({ onBack, student, transportRoutes }: {
                     </button>
                     {menuOpen && (
                         <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
-                            <button onClick={handlePrint} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                Download PDF
+                            <button onClick={handleExportPdf} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                Export as PDF
                             </button>
                         </div>
                     )}
@@ -60,16 +124,20 @@ export function RegistrationFormViewPage({ onBack, student, transportRoutes }: {
                     {/* Form Header */}
                     <div className="flex justify-between items-start pb-4 border-b-2 border-gray-500">
                         <div className="flex items-center space-x-4">
-                            <LogoIcon className="w-16 h-16 text-indigo-600" />
+                             {academy.logoUrl ? (
+                                <img src={academy.logoUrl} alt="Academy Logo" className="w-16 h-16 object-contain" />
+                            ) : (
+                                <LogoIcon className="w-16 h-16 text-indigo-600" />
+                            )}
                             <div>
-                                <h1 className="text-2xl font-extrabold text-gray-800 tracking-wider">CLASS CAPTAIN</h1>
+                                <h1 className="text-2xl font-extrabold text-gray-800 tracking-wider">{academy.name.toUpperCase()}</h1>
                                 <p className="text-xs text-gray-500">Institute Management System</p>
                             </div>
                         </div>
                          <div className="text-right text-xs text-gray-600">
-                            <p>admin@classcaptain.com</p>
-                            <p>+91 12345 67890</p>
-                            <p>123 Academy Lane, Education City, India</p>
+                            {academy.contactEmail && <p>{academy.contactEmail}</p>}
+                            {academy.contactPhone && <p>{academy.contactPhone}</p>}
+                            {academy.address && <p>{academy.address}</p>}
                         </div>
                     </div>
                     
@@ -82,7 +150,6 @@ export function RegistrationFormViewPage({ onBack, student, transportRoutes }: {
                              <FormRow label="Father's Name" value={student.fatherName} />
                              <FormRow label="Mother's Name" value={student.motherName} />
                              <FormRow label="Roll Number" value={student.rollNumber} />
-                             <FormRow label="Student ID" value={student.id} />
                         </div>
                         <div className="w-32 h-40 border-2 border-gray-300 flex items-center justify-center text-gray-400 text-sm bg-gray-50 flex-shrink-0">
                             {student.photo ? <img src={student.photo} alt="Student" className="w-full h-full object-cover"/> : "Affix Photo"}
@@ -140,5 +207,13 @@ export function RegistrationFormViewPage({ onBack, student, transportRoutes }: {
                 </div>
             </main>
         </div>
+        {isGenerating && (
+            <div className="no-print fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white p-6 rounded-lg shadow-xl">
+                    <LoadingSpinner message="Generating PDF..." />
+                </div>
+            </div>
+        )}
+        </>
     );
 }

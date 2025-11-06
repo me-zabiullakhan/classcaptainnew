@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { ArrowLeftIcon } from '../icons/ArrowLeftIcon';
 import type { CurrentUser, LeaveRequest, Student } from '../../types';
@@ -79,7 +78,6 @@ export function ApplyLeavePage({ onBack, onSave, currentUser, academyId, isDemoM
             return;
         }
 
-        // FIX: Add type guard to ensure the user is a student or staff member before accessing role-specific properties like 'id', 'name', 'batches', and 'rollNumber'.
         if (currentUser.role !== 'student' && currentUser.role !== 'staff') {
             alert("Only students and staff can apply for leave.");
             return;

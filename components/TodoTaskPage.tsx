@@ -76,7 +76,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, onSave, staff, taskToEdi
                     <input type="text" name="title" placeholder="Task Title" value={formData.title} onChange={handleChange} required className="w-full p-3 bg-gray-50 dark:bg-gray-700 border rounded-lg" />
                     <textarea name="description" placeholder="Description (optional)" value={formData.description} onChange={handleChange} rows={4} className="w-full p-3 bg-gray-50 dark:bg-gray-700 border rounded-lg" />
                     <input type="date" name="dueDate" value={formData.dueDate} onChange={handleChange} required className="w-full p-3 bg-gray-50 dark:bg-gray-700 border rounded-lg" />
-                    <CustomDropdown label="Priority" options={PRIORITY_LEVELS.map(p => ({ value: p, label: p }))} selectedValue={formData.priority} onSelect={val => setFormData(p => ({ ...p, priority: val }))} />
+                    {/* FIX: Cast the value from onSelect to the correct union type for 'priority'. */}
+                    <CustomDropdown label="Priority" options={PRIORITY_LEVELS.map(p => ({ value: p, label: p }))} selectedValue={formData.priority} onSelect={val => setFormData(p => ({ ...p, priority: val as Task['priority'] }))} />
                     <CustomDropdown label="Assign To (Optional)" options={staff.map(s => ({ value: s.id, label: s.name }))} selectedValue={formData.assignedToId} onSelect={val => setFormData(p => ({ ...p, assignedToId: val }))} placeholder="Unassigned" />
                     <div className="flex justify-end gap-3 pt-4">
                         <button type="button" onClick={onClose} className="px-6 py-2.5 rounded-lg bg-gray-200 dark:bg-gray-600 font-bold">Cancel</button>

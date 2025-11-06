@@ -20,9 +20,10 @@ interface TakeAttendancePageProps {
   students: Student[];
   academy: Academy;
   isDemoMode: boolean;
+  onShowImage: (src: string) => void;
 }
 
-const StudentInfoModal: React.FC<{ student: Student, onClose: () => void }> = ({ student, onClose }) => {
+const StudentInfoModal: React.FC<{ student: Student, onClose: () => void, onShowImage: (src: string) => void }> = ({ student, onClose, onShowImage }) => {
     const photoUrl = student.photo || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(student.name)}`;
 
     return (
@@ -33,7 +34,9 @@ const StudentInfoModal: React.FC<{ student: Student, onClose: () => void }> = ({
                 </button>
                 
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                    <img src={photoUrl} alt={student.name} className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow-lg bg-gray-200" />
+                    <button onClick={() => onShowImage(photoUrl)} className="focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 rounded-full">
+                        <img src={photoUrl} alt={student.name} className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow-lg bg-gray-200" />
+                    </button>
                 </div>
                 
                 <div className="text-center mb-6">
@@ -118,7 +121,7 @@ const StudentAttendanceCard: React.FC<{ student: Student, batch: Batch, status: 
     );
 };
 
-export function TakeAttendancePage({ onBack, batch, students, academy, isDemoMode }: TakeAttendancePageProps): React.ReactNode {
+export function TakeAttendancePage({ onBack, batch, students, academy, isDemoMode, onShowImage }: TakeAttendancePageProps): React.ReactNode {
     const [currentDate, setCurrentDate] = React.useState(new Date());
     const [attendance, setAttendance] = React.useState<Record<string, AttendanceStatus>>({});
     const [isLoading, setIsLoading] = React.useState(true);
@@ -317,7 +320,7 @@ export function TakeAttendancePage({ onBack, batch, students, academy, isDemoMod
                     </div>
                 )}
             </main>
-            {selectedStudentForInfo && <StudentInfoModal student={selectedStudentForInfo} onClose={() => setSelectedStudentForInfo(null)} />}
+            {selectedStudentForInfo && <StudentInfoModal student={selectedStudentForInfo} onClose={() => setSelectedStudentForInfo(null)} onShowImage={onShowImage} />}
             {isSmsModalOpen && (
                 <SendAttendanceSmsModal
                     onClose={() => setIsSmsModalOpen(false)}

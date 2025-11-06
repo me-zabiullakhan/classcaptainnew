@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo } from 'react';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import type { LeaveRequest, CurrentUser, Student, Staff, Batch } from '../types';
