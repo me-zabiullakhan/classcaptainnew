@@ -14,7 +14,7 @@ declare global {
 interface SubscriptionPageProps {
     onBack: () => void;
     academy: Academy;
-    onSubscribe: (plan: 'monthly' | 'quarterly' | 'yearly', months: number) => Promise<void>;
+    onSubscribe: (plan: 'monthly' | 'quarterly' | 'yearly', months: number, paymentDetails: { paymentId: string; amount: number }) => Promise<void>;
     isModal?: boolean;
 }
 
@@ -70,10 +70,15 @@ export function SubscriptionPage({ onBack, academy, onSubscribe, isModal = false
     const [isLoading, setIsLoading] = React.useState<string | null>(null);
 
     const handlePayment = async (plan: typeof plans[0]) => {
+        if (!academy.razorpayKeyId) {
+            alert("Please add your Razorpay Key ID in the 'My Account' settings to enable payments.");
+            return;
+        }
+
         setIsLoading(plan.id);
 
         const options = {
-            key: 'rzp_test_ILz21I2p3wQp4P',
+            key: academy.razorpayKeyId,
             amount: plan.amount,
             currency: "INR",
             name: "Class Captain Subscription",
@@ -81,7 +86,7 @@ export function SubscriptionPage({ onBack, academy, onSubscribe, isModal = false
             image: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCAyOCAyNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgMTIgSDE4IFYxNSBIMjIgVjIxIEg2IFYxNSBIMTAgVjEyIFoiIGZpbGw9IiNENUwMDAwIi8+PHBhdGggZD0iTTggNSBIMjAgTDE4IDExIEgxMCBaIiBmaWxsPSIjRDUwMDAwIi8+PC9zdmc+",
             handler: async (response: any) => {
                 try {
-                    await onSubscribe(plan.id as any, plan.months);
+                    await onSubscribe(plan.id as any, plan.months, { paymentId: response.razorpay_payment_id, amount: plan.amount });
                 } catch (error) {
                     console.error("Firestore update failed after payment:", error);
                     alert("Payment was successful, but we couldn't update your subscription. Please contact support.");

@@ -8,7 +8,7 @@ interface SubscriptionExpiredPageProps {
   onNavigate: (page: string) => void;
   onLogout: () => void;
   academy: Academy;
-  onSubscribe: (plan: 'monthly' | 'quarterly' | 'yearly', months: number) => Promise<void>;
+  onSubscribe: (plan: 'monthly' | 'quarterly' | 'yearly', months: number, paymentDetails: { paymentId: string; amount: number }) => Promise<void>;
 }
 
 export function SubscriptionExpiredPage({ onNavigate, onLogout, academy, onSubscribe }: SubscriptionExpiredPageProps): React.ReactNode {

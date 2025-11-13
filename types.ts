@@ -27,6 +27,7 @@ export interface Academy {
   subscriptionEndsAt?: Timestamp;
   plan?: 'monthly' | 'quarterly' | 'yearly';
   smsTemplates?: Record<string, string>;
+  razorpayKeyId?: string;
 }
 
 export interface Batch {

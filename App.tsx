@@ -241,6 +241,7 @@ export default function App() {
     // FIX: Added state for transport routes.
     const [transportRoutes, setTransportRoutes] = useState<TransportRoute[]>([]);
     const [todaysAttendance, setTodaysAttendance] = useState<Record<string, any>>({});
+    const [todaysSchedule, setTodaysSchedule] = useState<DailySchedule | null | 'loading'>('loading');
 
 
     // Page-specific state
@@ -535,6 +536,10 @@ export default function App() {
 
         const todayString = new Date().toISOString().split('T')[0];
         const activeBatchesWithStudents = batches.filter(b => b.isActive && b.currentStudents > 0);
+        if (activeBatchesWithStudents.length === 0) {
+            setTodaysAttendance({});
+            return;
+        }
         const unsubscribers: (() => void)[] = [];
 
         activeBatchesWithStudents.forEach(batch => {
@@ -542,7 +547,7 @@ export default function App() {
             const unsub = onSnapshot(attendanceRef, (docSnap) => {
                 setTodaysAttendance(prev => ({
                     ...prev,
-                    [batch.id]: docSnap.exists() ? docSnap.data() : null // null means not found
+                    [batch.id]: docSnap.exists() ? docSnap.data() : null
                 }));
             }, (err) => {
                  console.error(`Error fetching attendance for batch ${batch.id}:`, err);
@@ -550,21 +555,36 @@ export default function App() {
             unsubscribers.push(unsub);
         });
 
-        // Cleanup old listeners when batches change
+        // Simpler cleanup.
         return () => {
             unsubscribers.forEach(unsub => unsub());
-            setTodaysAttendance(prev => {
-                const newAttendanceState: Record<string, any> = {};
-                const activeBatchIds = new Set(activeBatchesWithStudents.map(b => b.id));
-                for (const batchId in prev) {
-                    if (activeBatchIds.has(batchId)) {
-                        newAttendanceState[batchId] = prev[batchId];
-                    }
-                }
-                return newAttendanceState;
-            });
         };
     }, [currentUser, academy, batches, isDemoMode]);
+
+    // Today's schedule listener for admin notifications
+    useEffect(() => {
+        if (currentUser?.role !== 'admin' || !academy || isDemoMode) {
+            setTodaysSchedule(null);
+            return;
+        }
+
+        setTodaysSchedule('loading');
+        const todayString = new Date().toISOString().split('T')[0];
+        const scheduleRef = doc(db, `academies/${academy.id}/schedules`, todayString);
+
+        const unsub = onSnapshot(scheduleRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setTodaysSchedule(docSnap.data() as DailySchedule);
+            } else {
+                setTodaysSchedule(null); // No schedule document found for today
+            }
+        }, (err) => {
+            console.error("Error fetching today's schedule for notifications:", err);
+            setTodaysSchedule(null); // On error, assume no schedule
+        });
+
+        return () => unsub();
+    }, [currentUser, academy, isDemoMode]);
 
 
     // Subscription status check effect
@@ -606,17 +626,31 @@ export default function App() {
         if (currentUser?.role !== 'admin' || isDemoMode) return [];
         
         const activeBatchesWithStudents = batches.filter(b => b.isActive && b.currentStudents > 0);
-        
-        const allChecked = activeBatchesWithStudents.every(b => todaysAttendance.hasOwnProperty(b.id));
-
-        if (!allChecked) {
-            return []; // Don't show any notification until all checks are complete to avoid flicker
-        }
 
         return activeBatchesWithStudents.filter(batch => {
+            // Only alert if we have explicitly checked and found no attendance doc.
             return todaysAttendance[batch.id] === null;
         });
     }, [currentUser, batches, todaysAttendance, isDemoMode]);
+
+    const adminScheduleAlerts = useMemo(() => {
+        if (currentUser?.role !== 'admin' || isDemoMode || todaysSchedule === 'loading') return [];
+
+        // Alert if there are active batches, even if they don't have students yet.
+        const activeBatches = batches.filter(b => b.isActive);
+        if (activeBatches.length === 0) return [];
+
+        const isScheduleEmpty = !todaysSchedule || Object.keys(todaysSchedule).length === 0;
+
+        if (isScheduleEmpty) {
+            return [{
+                type: 'schedule',
+                data: { message: "No classes have been scheduled for today." },
+                time: new Date(),
+            }];
+        }
+        return [];
+    }, [currentUser, todaysSchedule, batches, isDemoMode]);
 
 
     const staffPendingLeaves = useMemo(() => {
@@ -639,13 +673,13 @@ export default function App() {
 
     const notificationCount = useMemo(() => {
         if (currentUser?.role === 'admin') {
-            return adminNewEnquiries.length + adminPendingLeaves.length + adminUnmarkedAttendanceBatches.length;
+            return adminNewEnquiries.length + adminPendingLeaves.length + adminUnmarkedAttendanceBatches.length + adminScheduleAlerts.length;
         }
         if (currentUser?.role === 'staff') {
             return staffPendingLeaves.length;
         }
         return 0;
-    }, [currentUser, adminNewEnquiries, adminPendingLeaves, staffPendingLeaves, adminUnmarkedAttendanceBatches]);
+    }, [currentUser, adminNewEnquiries, adminPendingLeaves, staffPendingLeaves, adminUnmarkedAttendanceBatches, adminScheduleAlerts]);
 
 
     // Handlers
@@ -965,17 +999,40 @@ export default function App() {
          }
     };
     
-    const handleSubscribe = async (plan: 'monthly' | 'quarterly' | 'yearly', months: number) => {
-        if (!academy || isDemoMode) { return; }
+    const handleSubscribe = async (plan: 'monthly' | 'quarterly' | 'yearly', months: number, paymentDetails: { paymentId: string; amount: number }) => {
+        if (!academy || isDemoMode) {
+            throw new Error("Cannot subscribe in demo mode.");
+        }
         try {
             const now = new Date();
-            const endDate = new Date(now.setMonth(now.getMonth() + months));
-            await updateDoc(doc(db, 'academies', academy.id), {
+            const endDate = new Date(now.getFullYear(), now.getMonth() + months, now.getDate());
+
+            const batch = writeBatch(db);
+
+            // 1. Update academy subscription
+            const academyRef = doc(db, 'academies', academy.id);
+            batch.update(academyRef, {
                 plan,
                 subscriptionStatus: 'active',
                 subscriptionEndsAt: Timestamp.fromDate(endDate),
                 trialEndsAt: deleteField()
             });
+
+            // 2. Create a transaction record for the payment
+            const transactionRef = doc(collection(db, `academies/${academy.id}/transactions`));
+            const transactionData: Omit<Transaction, 'id'> = {
+                type: 'Income',
+                category: 'Subscription',
+                amount: paymentDetails.amount / 100, // Convert from paise to rupees
+                paymentMethod: 'Card', // Assuming online payment
+                description: `Subscription payment for ${plan} plan. Payment ID: ${paymentDetails.paymentId}`,
+                date: Timestamp.now(),
+                createdAt: serverTimestamp(),
+            };
+            batch.set(transactionRef, transactionData);
+
+            await batch.commit();
+
             alert("Subscription updated successfully!");
         } catch (error) {
             console.error("Subscription update failed:", error);
@@ -1121,7 +1178,20 @@ export default function App() {
         await createDataHandler('tasks')({ status: currentStatus === 'Pending' ? 'Completed' : 'Pending' }, taskId);
     };
 
-    const handleDeleteTask = createDeleteHandler('tasks');
+    const handleDeleteTask = async (taskId: string) => {
+        if (!academy || isDemoMode) {
+            alert("Cannot delete data in demo mode.");
+            return;
+        }
+        if (window.confirm('Are you sure you want to delete this task?')) {
+            try {
+                await deleteDoc(doc(db, `academies/${academy.id}/tasks`, taskId));
+            } catch (error) {
+                console.error('Error deleting task:', error);
+                alert('Failed to delete task.');
+            }
+        }
+    };
     
     const handleSaveNotice = async (data: Omit<Notice, 'id' | 'createdAt'>, noticeId?: string) => {
         const saveData = {
@@ -1474,7 +1544,7 @@ export default function App() {
                 if (currentUser.role === 'admin') return <MyAccountPage onBack={() => setPage('dashboard')} onLogout={handleLogout} academy={academy!} onSave={handleSaveAcademyDetails} />;
                 return null;
             case 'notifications':
-                 if (currentUser.role === 'admin') return <NotificationsPage onBack={() => setPage('dashboard')} enquiries={adminNewEnquiries} leaveRequests={adminPendingLeaves} unmarkedAttendanceBatches={adminUnmarkedAttendanceBatches} onNavigate={setPage} />;
+                 if (currentUser.role === 'admin') return <NotificationsPage onBack={() => setPage('dashboard')} enquiries={adminNewEnquiries} leaveRequests={adminPendingLeaves} unmarkedAttendanceBatches={adminUnmarkedAttendanceBatches} scheduleAlerts={adminScheduleAlerts} onNavigate={setPage} />;
                  return null;
             case 'staff-notifications':
                  if (currentUser.role === 'staff') return <StaffNotificationsPage onBack={() => setPage('dashboard')} pendingLeaves={staffPendingLeaves} onNavigate={setPage} />;

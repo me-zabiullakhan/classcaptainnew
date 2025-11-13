@@ -66,45 +66,59 @@ export function UploadStudyMaterialPage({ onBack, onSave, batches, academyId, up
         const selectedBatch = batches.find(b => b.id === formData.batchId);
         
         try {
+            let finalFileUrl = materialToEdit?.fileUrl || '';
+            let finalFileName = materialToEdit?.fileName;
+            let finalStoragePath = materialToEdit?.storagePath;
+
             if (formData.fileType === 'file' && file) {
-                // Upload file
+                // New file upload
                 const storagePath = `academies/${academyId}/study_materials/${Date.now()}_${file.name}`;
                 const storageRef = ref(storage, storagePath);
                 const uploadTask = uploadBytesResumable(storageRef, file);
 
-                uploadTask.on('state_changed', 
-                    (snapshot) => {
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        setUploadProgress(progress);
-                    },
-                    (error) => {
-                        console.error("Upload failed:", error);
-                        alert("File upload failed. Please try again.");
-                        setIsSaving(false);
-                    },
-                    async () => {
-                        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                        await onSave({
-                            ...formData,
-                            fileUrl: downloadURL,
-                            fileName: file.name,
-                            storagePath,
-                            batchName: selectedBatch?.name || '',
-                            uploadedAt: materialToEdit?.uploadedAt || serverTimestamp(),
-                            uploadedBy: uploaderName,
-                        });
-                    }
-                );
-            } else { // Link or editing without changing file
-                await onSave({
-                    ...formData,
-                    fileName: materialToEdit?.fileName,
-                    storagePath: materialToEdit?.storagePath,
-                    batchName: selectedBatch?.name || '',
-                    uploadedAt: materialToEdit?.uploadedAt || serverTimestamp(),
-                    uploadedBy: uploaderName,
+                finalFileUrl = await new Promise<string>((resolve, reject) => {
+                    uploadTask.on('state_changed',
+                        (snapshot) => {
+                            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                            setUploadProgress(progress);
+                        },
+                        (error) => {
+                            console.error("Upload failed:", error);
+                            reject(new Error("File upload failed. Please try again."));
+                        },
+                        async () => {
+                            try {
+                                const url = await getDownloadURL(uploadTask.snapshot.ref);
+                                resolve(url);
+                            } catch (e) {
+                                reject(e);
+                            }
+                        }
+                    );
                 });
+                finalFileName = file.name;
+                finalStoragePath = storagePath;
+            } else if (formData.fileType === 'link') {
+                finalFileUrl = formData.fileUrl;
+                finalFileName = undefined;
+                finalStoragePath = undefined;
             }
+
+            await onSave({
+                title: formData.title,
+                description: formData.description,
+                batchId: formData.batchId,
+                subject: formData.subject,
+                fileType: formData.fileType,
+                fileUrl: finalFileUrl,
+                fileName: finalFileName,
+                storagePath: finalStoragePath,
+                batchName: selectedBatch?.name || '',
+                uploadedAt: materialToEdit?.uploadedAt || serverTimestamp(),
+                // FIX: Corrected property name from 'uploaderName' to 'uploadedBy' to match the StudyMaterial type.
+                uploadedBy: uploaderName,
+            });
+
         } catch (error) {
             alert((error as Error).message);
             setIsSaving(false);

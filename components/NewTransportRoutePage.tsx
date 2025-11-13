@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import type { TransportRoute } from '../types';
@@ -51,7 +52,8 @@ const SuccessModal: React.FC<{
 };
 
 // FIX: Corrected the prop type to be a union of Input and Textarea attributes, allowing 'rows' prop for textareas.
-type FormInputProps = { label: string, id: string } & (React.InputHTMLAttributes<HTMLInputElement> | React.TextareaHTMLAttributes<HTMLTextAreaElement>);
+// FIX: Add optional 'type' property to TextareaHTMLAttributes to allow for discriminating the union.
+type FormInputProps = { label: string, id: string } & (React.InputHTMLAttributes<HTMLInputElement> | (React.TextareaHTMLAttributes<HTMLTextAreaElement> & { type?: string }));
 
 const FormInput = ({ label, id, ...props }: FormInputProps) => (
   <div>
