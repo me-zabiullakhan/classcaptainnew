@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { FeatureItem } from '../types';
 import { LogoIcon } from './icons/LogoIcon';
@@ -24,7 +25,6 @@ import { AccountIcon } from './icons/AccountIcon';
 import { LogoutIcon } from './icons/LogoutIcon';
 import { TimetableIcon } from './icons/TimetableIcon';
 import { CreditCardIcon } from './icons/CreditCardIcon';
-import { DocumentTextIcon } from './icons/DocumentTextIcon';
 
 const features: Omit<FeatureItem, 'color'>[] = [
   { name: 'Batches', Icon: BatchesIcon },
@@ -46,7 +46,6 @@ const features: Omit<FeatureItem, 'color'>[] = [
   { name: 'Notice Board', Icon: NoticeIcon },
   { name: 'Transport', Icon: TransportIcon },
   { name: 'Settings', Icon: SettingsIcon },
-  { name: 'Legal', Icon: DocumentTextIcon },
 ];
 
 
@@ -102,8 +101,6 @@ export function SideNav({ isOpen, onClose, onNavigate, onLogout, onShowDevPopup 
         return () => handleNavigate('todo-task');
       case 'Notice Board':
         return () => handleNavigate('notice-board');
-      case 'Legal':
-        return () => handleNavigate('legal');
       default:
         return () => {
             onShowDevPopup(name);

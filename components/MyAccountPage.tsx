@@ -8,6 +8,7 @@ import { BuildingIcon } from './icons/BuildingIcon';
 import { PencilIcon } from './icons/PencilIcon';
 import { CameraIcon } from './icons/CameraIcon';
 import { LogoutIcon } from './icons/LogoutIcon';
+import { KeyIcon } from './icons/KeyIcon';
 
 interface MyAccountPageProps {
   onBack: () => void;
@@ -73,6 +74,7 @@ export function MyAccountPage({ onBack, onSave, onLogout, academy }: MyAccountPa
     contactPhoneAlt: academy.contactPhoneAlt || '',
     website: academy.website || '',
     address: academy.address || '',
+    razorpayKeyId: academy.razorpayKeyId || '',
   });
   const [isSaving, setIsSaving] = React.useState(false);
 
@@ -113,6 +115,7 @@ export function MyAccountPage({ onBack, onSave, onLogout, academy }: MyAccountPa
         contactPhoneAlt: academy.contactPhoneAlt || '',
         website: academy.website || '',
         address: academy.address || '',
+        razorpayKeyId: academy.razorpayKeyId || '',
     });
     setIsEditing(false);
   };
@@ -158,6 +161,16 @@ export function MyAccountPage({ onBack, onSave, onLogout, academy }: MyAccountPa
                 <FormInput
                     icon={<BuildingIcon className="w-5 h-5" />} label="Full Address" id="address" name="address" type="textarea" value={formData.address} onChange={handleChange} placeholder="Enter your academy's full address"
                 />
+                <FormInput
+                    icon={<KeyIcon className="w-5 h-5" />}
+                    label="Razorpay Key ID"
+                    id="razorpayKeyId"
+                    name="razorpayKeyId"
+                    type="text"
+                    value={formData.razorpayKeyId}
+                    onChange={handleChange}
+                    placeholder="e.g., rzp_live_xxxxxxxxxxxxxx"
+                />
             </form>
         ) : (
             <div className="space-y-4">
@@ -177,6 +190,7 @@ export function MyAccountPage({ onBack, onSave, onLogout, academy }: MyAccountPa
                 <DetailItem icon={<PhoneIcon className="w-5 h-5"/>} label="Phone Number" value={academy.contactPhone} />
                 <DetailItem icon={<GlobeIcon className="w-5 h-5"/>} label="Website" value={academy.website} />
                 <DetailItem icon={<BuildingIcon className="w-5 h-5"/>} label="Address" value={academy.address} />
+                <DetailItem icon={<KeyIcon className="w-5 h-5"/>} label="Razorpay Key ID" value={academy.razorpayKeyId} />
 
                 <button
                     onClick={onLogout}
