@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BuildingIcon } from '../icons/BuildingIcon';
 import { EmailIcon } from '../icons/EmailIcon';
@@ -287,7 +286,7 @@ const StudentLoginForm = (props: any) => {
 };
 
 const StaffLoginForm = (props: any) => {
-    const handleSubmit = (e: React.Event) => handleNonAdminLogin(e, 'staff', props);
+    const handleSubmit = (e: React.FormEvent) => handleNonAdminLogin(e, 'staff', props);
 
     return (
         <form onSubmit={handleSubmit}>
@@ -337,9 +336,6 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
         {showConfigError && <AuthErrorModal onClose={() => { setShowConfigError(false); setIsLoading(false); }} />}
 
         <AuthLayout title="Welcome Back!" subtitle="Please sign in to continue" onBack={onGoBack}>
-            <div className="flex justify-center mb-8">
-                <img src="/logo.png" alt="App Logo" className="w-32 h-32 object-contain rounded-full shadow-lg" />
-            </div>
             <AuthCard>
                 <RoleSwitcher activeRole={role} onRoleChange={handleRoleChange} />
                 

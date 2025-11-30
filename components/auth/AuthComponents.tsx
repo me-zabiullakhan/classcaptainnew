@@ -1,5 +1,4 @@
 import React from 'react';
-import { FullLogoIcon } from '../icons/LogoIcon';
 import { ArrowLeftIcon } from '../icons/ArrowLeftIcon';
 
 export const AuthLayout: React.FC<{ title: string, subtitle: string, children: React.ReactNode, onBack?: () => void }> = ({ title, subtitle, children, onBack }) => (
@@ -13,7 +12,7 @@ export const AuthLayout: React.FC<{ title: string, subtitle: string, children: R
        )}
         <div className="text-center mb-4">
             <div className="flex justify-center mb-4">
-                <FullLogoIcon className="w-64" />
+                <img src="/logo.png" alt="Class Captain Logo" className="w-64" />
             </div>
             <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{title}</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">{subtitle}</p>
