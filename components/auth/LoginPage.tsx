@@ -121,7 +121,7 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { 
         const rawEmail = email;
         const rawPassword = passwordInput.value;
 
-        if (rawEmail === 'demo@classcaptain.com' && rawPassword === 'demo123') {
+        if (rawEmail === 'demouser@classcaptain.com' && rawPassword === 'demo') {
             const demoAcademy: Academy = {
                 id: 'demo-academy-id', academyId: 'DEMO', name: 'Demo Academy',
                 adminUid: 'demo-admin-uid', adminEmail: 'demo@classcaptain.com', status: 'active',
@@ -169,7 +169,7 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { 
                 <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4">
                     Sign in
                 </button>
-                <DemoCredentials credentials={{ Email: 'demo@classcaptain.com', Password: 'demo123' }} />
+                <DemoCredentials credentials={{ Email: 'demouser@classcaptain.com', Password: 'demo' }} />
             </form>
 
             <div className="relative my-4">
