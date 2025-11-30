@@ -3,8 +3,8 @@ import type { Academy } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { CheckIcon } from './icons/CheckIcon';
 import { XMarkIcon } from './icons/XMarkIcon';
+import { RAZORPAY_KEY_ID } from '../razorpayConfig';
 
-// Add this global declaration for TypeScript to recognize the Razorpay script
 declare global {
     interface Window {
         Razorpay: any;
@@ -46,11 +46,11 @@ const PlanCard: React.FC<PlanCardProps> = ({ title, price, period, features, isP
                 </li>
             ))}
         </ul>
-        <button 
+        <button
             onClick={onSelect}
             disabled={isCurrent || isLoading || disabled}
             className={`mt-8 w-full py-3 px-6 rounded-lg font-bold text-center transition-colors ${
-                isCurrent 
+                isCurrent
                 ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                 : 'bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-indigo-300 dark:disabled:bg-indigo-800'
             }`}
@@ -70,15 +70,15 @@ export function SubscriptionPage({ onBack, academy, onSubscribe, isModal = false
     const [isLoading, setIsLoading] = React.useState<string | null>(null);
 
     const handlePayment = async (plan: typeof plans[0]) => {
-        if (!academy.razorpayKeyId) {
-            alert("Please add your Razorpay Key ID in the 'My Account' settings to enable payments.");
+        if (!RAZORPAY_KEY_ID || RAZORPAY_KEY_ID === 'YOUR_RAZORPAY_KEY_ID') {
+            alert("The payment gateway has not been configured. Please contact support.");
             return;
         }
 
         setIsLoading(plan.id);
 
         const options = {
-            key: academy.razorpayKeyId,
+            key: RAZORPAY_KEY_ID,
             amount: plan.amount,
             currency: "INR",
             name: "Class Captain Subscription",
@@ -135,14 +135,19 @@ export function SubscriptionPage({ onBack, academy, onSubscribe, isModal = false
 
         if (subscriptionStatus === 'trialing' && trialEndsAt) {
             const daysLeft = Math.ceil((trialEndsAt.toMillis() - Date.now()) / (1000 * 60 * 60 * 24));
-            text = daysLeft > 0 ? `You are on a trial with ${daysLeft} day(s) remaining.` : "Your trial has expired.";
-            color = daysLeft > 0 ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" : color;
+            if (daysLeft > 0) {
+                text = `You are on a trial with ${daysLeft} day(s) remaining.`;
+                color = "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300";
+            } else {
+                text = "Your trial has expired. Please subscribe to continue.";
+                 color = "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300";
+            }
         } else if (subscriptionStatus === 'active' && subscriptionEndsAt) {
             const endDate = subscriptionEndsAt.toDate().toLocaleDateString();
             text = `Your ${academy.plan || ''} plan is active until ${endDate}.`;
             color = "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300";
         }
-        
+
         return <div className={`p-3 rounded-lg text-sm font-semibold text-center ${color}`}>{text}</div>;
     };
 
@@ -155,7 +160,7 @@ export function SubscriptionPage({ onBack, academy, onSubscribe, isModal = false
             </div>
             <div className="space-y-8 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-8">
                 {plans.map(plan => (
-                    <PlanCard 
+                    <PlanCard
                         key={plan.id}
                         title={plan.title}
                         price={plan.price}
