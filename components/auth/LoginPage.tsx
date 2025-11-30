@@ -335,7 +335,7 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
         <>
         {showConfigError && <AuthErrorModal onClose={() => { setShowConfigError(false); setIsLoading(false); }} />}
 
-        <AuthLayout title="Welcome Back!" subtitle="Please sign in to continue" onBack={onGoBack}>
+        <AuthLayout title="Welcome Back!" subtitle="under development" onBack={onGoBack}>
             <AuthCard>
                 <RoleSwitcher activeRole={role} onRoleChange={handleRoleChange} />
                 
