@@ -362,11 +362,6 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
                         </button>
                     </p>
                 )}
-                <div className="pt-4 border-t border-gray-200 dark:border-gray-700 mt-4">
-                    <a href="/superadmin/" className="text-xs text-gray-400 hover:text-indigo-500 transition-colors">
-                        Super Admin Portal
-                    </a>
-                </div>
             </div>
             
             {showAcademyNotFound && (
