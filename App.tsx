@@ -1645,7 +1645,7 @@ export default function App() {
 
             {showConsent && <DataConsentModal onAccept={() => { localStorage.setItem('dataConsentAccepted', 'true'); setShowConsent(false); }} />}
             {showDevPopup && <DevInProgressPopup featureName={showDevPopup} onClose={() => setShowDevPopup(null)} />}
-            {imageToView && <FullScreenImageViewer src={imageToView} alt="Full screen view" onClose={() => setImageToView(null)} />}
+            {imageToView && <FullScreenImageViewer src={imageToView} alt="Full screen view" onClose={() => setImageToView(null)} />}s
              {isChatbotOpen && academy && (
                 <AIChatbot
                     isOpen={isChatbotOpen}
