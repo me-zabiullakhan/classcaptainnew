@@ -3,7 +3,7 @@
 
 export const PLATFORM_CONFIG = {
     // IMPORTANT: Add your Razorpay Key ID here to collect subscription payments from Academies.
-    razorpayKeyId: "rzp_test_YOUR_PLATFORM_KEY_ID", 
+    razorpayKeyId: "rzp_test_pnZyMfa3h3mMXR", 
 
     // Define student limits for each subscription plan
     plans: {
