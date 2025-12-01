@@ -1,1 +1,1 @@
-export const RAZORPAY_KEY_ID = 'YOUR_RAZORPAY_KEY_ID';
+export const RAZORPAY_KEY_ID = 'rzp_test_pnZyMfa3h3mMXR';
