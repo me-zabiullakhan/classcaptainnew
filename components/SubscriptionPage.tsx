@@ -3,6 +3,7 @@ import type { Academy } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { CheckIcon } from './icons/CheckIcon';
 import { XMarkIcon } from './icons/XMarkIcon';
+import { RAZORPAY_KEY_ID } from '../razorpayConfig';
 
 // Add this global declaration for TypeScript to recognize the Razorpay script
 declare global {
@@ -70,15 +71,10 @@ export function SubscriptionPage({ onBack, academy, onSubscribe, isModal = false
     const [isLoading, setIsLoading] = React.useState<string | null>(null);
 
     const handlePayment = async (plan: typeof plans[0]) => {
-        if (!academy.razorpayKeyId) {
-            alert("Please add your Razorpay Key ID in the 'My Account' settings to enable payments.");
-            return;
-        }
-
         setIsLoading(plan.id);
 
         const options = {
-            key: academy.razorpayKeyId,
+            key: RAZORPAY_KEY_ID,
             amount: plan.amount,
             currency: "INR",
             name: "Class Captain Subscription",
