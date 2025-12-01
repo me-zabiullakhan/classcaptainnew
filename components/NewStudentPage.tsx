@@ -1,7 +1,9 @@
 
 
+
+
 import React from 'react';
-import type { Student, Batch, Enquiry } from '../types';
+import type { Student, Batch, Enquiry, Academy } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { CameraIcon } from './icons/CameraIcon';
 import { ContactsIcon } from './icons/ContactsIcon';
@@ -9,6 +11,7 @@ import { CalendarIcon } from './icons/CalendarIcon';
 import { ClipboardDocumentIcon } from './icons/ClipboardDocumentIcon';
 import { CheckCircleIcon } from './icons/CheckCircleIcon';
 import { ImageEditorModal } from './ImageEditorModal';
+import { PLATFORM_CONFIG } from '../platformConfig';
 
 interface NewStudentPageProps {
   onBack: () => void;
@@ -17,6 +20,7 @@ interface NewStudentPageProps {
   academyId: string;
   enquiryData?: Enquiry | null;
   students: Student[];
+  academy?: Academy;
 }
 
 const StudentCreationSuccessModal: React.FC<{ student: Student, academyId: string, onClose: () => void }> = ({ student, academyId, onClose }) => {
@@ -91,7 +95,7 @@ const FormInput = ({ label, id, children, containerClassName, ...props }: { labe
   </div>
 );
 
-export function NewStudentPage({ onBack, onSave, batches, academyId, enquiryData, students }: NewStudentPageProps): React.ReactNode {
+export function NewStudentPage({ onBack, onSave, batches, academyId, enquiryData, students, academy }: NewStudentPageProps): React.ReactNode {
     const [formData, setFormData] = React.useState<Omit<Student, 'id' | 'feeAmount' | 'isActive'> & { feeAmount: string }>({
         rollNumber: '',
         name: '',
@@ -213,6 +217,26 @@ export function NewStudentPage({ onBack, onSave, batches, academyId, enquiryData
     };
 
     const handleSave = async () => {
+        // --- Limit Check Implementation ---
+        if (academy && academy.plan) {
+            const currentPlan = PLATFORM_CONFIG.plans[academy.plan] || PLATFORM_CONFIG.plans.monthly; // Default to monthly if undefined
+            const currentCount = students.length;
+            
+            // Check if subscription status is strictly 'active' or 'trialing'
+            const isSubActive = academy.subscriptionStatus === 'active' || academy.subscriptionStatus === 'trialing';
+
+            if (!isSubActive) {
+                 alert("Your subscription has expired. Please renew your plan to add new students.");
+                 return;
+            }
+
+            if (currentCount >= currentPlan.limit) {
+                alert(`You have reached the student limit for your ${currentPlan.label} (${currentPlan.limit} students). Please upgrade your plan to add more students.`);
+                return;
+            }
+        }
+        // ----------------------------------
+
         if (!formData.rollNumber.trim() || !formData.name.trim() || !formData.fatherName.trim() || !formData.motherName.trim() || !formData.dob || !formData.mobile1 || !formData.address || !formData.admissionDate) {
             alert("Please fill all required fields.");
             return;

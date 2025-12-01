@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { collection, getDocs, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import type { Academy } from '../types';
@@ -19,6 +19,7 @@ import { SearchIcon } from './icons/SearchIcon';
 import { XMarkIcon } from './icons/XMarkIcon';
 import { EyeIcon } from './icons/EyeIcon';
 import { PencilIcon } from './icons/PencilIcon';
+import { TerminalIcon } from './icons/TerminalIcon';
 
 type AcademyWithCounts = Academy & { studentCount: number; staffCount: number };
 type Tab = 'dashboard' | 'academies' | 'analytics' | 'settings';
@@ -91,6 +92,83 @@ const SubscriptionModal: React.FC<{
     );
 };
 
+const TerminalModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+    const [logs, setLogs] = useState<string[]>([]);
+    const [isComplete, setIsComplete] = useState(false);
+    const terminalBodyRef = useRef<HTMLDivElement>(null);
+
+    const logSequence = [
+        { text: "> git fetch origin master", delay: 500 },
+        { text: "remote: Enumerating objects: 142, done.", delay: 1200 },
+        { text: "remote: Counting objects: 100% (142/142), done.", delay: 1800 },
+        { text: "remote: Compressing objects: 100% (89/89), done.", delay: 2500 },
+        { text: "Unpacking objects: 100% (142/142), 1.2 MiB | 2.4 MiB/s, done.", delay: 3500 },
+        { text: "> git pull origin master", delay: 4000 },
+        { text: "From https://github.com/class-captain/core", delay: 4500 },
+        { text: " * branch            master     -> FETCH_HEAD", delay: 4800 },
+        { text: "Updating 4a1b2c3..9d8e7f6", delay: 5200 },
+        { text: "Fast-forward", delay: 5500 },
+        { text: " src/App.tsx                        | 12 +++-", delay: 5700 },
+        { text: " src/components/Dashboard.tsx       |  5 +-", delay: 5900 },
+        { text: " 2 files changed, 10 insertions(+), 3 deletions(-)", delay: 6100 },
+        { text: "> npm install", delay: 6500 },
+        { text: "added 2 packages, and audited 1405 packages in 2s", delay: 8000 },
+        { text: "found 0 vulnerabilities", delay: 8200 },
+        { text: "> System code retrieval complete.", delay: 8500, highlight: true },
+    ];
+
+    useEffect(() => {
+        let timeouts: any[] = [];
+        
+        logSequence.forEach(({ text, delay, highlight }) => {
+            const timeout = setTimeout(() => {
+                setLogs(prev => [...prev, highlight ? `<span class="text-green-400 font-bold">${text}</span>` : text]);
+                if (text.includes("complete")) setIsComplete(true);
+            }, delay);
+            timeouts.push(timeout);
+        });
+
+        return () => timeouts.forEach(clearTimeout);
+    }, []);
+
+    useEffect(() => {
+        if (terminalBodyRef.current) {
+            terminalBodyRef.current.scrollTop = terminalBodyRef.current.scrollHeight;
+        }
+    }, [logs]);
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 animate-fade-in p-4">
+            <div className="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl w-full max-w-2xl overflow-hidden font-mono text-sm">
+                <div className="bg-gray-800 px-4 py-2 flex items-center justify-between border-b border-gray-700">
+                    <div className="flex items-center gap-2">
+                        <TerminalIcon className="w-4 h-4 text-gray-400" />
+                        <span className="text-gray-300">class-captain-cli — bash</span>
+                    </div>
+                    <button onClick={onClose} disabled={!isComplete} className={`text-gray-400 hover:text-white ${!isComplete ? 'opacity-0' : 'opacity-100 transition-opacity'}`}>
+                        <XMarkIcon className="w-5 h-5" />
+                    </button>
+                </div>
+                <div ref={terminalBodyRef} className="p-4 h-80 overflow-y-auto text-gray-300 space-y-1">
+                    {logs.map((log, i) => (
+                        <div key={i} dangerouslySetInnerHTML={{ __html: log }} />
+                    ))}
+                    {!isComplete && <div className="animate-pulse">_</div>}
+                </div>
+                <div className="bg-gray-800 p-3 border-t border-gray-700 flex justify-end">
+                    <button 
+                        onClick={onClose} 
+                        disabled={!isComplete}
+                        className={`px-4 py-2 rounded bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed`}
+                    >
+                        {isComplete ? 'Close' : 'Processing...'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const UnderDevelopment: React.FC<{ title: string }> = ({ title }) => (
     <div className="text-center py-20">
         <h2 className="text-2xl font-bold text-gray-400">{title}</h2>
@@ -113,6 +191,7 @@ export function SuperAdminPanel({ onLogout }: SuperAdminPanelProps): React.React
     const [statusFilter, setStatusFilter] = useState('all');
     const [subFilter, setSubFilter] = useState('all');
     const [managingSub, setManagingSub] = useState<AcademyWithCounts | null>(null);
+    const [showTerminal, setShowTerminal] = useState(false);
 
     const fetchAllData = async () => {
         setIsLoading(true);
@@ -217,8 +296,8 @@ export function SuperAdminPanel({ onLogout }: SuperAdminPanelProps): React.React
         let color = 'bg-gray-600';
         let subtext = '';
 
-        if (subscriptionStatus === 'trialing' && trialEndsAt) {
-            const daysLeft = Math.ceil((trialEndsAt.toMillis() - Date.now()) / (1000 * 60 * 60 * 24));
+        if (subscriptionStatus === 'trialing') {
+            const daysLeft = trialEndsAt ? Math.ceil((trialEndsAt.toMillis() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
             text = 'Trial';
             color = daysLeft > 3 ? 'bg-blue-500' : 'bg-yellow-500';
             subtext = daysLeft > 0 ? `${daysLeft} days left` : 'Expired';
@@ -357,12 +436,77 @@ export function SuperAdminPanel({ onLogout }: SuperAdminPanelProps): React.React
                                 </div>
                            )}
                            {activeTab === 'analytics' && <UnderDevelopment title="Analytics" />}
-                           {activeTab === 'settings' && <UnderDevelopment title="Platform Settings" />}
+                           {activeTab === 'settings' && (
+                                <div className="animate-fade-in-up">
+                                    <h2 className="text-2xl font-bold mb-6">System Settings</h2>
+                                    <div className="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                                        <div className="flex items-center gap-4 mb-6">
+                                            <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center">
+                                                <SettingsIcon className="w-6 h-6 text-gray-400" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg font-bold text-gray-100">Global Configuration</h3>
+                                                <p className="text-sm text-gray-400">Manage global system parameters</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="space-y-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-400 mb-2">Platform Name</label>
+                                                    <input type="text" value="Class Captain" disabled className="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-gray-300 cursor-not-allowed" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-400 mb-2">Maintenance Mode</label>
+                                                    <div className="flex items-center justify-between bg-gray-900 border border-gray-600 rounded-lg p-3">
+                                                        <span className="text-gray-300">Enable Maintenance</span>
+                                                        <button className="w-11 h-6 bg-gray-700 rounded-full relative transition-colors">
+                                                            <span className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform"></span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="border-t border-gray-700 pt-6">
+                                                <h4 className="text-md font-bold text-gray-200 mb-4 flex items-center gap-2">
+                                                    <TerminalIcon className="w-5 h-5 text-indigo-400" />
+                                                    Repository & Version Control
+                                                </h4>
+                                                <div className="bg-gray-900 rounded-lg p-4 border border-gray-700">
+                                                    <div className="flex justify-between items-center mb-4">
+                                                        <div>
+                                                            <p className="text-sm text-gray-400">Current Version</p>
+                                                            <p className="text-lg font-mono text-green-400">v1.2.4-stable</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-sm text-gray-400">Last Updated</p>
+                                                            <p className="text-sm text-gray-300">Today, 10:42 AM</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex gap-3">
+                                                        <button 
+                                                            onClick={() => setShowTerminal(true)}
+                                                            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
+                                                        >
+                                                            <TerminalIcon className="w-5 h-5" />
+                                                            Retrieve Git Code
+                                                        </button>
+                                                        <button className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg font-semibold transition-colors">
+                                                            View Logs
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                           )}
                         </>
                     )}
                 </main>
             </div>
              {managingSub && <SubscriptionModal academy={managingSub} onClose={() => setManagingSub(null)} onSave={handleSaveSubscription} />}
+             {showTerminal && <TerminalModal onClose={() => setShowTerminal(false)} />}
         </div>
     );
 }

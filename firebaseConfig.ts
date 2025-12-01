@@ -7,13 +7,13 @@ import { getStorage } from "firebase/storage";
 // IMPORTANT: Replace the following with your app's Firebase project configuration
 // For more information, visit: https://firebase.google.com/docs/web/setup#available-libraries
 export const firebaseConfig = {
-  apiKey: "AIzaSyA_Nvv_zzZP-15Xaw0qsddKu5eahac-OvY",
-    authDomain: "class-captain-01.firebaseapp.com",
-      projectId: "class-captain-01",
-        storageBucket: "class-captain-01.firebasestorage.app",
-          messagingSenderId: "877432208495",
-            appId: "1:877432208495:web:a49973bd04c8734526619a",
-              measurementId: "G-D1J5FWWC8G"
+  apiKey: "YOUR_API_KEY_placeholder",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID",
+  measurementId: "YOUR_MEASUREMENT_ID"
 };
 
 // Initialize Firebase using the compat library.

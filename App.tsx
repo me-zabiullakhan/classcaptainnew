@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { SplashScreen as CapSplashScreen } from '@capacitor/splash-screen';
@@ -1431,7 +1433,8 @@ export default function App() {
             case 'student-options':
                 return <StudentOptionsPage onBack={() => setPage('dashboard')} onNavigate={setPage} onShowDevPopup={setShowDevPopup} />;
             case 'new-student':
-                return <NewStudentPage onBack={() => setPage(selectedEnquiry ? 'enquiry-manager' : 'student-options')} onSave={handleSaveStudent} batches={batches} academyId={academy?.academyId || 'DEMO'} enquiryData={selectedEnquiry} students={students} />;
+                // UPDATED: Pass academy object to NewStudentPage
+                return <NewStudentPage onBack={() => setPage(selectedEnquiry ? 'enquiry-manager' : 'student-options')} onSave={handleSaveStudent} batches={batches} academyId={academy?.academyId || 'DEMO'} enquiryData={selectedEnquiry} students={students} academy={academy!} />;
             case 'active-students':
                 return <ActiveStudentsPage onBack={() => setPage('student-options')} students={students} batches={batches} onToggleStudentStatus={handleToggleStudentStatus} onEditStudent={(id) => { setSelectedStudentId(id); setPage('edit-student'); }} onViewStudent={(id) => { setSelectedStudentId(id); setPage('student-details')}} initialFilter={studentListFilter} staffPermissions={currentUser.role === 'staff' ? currentUser.data.batchAccess : undefined}/>;
             case 'edit-student':
@@ -1624,7 +1627,7 @@ export default function App() {
                      {page === 'dashboard' && <Header academy={academy} onLogout={handleLogout} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme} onNavigate={setPage} notificationCount={notificationCount} />}
                      <SideNav isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} onNavigate={setPage} onLogout={handleLogout} onShowDevPopup={setShowDevPopup} />
                      <main>{children}</main>
-                     <BottomNav onNavigate={setPage} activePage={page} onOpenChatbot={() => setIsChatbotOpen(true)} />
+                     {page === 'dashboard' && <BottomNav onNavigate={setPage} activePage={page} onOpenChatbot={() => setIsChatbotOpen(true)} />}
                  </>
             )}
             
@@ -1645,7 +1648,7 @@ export default function App() {
 
             {showConsent && <DataConsentModal onAccept={() => { localStorage.setItem('dataConsentAccepted', 'true'); setShowConsent(false); }} />}
             {showDevPopup && <DevInProgressPopup featureName={showDevPopup} onClose={() => setShowDevPopup(null)} />}
-            {imageToView && <FullScreenImageViewer src={imageToView} alt="Full screen view" onClose={() => setImageToView(null)} />}s
+            {imageToView && <FullScreenImageViewer src={imageToView} alt="Full screen view" onClose={() => setImageToView(null)} />}
              {isChatbotOpen && academy && (
                 <AIChatbot
                     isOpen={isChatbotOpen}
