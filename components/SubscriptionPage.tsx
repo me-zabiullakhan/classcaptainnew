@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { Academy } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -112,9 +113,12 @@ export function SubscriptionPage({ onBack, academy, onSubscribe, isModal = false
             key: platformKey, // Use the Platform's Key ID
             amount: plan.amount,
             currency: "INR",
-            name: "Class Captain Subscription",
+            name: "OptiLearn Subscription",
             description: `Payment for ${plan.title} Plan`,
             image: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCAyOCAyNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgMTIgSDE4IFYxNSBIMjIgVjIxIEg2IFYxNSBIMTAgVjEyIFoiIGZpbGw9IiNENUwMDAwIi8+PHBhdGggZD0iTTggNSBIMjAgTDE4IDExIEgxMCBaIiBmaWxsPSIjRDUwMDAwIi8+PC9zdmc+",
+            // IMPORTANT: This forces Razorpay to auto-capture the payment immediately.
+            // Without this (or the dashboard setting), authorized payments are auto-refunded after 5 days.
+            payment_capture: 1, 
             handler: async (response: any) => {
                 try {
                     await onSubscribe(plan.id as any, plan.months, { paymentId: response.razorpay_payment_id, amount: plan.amount });

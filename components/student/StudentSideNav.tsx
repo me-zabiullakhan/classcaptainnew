@@ -49,7 +49,7 @@ export function StudentSideNav({ isOpen, onClose, onNavigate, onLogout }: Studen
             <header className="flex items-center justify-between p-4 border-b">
                 <div className="flex items-center gap-2">
                     <LogoIcon className="w-8 h-8 text-indigo-600"/>
-                    <h2 id="sidenav-title" className="text-lg font-bold text-gray-800">Class Captain</h2>
+                    <h2 id="sidenav-title" className="text-lg font-bold text-gray-800">OptiLearn</h2>
                 </div>
                 <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100" aria-label="Close menu">
                     <XMarkIcon className="w-6 h-6 text-gray-600"/>

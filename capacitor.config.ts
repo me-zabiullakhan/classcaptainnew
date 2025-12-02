@@ -1,8 +1,8 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.classcaptain.app',
-  appName: 'Class Captain',
+  appId: 'com.optilearn.app',
+  appName: 'OptiLearn',
   webDir: 'dist',
   server: {
     androidScheme: 'https'

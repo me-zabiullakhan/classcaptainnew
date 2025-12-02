@@ -130,7 +130,7 @@ export function SideNav({ isOpen, onClose, onNavigate, onLogout, onShowDevPopup 
             <header className="flex items-center justify-between p-4 border-b dark:border-gray-700">
                 <div className="flex items-center gap-2">
                     <LogoIcon className="w-8 h-8 text-indigo-600 dark:text-indigo-400"/>
-                    <h2 id="sidenav-title" className="text-lg font-bold text-gray-800 dark:text-gray-100">Class Captain</h2>
+                    <h2 id="sidenav-title" className="text-lg font-bold text-gray-800 dark:text-gray-100">OptiLearn</h2>
                 </div>
                 <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Close menu">
                     <XMarkIcon className="w-6 h-6 text-gray-600 dark:text-gray-300"/>

@@ -1,3 +1,4 @@
+
 import type { Batch, Student, Staff, Transaction, Enquiry, TransportRoute, StaffAttendance } from './types';
 import { Timestamp } from 'firebase/firestore';
 
@@ -272,6 +273,4 @@ export const demoTransportRoutes: TransportRoute[] = [
         driverName: 'John Doe',
         driverContact: '9988776655',
         points: 'Main Square, Central Mall, Library Corner',
-        monthlyFee: 800,
-    },
-];
+        monthlyFee: 80

@@ -1,6 +1,6 @@
 {
-  "name": "Class Captain - Institute Management",
-  "short_name": "Class Captain",
+  "name": "OptiLearn - Institute Management",
+  "short_name": "OptiLearn",
   "description": "Institute management system for students, staff, and admins.",
   "start_url": "/",
   "display": "standalone",

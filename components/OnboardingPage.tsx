@@ -1,11 +1,12 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { LogoIcon } from './icons/LogoIcon';
 import { ArrowRightIcon } from './icons/ArrowRightIcon';
-import { StudentsIcon } from './icons/StudentsIcon';
 import { AttendanceIcon } from './icons/AttendanceIcon';
-import { FeesIcon } from './icons/FeesIcon';
 import { ReportsIcon } from './icons/ReportsIcon';
+import { TimetableIcon } from './icons/TimetableIcon';
+import { CreditCardIcon } from './icons/CreditCardIcon';
 
 interface OnboardingPageProps {
     onComplete: () => void;
@@ -14,31 +15,38 @@ interface OnboardingPageProps {
 const slides = [
     {
         id: 1,
-        title: "Welcome to Class Captain",
-        description: "The ultimate institute management solution designed to streamline your daily operations and boost productivity.",
+        title: "Welcome to OptiLearn",
+        description: "The ultimate command center for your coaching institute. Streamline operations, reduce paperwork, and focus on what matters most—teaching.",
         icon: <LogoIcon className="w-32 h-32 text-indigo-600 animate-pulse" />,
-        color: "bg-indigo-50 dark:bg-gray-800"
+        color: "bg-indigo-50 dark:bg-gray-900"
     },
     {
         id: 2,
-        title: "Smart Management",
-        description: "Effortlessly organize students, batches, and staff in one centralized platform. Access data anytime, anywhere.",
-        icon: <StudentsIcon className="w-24 h-24 text-blue-500" />,
-        color: "bg-blue-50 dark:bg-gray-800"
+        title: "Smart Attendance",
+        description: "Ditch the paper registers. Mark student and staff attendance with a single tap and send instant automated SMS alerts to parents for absentees.",
+        icon: <AttendanceIcon className="w-24 h-24 text-green-600" />,
+        color: "bg-green-50 dark:bg-gray-900"
     },
     {
         id: 3,
-        title: "Automated Operations",
-        description: "Track attendance, manage fee collections, and generate receipts automatically. Say goodbye to manual paperwork.",
-        icon: <FeesIcon className="w-24 h-24 text-green-500" />,
-        color: "bg-green-50 dark:bg-gray-800"
+        title: "Class Scheduling",
+        description: "Organize your institute's day effortlessly. Create conflict-free timetables, manage faculty schedules, and notify everyone of changes in real-time.",
+        icon: <TimetableIcon className="w-24 h-24 text-pink-500" />,
+        color: "bg-pink-50 dark:bg-gray-900"
     },
     {
         id: 4,
-        title: "Actionable Insights",
-        description: "Gain valuable insights with detailed reports on performance, finance, and growth to make informed decisions.",
+        title: "Insightful Reports",
+        description: "Make data-driven decisions. Visualise fee collections, track attendance trends, and monitor academic performance with detailed, downloadable reports.",
         icon: <ReportsIcon className="w-24 h-24 text-orange-500" />,
-        color: "bg-orange-50 dark:bg-gray-800"
+        color: "bg-orange-50 dark:bg-gray-900"
+    },
+    {
+        id: 5,
+        title: "Affordable Subscriptions",
+        description: "Enterprise-grade features at pocket-friendly rates. Start with a free trial and choose a flexible plan that scales with your institute's growth.",
+        icon: <CreditCardIcon className="w-24 h-24 text-blue-600" />,
+        color: "bg-blue-50 dark:bg-gray-900"
     }
 ];
 
@@ -65,7 +73,7 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
     const slide = slides[currentSlide];
 
     return (
-        <div className={`min-h-screen flex flex-col justify-between transition-colors duration-500 ${slide.color}`}>
+        <div className={`min-h-screen flex flex-col justify-between transition-colors duration-500 ${slide.color} overflow-hidden`}>
             {/* Top Navigation */}
             <div className="flex justify-end p-6">
                 <button 

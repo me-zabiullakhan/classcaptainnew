@@ -1,4 +1,4 @@
-const CACHE_NAME = 'class-captain-cache-v1';
+const CACHE_NAME = 'optilearn-cache-v1';
 const urlsToCache = [
   '/',
   '/index.html',

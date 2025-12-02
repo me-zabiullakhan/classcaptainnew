@@ -23,7 +23,7 @@ export function SubscriptionExpiredPage({ onNavigate, onLogout, academy, onSubsc
                     </div>
                     <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100 mb-3">Subscription Expired</h2>
                     <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6">
-                        Your trial period has ended. Please choose a subscription plan to continue using Class Captain and manage your institute.
+                        Your trial period has ended. Please choose a subscription plan to continue using OptiLearn and manage your institute.
                     </p>
                     <div className="flex flex-col gap-3">
                         <button

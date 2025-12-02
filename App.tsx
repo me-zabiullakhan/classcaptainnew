@@ -451,7 +451,7 @@ export default function App() {
     useEffect(() => {
         if (!currentUser || isPlaceholderConfig || isDemoMode) {
             if (isDemoMode) {
-                setAcademy({ id: 'demo-academy-id', academyId: 'DEMO', name: 'Demo Academy', adminUid: 'demo-admin-uid', adminEmail: 'demo@classcaptain.com', status: 'active', subscriptionStatus: 'active' });
+                setAcademy({ id: 'demo-academy-id', academyId: 'DEMO', name: 'Demo Academy', adminUid: 'demo-admin-uid', adminEmail: 'demo@optilearn.com', status: 'active', subscriptionStatus: 'active' });
                 setStudents(demoStudents);
                 setBatches(demoBatches);
                 setStaff(demoStaff);

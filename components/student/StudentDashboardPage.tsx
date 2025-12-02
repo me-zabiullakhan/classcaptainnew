@@ -198,7 +198,7 @@ export function StudentDashboardPage({ student, academy, feeCollections, batches
                 {/* Banner */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
                     <div className="p-4 bg-gradient-to-r from-blue-900 to-blue-700 text-white">
-                        <p className="text-xs font-bold opacity-80">CLASS CAPTAIN</p>
+                        <p className="text-xs font-bold opacity-80">OPTILEARN</p>
                         <h2 className="text-lg font-bold">ADMISSIONS OPEN FOR</h2>
                         <h3 className="text-2xl font-extrabold text-yellow-300">II PUC COMMERCE</h3>
                         <p className="text-sm font-semibold">FOR YEAR 2025-26</p>

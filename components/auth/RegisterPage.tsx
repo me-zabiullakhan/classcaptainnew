@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { BuildingIcon } from '../icons/BuildingIcon';
 import { EmailIcon } from '../icons/EmailIcon';
@@ -206,7 +207,7 @@ export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
     };
 
     return (
-        <AuthLayout title="Create Your Account" subtitle="Register your coaching institute with Class Captain">
+        <AuthLayout title="Create Your Account" subtitle="Register your coaching institute with OptiLearn">
             <AuthCard>
                 <form onSubmit={handleRegister} className="space-y-4">
                     <FormInput icon={<BuildingIcon className="w-5 h-5" />} label="Institute Name" type="text" name="instituteName" placeholder="Enter institute name" required value={instituteName} onChange={e => setInstituteName(e.target.value)} />

@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { DataUsageIcon } from './icons/DataUsageIcon';
 
@@ -15,7 +16,7 @@ export function DataConsentModal({ onAccept }: DataConsentModalProps): React.Rea
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3">Internet Connection Required</h2>
                 <p className="text-sm sm:text-base text-gray-600 mb-6">
-                    Class Captain requires an internet connection to sync data in real-time. Please be aware that using this application on a mobile network may consume your mobile data and could result in charges from your provider.
+                    OptiLearn requires an internet connection to sync data in real-time. Please be aware that using this application on a mobile network may consume your mobile data and could result in charges from your provider.
                 </p>
                 <button 
                     onClick={onAccept}
