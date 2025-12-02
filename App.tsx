@@ -1048,7 +1048,7 @@ export default function App() {
             // 2. Create a transaction record for the payment
             const transactionRef = doc(collection(db, `academies/${academy.id}/transactions`));
             const transactionData: Omit<Transaction, 'id'> = {
-                type: 'Income',
+                type: 'Expense',
                 category: 'Subscription',
                 amount: paymentDetails.amount / 100, // Convert from paise to rupees
                 paymentMethod: 'Card', // Assuming online payment

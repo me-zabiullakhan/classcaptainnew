@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import { BuildingIcon } from '../icons/BuildingIcon';
 import { EmailIcon } from '../icons/EmailIcon';
@@ -41,7 +40,7 @@ export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
     const [adminName, setAdminName] = React.useState('');
     const [academyId, setAcademyId] = React.useState('');
     const [idStatus, setIdStatus] = React.useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
-    const debouncedAcademyId = useDebounce(academyId, 200);
+    const debouncedAcademyId = useDebounce(academyId, 800);
 
 
     React.useEffect(() => {
@@ -72,10 +71,26 @@ export function RegisterPage({ onNavigateToLogin }: RegisterPageProps) {
         }
 
         const checkId = async () => {
+            // FIX: Ensure we have at least an anonymous session to satisfy Firestore security rules
+            // which require request.auth != null for listing academies.
+            if (!auth.currentUser) {
+                try {
+                    await auth.signInAnonymously();
+                } catch (e) {
+                    console.error("Failed to sign in anonymously for ID check:", e);
+                    // We continue, as the query will likely fail, but the error handling below will catch it.
+                }
+            }
+
             setIdStatus('checking');
-            const q = query(collection(db, "academies"), where("academyId", "==", debouncedAcademyId));
-            const querySnapshot = await getDocs(q);
-            setIdStatus(querySnapshot.empty ? 'available' : 'taken');
+            try {
+                const q = query(collection(db, "academies"), where("academyId", "==", debouncedAcademyId));
+                const querySnapshot = await getDocs(q);
+                setIdStatus(querySnapshot.empty ? 'available' : 'taken');
+            } catch (err) {
+                console.error("Error checking ID availability", err);
+                setIdStatus('idle'); // fallback or handle error
+            }
         };
 
         checkId();
