@@ -68,10 +68,10 @@ const plans = [
     { 
         id: 'monthly', 
         title: 'Monthly', 
-        price: '₹499', 
+        price: '₹1', 
         period: 'mo', 
         months: 1, 
-        amount: 49900, 
+        amount: 100, 
         features: [`Up to ${formatLimit(PLATFORM_CONFIG.plans.monthly.limit)} students`, "All core features", "Email support"] 
     },
     { 
@@ -171,16 +171,16 @@ export function SubscriptionPage({ onBack, academy, onSubscribe, isModal = false
             color = daysLeft > 0 ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" : color;
             dateInfo = `Expires on: ${trialEndsAt.toDate().toLocaleDateString()}`;
         } else if (subscriptionStatus === 'active' && subscriptionEndsAt) {
-            const endDate = subscriptionEndsAt.toDate().toLocaleDateString();
+            const endDate = subscriptionEndsAt.toDate();
             text = `Plan Active: ${academy.plan ? academy.plan.charAt(0).toUpperCase() + academy.plan.slice(1) : ''}`;
             color = "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300";
-            dateInfo = `Expires on: ${endDate}`;
+            dateInfo = `Expires on: ${endDate.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}`;
         }
         
         return (
             <div className={`p-4 rounded-lg flex flex-col items-center justify-center ${color} mb-6 border`}>
                 <span className="font-bold text-lg">{text}</span>
-                {dateInfo && <span className="text-sm mt-1 opacity-90">{dateInfo}</span>}
+                {dateInfo && <span className="text-sm mt-1 opacity-90 font-medium">{dateInfo}</span>}
             </div>
         );
     };

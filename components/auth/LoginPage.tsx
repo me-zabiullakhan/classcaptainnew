@@ -70,6 +70,67 @@ const AcademyLoginFailedPopup = ({ onCancel, onRegister }: { onCancel: () => voi
     </div>
 );
 
+const ForgotPasswordModal = ({ onClose, initialEmail }: { onClose: () => void, initialEmail: string }) => {
+    const [email, setEmail] = React.useState(initialEmail);
+    const [isLoading, setIsLoading] = React.useState(false);
+    const [status, setStatus] = React.useState<{ type: 'success' | 'error', message: string } | null>(null);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if(!email) return;
+        setIsLoading(true);
+        setStatus(null);
+        try {
+            await auth.sendPasswordResetEmail(email);
+            setStatus({ type: 'success', message: 'Password reset email sent! Check your inbox.' });
+        } catch (error: any) {
+            console.error(error);
+            let msg = "Failed to send reset email.";
+            if (error.code === 'auth/user-not-found') msg = "No account found with this email.";
+            if (error.code === 'auth/invalid-email') msg = "Invalid email address.";
+            setStatus({ type: 'error', message: msg });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fade-in p-4">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg w-full max-w-sm mx-auto">
+                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">Reset Password</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Enter your email to receive a password reset link.</p>
+                
+                <form onSubmit={handleSubmit}>
+                    <FormInput
+                        icon={<EmailIcon className="w-5 h-5" />}
+                        label="Email Address"
+                        type="email"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        required
+                        placeholder="admin@example.com"
+                    />
+                    
+                    {status && (
+                        <div className={`p-3 rounded-lg text-sm mb-4 ${status.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {status.message}
+                        </div>
+                    )}
+
+                    <div className="flex gap-3">
+                        <button type="button" onClick={onClose} className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-bold py-2.5 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit" disabled={isLoading || (status?.type === 'success')} className="flex-1 bg-indigo-600 text-white font-bold py-2.5 rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-indigo-300">
+                            {isLoading ? 'Sending...' : 'Send Link'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
 const DemoCredentials: React.FC<{ credentials: Record<string, string> }> = ({ credentials }) => (
     <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg border dark:border-gray-600">
         <p className="font-bold text-center mb-1 text-gray-600 dark:text-gray-300">For Demo</p>
@@ -84,6 +145,7 @@ const DemoCredentials: React.FC<{ credentials: Record<string, string> }> = ({ cr
 
 const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { setIsLoading: (l:boolean)=>void, setError: (e:string)=>void, onLoginFailed: () => void, onLogin: (user: CurrentUser) => void }) => {
     const [email, setEmail] = React.useState('');
+    const [showForgot, setShowForgot] = React.useState(false);
 
     React.useEffect(() => {
         const prefilledEmail = sessionStorage.getItem('registration_email');
@@ -167,7 +229,17 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { 
                 />
                 <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" name="password" placeholder="Enter your password" required />
                 
-                <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4">
+                <div className="flex justify-end -mt-3 mb-4">
+                    <button 
+                        type="button" 
+                        onClick={() => setShowForgot(true)}
+                        className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300"
+                    >
+                        Forgot Password?
+                    </button>
+                </div>
+
+                <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md">
                     Sign in
                 </button>
                 <DemoCredentials credentials={{ Email: 'demo@classcaptain.com', Password: 'demo123' }} />
@@ -186,6 +258,8 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { 
                 <GoogleIcon className="w-5 h-5" />
                 Sign in with Google
             </button>
+            
+            {showForgot && <ForgotPasswordModal onClose={() => setShowForgot(false)} initialEmail={email} />}
         </>
     );
 };
@@ -362,11 +436,6 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
                         </button>
                     </p>
                 )}
-                <div className="pt-4 border-t border-gray-200 dark:border-gray-700 mt-4">
-                    <a href="/superadmin/" className="text-xs text-gray-400 hover:text-indigo-500 transition-colors">
-                        Super Admin Portal
-                    </a>
-                </div>
             </div>
             
             {showAcademyNotFound && (

@@ -1,7 +1,4 @@
 
-
-
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { SplashScreen as CapSplashScreen } from '@capacitor/splash-screen';
@@ -127,6 +124,7 @@ import { EditTransportRoutePage } from './components/EditTransportRoutePage';
 import { MapStudentsToRoutePage } from './components/MapStudentsToRoutePage';
 import { StudentTransportPage } from './components/student/StudentTransportPage';
 import { AIChatbot } from './components/AIChatbot';
+import { OnboardingPage } from './components/OnboardingPage';
 
 // Check if Firebase config is still the placeholder
 const isPlaceholderConfig = firebaseConfig.apiKey.includes('placeholder');
@@ -215,7 +213,12 @@ export default function App() {
     type Role = 'academy' | 'student' | 'staff';
 
     // App state
-    const [page, setPage] = useState('role-selection');
+    const [page, setPage] = useState(() => {
+        if (localStorage.getItem('onboardingCompleted')) {
+            return 'role-selection';
+        }
+        return 'onboarding';
+    });
     const [loginPageRole, setLoginPageRole] = useState<Role>('academy');
     const [pageParams, setPageParams] = useState<{[key: string]: any}>({});
     const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
@@ -329,7 +332,14 @@ export default function App() {
     useEffect(() => {
         if (isPlaceholderConfig) {
             setIsLoading(false);
-            setPage('login');
+            if (!localStorage.getItem('onboardingCompleted')) {
+                setPage('onboarding');
+            } else if (localStorage.getItem('lastSelectedRole')) {
+                 setLoginPageRole(localStorage.getItem('lastSelectedRole') as Role);
+                 setPage('login');
+            } else {
+                 setPage('role-selection');
+            }
             return;
         }
 
@@ -403,12 +413,17 @@ export default function App() {
                     // User is signed out.
                     setCurrentUser(null);
                     setAcademy(null);
-                    const lastSelectedRole = localStorage.getItem('lastSelectedRole');
-                    if (lastSelectedRole) {
-                        setLoginPageRole(lastSelectedRole as Role);
-                        setPage('login');
+                    
+                    if (localStorage.getItem('onboardingCompleted')) {
+                        const lastSelectedRole = localStorage.getItem('lastSelectedRole');
+                        if (lastSelectedRole) {
+                            setLoginPageRole(lastSelectedRole as Role);
+                            setPage('login');
+                        } else {
+                            setPage('role-selection');
+                        }
                     } else {
-                        setPage('role-selection');
+                        setPage('onboarding');
                     }
                 }
             } catch (error) {
@@ -462,19 +477,18 @@ export default function App() {
 
         const unsubscribers: (() => void)[] = [];
 
-        // Academy details for non-admins
-        if (currentUser.role !== 'admin') {
-            const academyDocRef = doc(db, 'academies', academyId);
-            const unsubAcademy = onSnapshot(academyDocRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    setAcademy({ id: docSnap.id, ...docSnap.data() } as Academy);
-                }
-            }, err => {
-                console.error("Error fetching academy details:", err);
-                setConnectionError("Failed to connect to the database. Some information may be missing.");
-            });
-            unsubscribers.push(unsubAcademy);
-        }
+        // Academy details listener - ENABLED FOR ADMINS TOO
+        // This ensures real-time updates for subscription status and profile changes
+        const academyDocRef = doc(db, 'academies', academyId);
+        const unsubAcademy = onSnapshot(academyDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setAcademy({ id: docSnap.id, ...docSnap.data() } as Academy);
+            }
+        }, err => {
+            console.error("Error fetching academy details:", err);
+            setConnectionError("Failed to connect to the database. Some information may be missing.");
+        });
+        unsubscribers.push(unsubAcademy);
 
         // FIX: Added 'transportRoutes' to the list of collections to subscribe to.
         const collectionsToSubscribe = ['batches', 'students', 'staff', 'fees', 'transactions', 'exams', 'enquiries', 'studyMaterial', 'homework', 'quizzes', 'leaveRequests', 'tasks', 'notices', 'transportRoutes', 'staffAttendance'];
@@ -1006,8 +1020,19 @@ export default function App() {
             throw new Error("Cannot subscribe in demo mode.");
         }
         try {
-            const now = new Date();
-            const endDate = new Date(now.getFullYear(), now.getMonth() + months, now.getDate());
+            // Calculate new end date based on current status
+            let startDate = new Date();
+            // If already active and not expired, extend from existing end date to avoid losing days
+            if (academy.subscriptionStatus === 'active' && academy.subscriptionEndsAt) {
+                const currentEnd = academy.subscriptionEndsAt.toDate();
+                if (currentEnd > startDate) {
+                    startDate = currentEnd;
+                }
+            }
+
+            const endDate = new Date(startDate);
+            // Add the purchased months to the start date
+            endDate.setMonth(endDate.getMonth() + months);
 
             const batch = writeBatch(db);
 
@@ -1343,27 +1368,26 @@ export default function App() {
     const handleDeleteStaffAttendance = createDeleteHandler('staffAttendance');
 
 
-    if (isPlaceholderConfig) {
-        return (
-            <div className="min-h-screen flex flex-col">
-                <ConfigurationWarning />
-                <LoginPage onLogin={handleLogin} onNavigateToRegister={() => setPage('register')} externalError={authError} clearExternalError={() => setAuthError(null)} initialRole="academy" onGoBack={() => {}} />
-            </div>
-        );
-    }
-
     if (isLoading) {
         return <SplashScreen />;
     }
 
     if (!currentUser) {
         switch (page) {
+            case 'onboarding':
+                return <OnboardingPage onComplete={() => {
+                    localStorage.setItem('onboardingCompleted', 'true');
+                    setPage('role-selection');
+                }} />;
             case 'role-selection':
                 return <RoleSelectionPage onSelectRole={(role) => {
                     localStorage.setItem('lastSelectedRole', role);
                     setLoginPageRole(role);
                     setPage('login');
                 }} onBack={() => {
+                     // Check if came from onboarding to handle back button correctly if needed, 
+                     // but history stack manipulation isn't fully implemented here. 
+                     // Simple back:
                      if (window.history.length > 1) {
                         window.history.back();
                     }
@@ -1373,17 +1397,22 @@ export default function App() {
             case 'complete-registration':
                 return <CompleteRegistrationPage onComplete={handleCompleteRegistration} onLogout={handleLogout} userEmail={auth.currentUser?.email || ''} externalError={authError} clearExternalError={() => setAuthError(null)} />;
             default:
-                return <LoginPage 
-                    onLogin={handleLogin} 
-                    onNavigateToRegister={() => setPage('register')} 
-                    externalError={authError} 
-                    clearExternalError={() => setAuthError(null)}
-                    initialRole={loginPageRole}
-                    onGoBack={() => {
-                        localStorage.removeItem('lastSelectedRole');
-                        setPage('role-selection');
-                    }}
-                />;
+                return (
+                    <div className="min-h-screen flex flex-col">
+                        {isPlaceholderConfig && <ConfigurationWarning />}
+                        <LoginPage 
+                            onLogin={handleLogin} 
+                            onNavigateToRegister={() => setPage('register')} 
+                            externalError={authError} 
+                            clearExternalError={() => setAuthError(null)}
+                            initialRole={loginPageRole}
+                            onGoBack={() => {
+                                localStorage.removeItem('lastSelectedRole');
+                                setPage('role-selection');
+                            }}
+                        />
+                    </div>
+                );
         }
     }
 
@@ -1619,6 +1648,7 @@ export default function App() {
     // Simplified render logic
     const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
         <div className={`min-h-screen font-sans ${theme} bg-gray-100 dark:bg-gray-900`}>
+            {isPlaceholderConfig && page !== 'onboarding' && <ConfigurationWarning />}
             {connectionError && <ConnectionErrorBanner message={connectionError} onClose={() => setConnectionError(null)} />}
             {isOffline && <OfflineIndicator />}
             
