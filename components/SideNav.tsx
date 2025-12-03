@@ -1,8 +1,7 @@
 
-
 import React from 'react';
 import type { FeatureItem } from '../types';
-import { LogoIcon } from './icons/LogoIcon';
+import { SystemLogo } from './SystemLogo';
 import { XMarkIcon } from './icons/XMarkIcon';
 import { BatchesIcon } from './icons/BatchesIcon';
 import { StudentsIcon } from './icons/StudentsIcon';
@@ -55,9 +54,10 @@ interface SideNavProps {
   onNavigate: (page: string) => void;
   onLogout: () => void;
   onShowDevPopup: (featureName: string) => void;
+  systemLogoUrl?: string | null;
 }
 
-export function SideNav({ isOpen, onClose, onNavigate, onLogout, onShowDevPopup }: SideNavProps): React.ReactNode {
+export function SideNav({ isOpen, onClose, onNavigate, onLogout, onShowDevPopup, systemLogoUrl }: SideNavProps): React.ReactNode {
   const handleNavigate = (page: string) => {
     onNavigate(page);
     onClose();
@@ -129,7 +129,7 @@ export function SideNav({ isOpen, onClose, onNavigate, onLogout, onShowDevPopup 
             {/* Header */}
             <header className="flex items-center justify-between p-4 border-b dark:border-gray-700">
                 <div className="flex items-center gap-2">
-                    <LogoIcon className="w-8 h-8 text-indigo-600 dark:text-indigo-400"/>
+                    <SystemLogo url={systemLogoUrl} className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
                     <h2 id="sidenav-title" className="text-lg font-bold text-gray-800 dark:text-gray-100">OptiLearn</h2>
                 </div>
                 <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Close menu">

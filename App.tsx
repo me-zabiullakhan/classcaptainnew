@@ -225,6 +225,7 @@ export default function App() {
     const [isLoading, setIsLoading] = useState(true);
     const [isNavOpen, setIsNavOpen] = useState(false);
     const [authError, setAuthError] = useState<string | null>(null);
+    const [systemLogoUrl, setSystemLogoUrl] = useState<string | null>(null);
 
     // Data state
     const [academy, setAcademy] = useState<Academy | null>(null);
@@ -281,6 +282,16 @@ export default function App() {
         initializeApp();
     }, []);
 
+    // Fetch global system logo
+    useEffect(() => {
+        if (isPlaceholderConfig) return;
+        const unsubConfig = onSnapshot(doc(db, 'system_config', 'main'), (docSnap) => {
+            if (docSnap.exists()) {
+                setSystemLogoUrl(docSnap.data().logoUrl || null);
+            }
+        });
+        return () => unsubConfig();
+    }, []);
 
     // Scroll to top on page change
     useEffect(() => {
@@ -1410,6 +1421,7 @@ export default function App() {
                                 localStorage.removeItem('lastSelectedRole');
                                 setPage('role-selection');
                             }}
+                            systemLogoUrl={systemLogoUrl}
                         />
                     </div>
                 );
@@ -1448,8 +1460,8 @@ export default function App() {
         switch (page) {
             case 'dashboard':
                 if (currentUser.role === 'admin') return <Dashboard onNavigate={setPage} academy={academy!} students={students} batches={batches} staff={staff} transactions={transactions} onShowDevPopup={setShowDevPopup} />;
-                if (currentUser.role === 'student') return <StudentDashboardPage student={currentUser.data} academy={academy!} feeCollections={feeCollections} batches={batches} onNavigate={setPage} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme} onShowDevPopup={setShowDevPopup} />;
-                if (currentUser.role === 'staff') return <StaffDashboardPage onNavigate={setPage} academy={academy!} staff={currentUser.data} onShowDevPopup={setShowDevPopup} />;
+                if (currentUser.role === 'student') return <StudentDashboardPage student={currentUser.data} academy={academy!} feeCollections={feeCollections} batches={batches} onNavigate={setPage} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme} onShowDevPopup={setShowDevPopup} systemLogoUrl={systemLogoUrl} />;
+                if (currentUser.role === 'staff') return <StaffDashboardPage onNavigate={setPage} academy={academy!} staff={currentUser.data} onShowDevPopup={setShowDevPopup} systemLogoUrl={systemLogoUrl} />;
                 return null;
 
             // Admin pages
@@ -1639,8 +1651,8 @@ export default function App() {
                 // FIX: Calling setPage during render causes an infinite loop.
                 // Render the dashboard directly as a fallback.
                 if (currentUser.role === 'admin') return <Dashboard onNavigate={setPage} academy={academy!} students={students} batches={batches} staff={staff} transactions={transactions} onShowDevPopup={setShowDevPopup} />;
-                if (currentUser.role === 'student') return <StudentDashboardPage student={currentUser.data} academy={academy!} feeCollections={feeCollections} batches={batches} onNavigate={setPage} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme} onShowDevPopup={setShowDevPopup} />;
-                if (currentUser.role === 'staff') return <StaffDashboardPage onNavigate={setPage} academy={academy!} staff={currentUser.data} onShowDevPopup={setShowDevPopup} />;
+                if (currentUser.role === 'student') return <StudentDashboardPage student={currentUser.data} academy={academy!} feeCollections={feeCollections} batches={batches} onNavigate={setPage} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme} onShowDevPopup={setShowDevPopup} systemLogoUrl={systemLogoUrl} />;
+                if (currentUser.role === 'staff') return <StaffDashboardPage onNavigate={setPage} academy={academy!} staff={currentUser.data} onShowDevPopup={setShowDevPopup} systemLogoUrl={systemLogoUrl} />;
                 return null;
         }
     };
@@ -1655,7 +1667,7 @@ export default function App() {
             {currentUser?.role === 'admin' && academy && (
                  <>
                      {page === 'dashboard' && <Header academy={academy} onLogout={handleLogout} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme} onNavigate={setPage} notificationCount={notificationCount} />}
-                     <SideNav isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} onNavigate={setPage} onLogout={handleLogout} onShowDevPopup={setShowDevPopup} />
+                     <SideNav isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} onNavigate={setPage} onLogout={handleLogout} onShowDevPopup={setShowDevPopup} systemLogoUrl={systemLogoUrl} />
                      <main>{children}</main>
                      {page === 'dashboard' && <BottomNav onNavigate={setPage} activePage={page} onOpenChatbot={() => setIsChatbotOpen(true)} />}
                  </>
@@ -1663,7 +1675,7 @@ export default function App() {
             
             {currentUser?.role === 'student' && academy && (
                 <>
-                    <StudentSideNav isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} onNavigate={setPage} onLogout={handleLogout} />
+                    <StudentSideNav isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} onNavigate={setPage} onLogout={handleLogout} systemLogoUrl={systemLogoUrl} />
                     <main>{children}</main>
                 </>
             )}
@@ -1671,7 +1683,7 @@ export default function App() {
             {currentUser?.role === 'staff' && academy && (
                 <>
                     {page === 'dashboard' && <StaffHeader staffName={currentUser.data.name} academyName={academy.name} onLogout={handleLogout} onToggleNav={() => setIsNavOpen(true)} theme={theme} onToggleTheme={handleToggleTheme} onNavigate={setPage} notificationCount={notificationCount} />}
-                    <StaffSideNav isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} onNavigate={setPage} onLogout={handleLogout} staff={currentUser.data} onShowDevPopup={setShowDevPopup} />
+                    <StaffSideNav isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} onNavigate={setPage} onLogout={handleLogout} staff={currentUser.data} onShowDevPopup={setShowDevPopup} systemLogoUrl={systemLogoUrl} />
                     <main>{children}</main>
                 </>
             )}

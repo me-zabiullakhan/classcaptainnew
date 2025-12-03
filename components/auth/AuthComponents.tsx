@@ -1,8 +1,9 @@
+
 import React from 'react';
-import { FullLogoIcon } from '../icons/LogoIcon';
+import { SystemLogo } from '../SystemLogo';
 import { ArrowLeftIcon } from '../icons/ArrowLeftIcon';
 
-export const AuthLayout: React.FC<{ title: string, subtitle: string, children: React.ReactNode, onBack?: () => void }> = ({ title, subtitle, children, onBack }) => (
+export const AuthLayout: React.FC<{ title: string, subtitle: string, children: React.ReactNode, onBack?: () => void, systemLogoUrl?: string | null }> = ({ title, subtitle, children, onBack, systemLogoUrl }) => (
     <div className="min-h-screen flex flex-col justify-center items-center px-4 py-4 bg-gradient-to-br from-purple-50 to-slate-100 dark:from-indigo-900 dark:to-gray-900">
         {onBack && (
            <div className="absolute top-5 left-5">
@@ -13,7 +14,7 @@ export const AuthLayout: React.FC<{ title: string, subtitle: string, children: R
        )}
         <div className="text-center mb-4">
             <div className="flex justify-center mb-4">
-                <FullLogoIcon className="w-64" />
+                <SystemLogo url={systemLogoUrl} variant="full" className="w-auto" />
             </div>
             <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{title}</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">{subtitle}</p>

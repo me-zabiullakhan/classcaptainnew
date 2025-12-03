@@ -26,6 +26,7 @@ interface LoginPageProps {
     clearExternalError: () => void;
     initialRole: Role;
     onGoBack: () => void;
+    systemLogoUrl?: string | null;
 }
 
 const RoleSwitcher = ({ activeRole, onRoleChange }: { activeRole: Role, onRoleChange: (role: Role) => void }) => {
@@ -376,7 +377,7 @@ const StaffLoginForm = (props: any) => {
     );
 };
 
-export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearExternalError, initialRole, onGoBack }: LoginPageProps): React.ReactNode {
+export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearExternalError, initialRole, onGoBack, systemLogoUrl }: LoginPageProps): React.ReactNode {
     const [role, setRole] = React.useState<Role>(initialRole);
     const [isLoading, setIsLoading] = React.useState(false);
     const [error, setError] = React.useState('');
@@ -410,7 +411,7 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
         <>
         {showConfigError && <AuthErrorModal onClose={() => { setShowConfigError(false); setIsLoading(false); }} />}
 
-        <AuthLayout title="Welcome Back!" subtitle="Please sign in to continue" onBack={onGoBack}>
+        <AuthLayout title="Welcome Back!" subtitle="Please sign in to continue" onBack={onGoBack} systemLogoUrl={systemLogoUrl}>
             <AuthCard>
                 <RoleSwitcher activeRole={role} onRoleChange={handleRoleChange} />
                 

@@ -31,6 +31,7 @@ interface StudentDashboardPageProps {
     theme: 'light' | 'dark';
     onToggleTheme: () => void;
     onShowDevPopup: (featureName: string) => void;
+    systemLogoUrl?: string | null;
 }
 
 const studentFeatures = [
@@ -86,8 +87,8 @@ const CircularProgress = ({ percentage, color, label, subLabel }: { percentage: 
 
     return (
         <div className="flex flex-col items-center">
-            <div className="relative w-24 h-24">
-                <svg className="w-full h-full transform -rotate-90">
+            <div className="relative w-16 h-16 sm:w-24 sm:h-24 transition-all duration-300">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 96 96">
                     <circle
                         cx="48"
                         cy="48"
@@ -111,11 +112,11 @@ const CircularProgress = ({ percentage, color, label, subLabel }: { percentage: 
                     />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className={`text-xl font-bold ${color}`}>{percentage}%</span>
+                    <span className={`text-sm sm:text-xl font-bold ${color}`}>{percentage}%</span>
                 </div>
             </div>
-            <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mt-1">{label}</p>
-            {subLabel && <p className="text-[10px] text-gray-400">{subLabel}</p>}
+            <p className="text-[10px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 mt-1">{label}</p>
+            {subLabel && <p className="text-[9px] sm:text-[10px] text-gray-400 hidden sm:block">{subLabel}</p>}
         </div>
     );
 };
@@ -126,14 +127,14 @@ const AnimatedPieChart = ({ data }: { data: { label: string, value: number, colo
 
     if (total === 0) {
         return (
-            <div className="w-32 h-32 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                <span className="text-xs text-gray-400">No Data</span>
+            <div className="w-20 h-20 sm:w-32 sm:h-32 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center transition-all duration-300">
+                <span className="text-[10px] sm:text-xs text-gray-400">No Data</span>
             </div>
         );
     }
 
     return (
-        <div className="relative w-32 h-32">
+        <div className="relative w-20 h-20 sm:w-32 sm:h-32 transition-all duration-300">
             <svg viewBox="0 0 100 100" className="transform -rotate-90 w-full h-full">
                 {data.map((item, index) => {
                     const percent = item.value / total;
@@ -156,19 +157,17 @@ const AnimatedPieChart = ({ data }: { data: { label: string, value: number, colo
                         />
                     );
                 })}
-                {/* Center hole for Donut effect */}
-                {/* <circle r="30" cx="50" cy="50" fill="white" /> */} 
             </svg>
         </div>
     );
 };
 
 const StatCard = ({ title, count, total, colorClass, labelColor }: { title: string, count: number, total: number, colorClass: string, labelColor: string }) => (
-    <div className={`p-3 rounded-xl flex-1 flex flex-col justify-between ${colorClass} shadow-sm min-w-[80px]`}>
-        <p className={`text-xs font-bold uppercase tracking-wider ${labelColor}`}>{title}</p>
-        <div className="flex items-end justify-between mt-2">
-            <span className={`text-2xl font-extrabold ${labelColor}`}>{count}</span>
-            <span className={`text-xs opacity-70 mb-1 ${labelColor}`}>/ {total}</span>
+    <div className={`p-2.5 sm:p-3 rounded-xl flex-1 flex flex-col justify-between ${colorClass} shadow-sm min-w-[70px] sm:min-w-[80px]`}>
+        <p className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider ${labelColor}`}>{title}</p>
+        <div className="flex items-end justify-between mt-1 sm:mt-2">
+            <span className={`text-lg sm:text-2xl font-extrabold ${labelColor}`}>{count}</span>
+            <span className={`text-[10px] sm:text-xs opacity-70 mb-0.5 sm:mb-1 ${labelColor}`}>/ {total}</span>
         </div>
     </div>
 );
@@ -178,10 +177,21 @@ const StudentInsights = ({ student, academyId, batches }: { student: Student, ac
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let isMounted = true;
+        
         const fetchAttendance = async () => {
-            if (!student.batches || student.batches.length === 0) {
-                setLoading(false);
+            if (!academyId || !student.batches || student.batches.length === 0) {
+                if (isMounted) setLoading(false);
                 return;
+            }
+
+            const studentBatchIds = batches
+                .filter(b => student.batches.includes(b.name))
+                .map(b => b.id);
+
+            if (studentBatchIds.length === 0) {
+                 if (isMounted) setLoading(false);
+                 return;
             }
 
             const now = new Date();
@@ -189,28 +199,15 @@ const StudentInsights = ({ student, academyId, batches }: { student: Student, ac
             const month = now.getMonth();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             
-            // Build cache of student's batch IDs
-            const studentBatchIds = batches
-                .filter(b => student.batches.includes(b.name))
-                .map(b => b.id);
-
             let present = 0;
             let absent = 0;
             let leave = 0;
             let count = 0;
 
-            // Simple heuristic: Fetch last 7 days + today to show *some* data quickly without 30 reads
-            // For a full month report, we'd need a more efficient backend structure or aggregate doc.
-            // Here we iterate all days of current month because that's what the UI implies.
-            // Optimization: Fetch concurrently.
-            
             const datePromises = Array.from({ length: daysInMonth }, (_, i) => {
-                // Don't fetch future dates
                 if (i + 1 > now.getDate()) return null;
                 
                 const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`;
-                // We check the FIRST batch the student is in for simplicity in this dashboard view
-                // Ideally we check all, but attendance is usually marked per batch.
                 return getDoc(doc(db, `academies/${academyId}/batches/${studentBatchIds[0]}/attendance`, dateString));
             }).filter(Boolean);
 
@@ -227,66 +224,72 @@ const StudentInsights = ({ student, academyId, batches }: { student: Student, ac
                         }
                     }
                 });
-                setStats({ present, absent, leave, totalDays: count });
+                if (isMounted) setStats({ present, absent, leave, totalDays: count });
             } catch (e) {
                 console.error("Failed to fetch dashboard stats", e);
             } finally {
-                setLoading(false);
+                if (isMounted) setLoading(false);
             }
         };
 
         fetchAttendance();
+        
+        return () => {
+            isMounted = false;
+        };
     }, [student, academyId, batches]);
 
-    if (loading) return <div className="h-48 bg-white dark:bg-gray-800 rounded-2xl animate-pulse"></div>;
+    if (loading) return <div className="h-40 bg-white dark:bg-gray-800 rounded-2xl animate-pulse"></div>;
 
     const pieData = [
-        { label: 'Present', value: stats.present, color: '#4ade80' }, // green-400
-        { label: 'Absent', value: stats.absent, color: '#f87171' },   // red-400
-        { label: 'Leave', value: stats.leave, color: '#fbbf24' },     // amber-400
+        { label: 'Present', value: stats.present, color: '#4ade80' },
+        { label: 'Absent', value: stats.absent, color: '#f87171' },
+        { label: 'Leave', value: stats.leave, color: '#fbbf24' },
     ];
 
     const overallPercentage = stats.totalDays > 0 ? Math.round((stats.present / stats.totalDays) * 100) : 0;
-    const currentMonthName = new Date().toLocaleString('default', { month: 'long' });
+    const currentMonthName = new Date().toLocaleString('default', { month: 'short' });
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm overflow-hidden p-5 border border-gray-100 dark:border-gray-700">
-            <div className="flex items-center gap-2 mb-6">
-                <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-full">
-                    <ChartPieIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm overflow-hidden p-3 sm:p-5 border border-gray-100 dark:border-gray-700">
+            <div className="flex items-center gap-2 mb-3 sm:mb-6">
+                <div className="p-1.5 sm:p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-full">
+                    <ChartPieIcon className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-400" />
                 </div>
-                <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">Attendance Report</h2>
+                <h2 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100">Attendance Report</h2>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-8 items-center justify-center mb-8">
-                {/* Pie Chart Legend & Visual */}
-                <div className="flex items-center gap-4">
-                    <AnimatedPieChart data={pieData} />
-                    <div className="space-y-2">
+            <div className="flex flex-row flex-wrap sm:flex-nowrap gap-4 items-center justify-between sm:justify-center mb-4 sm:mb-8">
+                {/* Pie Chart & Legend - Compact Group */}
+                <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto justify-center sm:justify-start">
+                    <div className="w-20 h-20 sm:w-32 sm:h-32"> {/* Responsive size container */}
+                         <AnimatedPieChart data={pieData} />
+                    </div>
+                    <div className="space-y-1 sm:space-y-2">
                         <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-full bg-green-400"></span>
-                            <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Present</span>
+                            <span className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-400"></span>
+                            <span className="text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-300">Present</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-full bg-amber-400"></span>
-                            <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Leave</span>
+                            <span className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-amber-400"></span>
+                            <span className="text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-300">Leave</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-full bg-red-400"></span>
-                            <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Absent</span>
+                            <span className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-400"></span>
+                            <span className="text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-300">Absent</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Circular Progress */}
-                <div className="flex gap-6">
+                {/* Circular Progress - Compact Group */}
+                <div className="flex gap-4 sm:gap-6 w-full sm:w-auto justify-center sm:justify-start border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100 dark:border-gray-700">
                     <CircularProgress percentage={overallPercentage} color="text-indigo-600 dark:text-indigo-400" label="Overall" />
                     <CircularProgress percentage={overallPercentage} color="text-blue-500" label={currentMonthName} subLabel="This Month" />
                 </div>
             </div>
 
             {/* Bottom Stats Cards */}
-            <div className="flex gap-3 overflow-x-auto pb-2">
+            <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-1">
                 <StatCard 
                     title="Presents" 
                     count={stats.present} 
@@ -314,7 +317,7 @@ const StudentInsights = ({ student, academyId, batches }: { student: Student, ac
 };
 
 
-export function StudentDashboardPage({ student, academy, feeCollections, batches, onNavigate, onToggleNav, theme, onToggleTheme, onShowDevPopup }: StudentDashboardPageProps): React.ReactNode {
+export function StudentDashboardPage({ student, academy, feeCollections, batches, onNavigate, onToggleNav, theme, onToggleTheme, onShowDevPopup, systemLogoUrl }: StudentDashboardPageProps): React.ReactNode {
     
     const [showSchedulePopup, setShowSchedulePopup] = useState(false);
     const [showFeePopup, setShowFeePopup] = useState(false);

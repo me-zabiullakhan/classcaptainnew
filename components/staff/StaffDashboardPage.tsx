@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { FeatureItem, Academy, Staff, BatchAccessPermissions, DailySchedule, ScheduleItem } from '../../types';
 import { FeatureIcon } from '../FeatureIcon';
@@ -35,9 +36,10 @@ interface StaffDashboardPageProps {
     academy: Academy;
     staff: Staff;
     onShowDevPopup: (featureName: string) => void;
+    systemLogoUrl?: string | null;
 }
 
-export function StaffDashboardPage({ onNavigate, academy, staff, onShowDevPopup }: StaffDashboardPageProps): React.ReactNode {
+export function StaffDashboardPage({ onNavigate, academy, staff, onShowDevPopup, systemLogoUrl }: StaffDashboardPageProps): React.ReactNode {
   const { batchAccess } = staff;
 
   const photoUrl = staff.photo || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(staff.name)}`;

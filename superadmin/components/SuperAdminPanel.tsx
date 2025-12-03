@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { collection, getDocs, doc, updateDoc, deleteDoc, Timestamp, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, deleteDoc, Timestamp, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import type { Academy } from '../types';
 import { LogoIcon } from './icons/LogoIcon';
@@ -21,6 +22,8 @@ import { EyeIcon } from './icons/EyeIcon';
 import { PencilIcon } from './icons/PencilIcon';
 import { TerminalIcon } from './icons/TerminalIcon';
 import { RefreshIcon } from './icons/RefreshIcon';
+import { CameraIcon } from '../../components/icons/CameraIcon'; // Import from main components
+import { SystemLogo } from '../../components/SystemLogo'; // Import from main components
 
 type AcademyWithCounts = Academy & { studentCount: number; staffCount: number; countsLoaded?: boolean };
 type Tab = 'dashboard' | 'academies' | 'analytics' | 'settings';
@@ -243,6 +246,8 @@ export function SuperAdminPanel({ onLogout }: SuperAdminPanelProps): React.React
     const [subFilter, setSubFilter] = useState('all');
     const [managingSub, setManagingSub] = useState<AcademyWithCounts | null>(null);
     const [showTerminal, setShowTerminal] = useState(false);
+    const [systemLogoUrl, setSystemLogoUrl] = useState<string | null>(null);
+    const [isSavingLogo, setIsSavingLogo] = useState(false);
 
     // Initial load and Real-time listener for Academies
     useEffect(() => {
@@ -280,7 +285,17 @@ export function SuperAdminPanel({ onLogout }: SuperAdminPanelProps): React.React
             setIsLoading(false);
         });
 
-        return () => unsubscribe();
+        // Fetch system config for logo
+        const unsubConfig = onSnapshot(doc(db, 'system_config', 'main'), (docSnap) => {
+            if (docSnap.exists()) {
+                setSystemLogoUrl(docSnap.data().logoUrl || null);
+            }
+        });
+
+        return () => {
+            unsubscribe();
+            unsubConfig();
+        };
     }, []);
 
     // Effect to lazily load counts for academies that don't have them yet
@@ -313,6 +328,29 @@ export function SuperAdminPanel({ onLogout }: SuperAdminPanelProps): React.React
         return () => clearTimeout(timer);
     }, [academies.length]); // Re-run if list length changes (new academy added)
     
+    const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+                const base64String = reader.result as string;
+                setSystemLogoUrl(base64String);
+                
+                // Save to Firestore
+                setIsSavingLogo(true);
+                try {
+                    await setDoc(doc(db, 'system_config', 'main'), { logoUrl: base64String }, { merge: true });
+                } catch(err) {
+                    console.error("Failed to save logo:", err);
+                    setActionError("Failed to save system logo.");
+                } finally {
+                    setIsSavingLogo(false);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
      const handleSaveSubscription = async (academyId: string, updates: Partial<Academy>) => {
         const academyRef = doc(db, 'academies', academyId);
         try {
@@ -417,7 +455,7 @@ export function SuperAdminPanel({ onLogout }: SuperAdminPanelProps): React.React
             {/* Sidebar */}
             <aside className="w-64 bg-white border-r border-gray-200 p-4 flex flex-col shadow-sm z-10">
                 <div className="flex items-center space-x-3 mb-8 px-2">
-                    <LogoIcon className="w-10 h-10 text-indigo-600" />
+                    <SystemLogo url={systemLogoUrl} className="w-10 h-10" />
                     <div>
                         <h1 className="text-lg font-bold text-gray-900">Super Admin</h1>
                         <p className="text-xs text-gray-500">OptiLearn</p>
@@ -576,6 +614,38 @@ export function SuperAdminPanel({ onLogout }: SuperAdminPanelProps): React.React
                            {activeTab === 'settings' && (
                                 <div className="animate-fade-in-up">
                                     <h2 className="text-2xl font-bold mb-6">System Settings</h2>
+                                    
+                                     {/* System Branding Section */}
+                                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
+                                        <div className="flex items-center gap-4 mb-6">
+                                            <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center">
+                                                <EyeIcon className="w-6 h-6 text-indigo-600" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg font-bold text-gray-800">System Branding</h3>
+                                                <p className="text-sm text-gray-500">Update the global application logo</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-8">
+                                            <div className="flex flex-col items-center">
+                                                <div className="w-24 h-24 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden mb-3">
+                                                    <SystemLogo url={systemLogoUrl} className="w-16 h-16" />
+                                                </div>
+                                                <p className="text-xs text-gray-500">Current Logo</p>
+                                            </div>
+                                            <div className="flex-1">
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Upload New Logo (PNG/SVG)</label>
+                                                <label className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors w-fit">
+                                                    <CameraIcon className="w-5 h-5 text-gray-500" />
+                                                    <span className="text-sm text-gray-700">Choose File</span>
+                                                    <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                                                </label>
+                                                {isSavingLogo && <p className="text-xs text-indigo-600 mt-2 font-medium">Saving logo...</p>}
+                                                <p className="text-xs text-gray-400 mt-2">Recommended size: 512x512px. Transparent background.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                                         <div className="flex items-center gap-4 mb-6">
                                             <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center">
