@@ -18,7 +18,7 @@ import { TodaySchedulePopup } from './TodaySchedulePopup';
 import { FeeReminderPopup } from './FeeReminderPopup';
 import { db } from '../../firebaseConfig';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { ChartPieIcon } from '../superadmin/components/icons/ChartPieIcon';
+import { ChartPieIcon } from '../icons/ChartPieIcon';
 
 
 interface StudentDashboardPageProps {
