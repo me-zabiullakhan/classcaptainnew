@@ -1,4 +1,3 @@
-
 import type { Batch, Student, Staff, Transaction, Enquiry, TransportRoute, StaffAttendance } from './types';
 import { Timestamp } from 'firebase/firestore';
 
@@ -207,7 +206,6 @@ export const demoStaffAttendance: StaffAttendance[] = [
     }
 ];
 
-
 export const demoTransactions: Transaction[] = [
     {
         id: 'demo-tx-1',
@@ -276,3 +274,13 @@ export const demoTransportRoutes: TransportRoute[] = [
         monthlyFee: 80
     }
 ];
+
+export default {
+    demoBatches,
+    demoStudents,
+    demoStaff,
+    demoTransactions,
+    demoStaffAttendance,
+    demoEnquiries,
+    demoTransportRoutes
+};
