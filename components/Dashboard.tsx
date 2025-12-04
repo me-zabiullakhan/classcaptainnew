@@ -26,6 +26,7 @@ import { GraduationCapIcon } from './icons/GraduationCapIcon';
 import { EmailIcon } from './icons/EmailIcon';
 import { PhoneIcon } from './icons/PhoneIcon';
 import { BuildingIcon } from './icons/BuildingIcon';
+import NewLogo from '../public/logo.png';
 
 const features: FeatureItem[] = [
   { name: 'Batches', Icon: BatchesIcon, color: 'bg-teal-500' },
@@ -337,7 +338,7 @@ export function Dashboard({ onNavigate, academy, students, batches, staff, trans
       <div className="bg-indigo-600 text-white p-4 rounded-xl shadow-lg mb-6 flex items-center space-x-4">
           <div className="bg-white/30 w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0">
                {academy.logoUrl ? (
-                <img src={academy.logoUrl} alt="Academy Logo" className="w-full h-full rounded-full object-cover" />
+                <img src={NewLogo} alt="Academy Logo" className="w-full h-full rounded-full object-cover" />
               ) : (
                 <GraduationCapIcon className="w-9 h-9 text-white" />
               )}
