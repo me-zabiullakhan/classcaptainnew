@@ -274,3 +274,4 @@ export const demoTransportRoutes: TransportRoute[] = [
         driverContact: '9988776655',
         points: 'Main Square, Central Mall, Library Corner',
         monthlyFee: 80
+    }
