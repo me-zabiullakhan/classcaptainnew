@@ -17,13 +17,8 @@ export const FeatureIcon: React.FC<FeatureIconProps> = ({ name, Icon, color, onC
     }
   };
 
-  // New style for the icon container to add a shadow offset
-  const iconContainerStyle = {
-    filter: 'drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.25))',
-  };
-
   return (
-    <div
+    <div 
       className={`flex flex-col items-center justify-start group ${isClickable ? 'cursor-pointer' : ''}`}
       onClick={onClick}
       onKeyDown={handleKeyDown}
@@ -31,10 +26,8 @@ export const FeatureIcon: React.FC<FeatureIconProps> = ({ name, Icon, color, onC
       tabIndex={isClickable ? 0 : undefined}
       aria-label={isClickable ? name : undefined}
     >
-      <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-lg flex items-center justify-center text-white shadow-lg transform group-hover:scale-110 transition-transform duration-200 ${color}`}>
-        <div style={iconContainerStyle}>
-          <Icon className="w-7 h-7 sm:w-8 sm:h-8" />
-        </div>
+      <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-white shadow-lg transform group-hover:scale-110 transition-transform duration-200 ${color}`}>
+        <Icon className="w-7 h-7 sm:w-8 sm:h-8" />
       </div>
       <p className="mt-2 text-xs font-medium text-gray-700 dark:text-gray-300">{name}</p>
     </div>
