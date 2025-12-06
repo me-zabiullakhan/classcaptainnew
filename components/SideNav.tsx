@@ -24,6 +24,7 @@ import { AccountIcon } from './icons/AccountIcon';
 import { LogoutIcon } from './icons/LogoutIcon';
 import { TimetableIcon } from './icons/TimetableIcon';
 import { CreditCardIcon } from './icons/CreditCardIcon';
+import { ScaleIcon } from './icons/ScaleIcon';
 
 const features: Omit<FeatureItem, 'color'>[] = [
   { name: 'Batches', Icon: BatchesIcon },
@@ -44,6 +45,7 @@ const features: Omit<FeatureItem, 'color'>[] = [
   { name: 'To Do Task', Icon: TodoIcon },
   { name: 'Notice Board', Icon: NoticeIcon },
   { name: 'Transport', Icon: TransportIcon },
+  { name: 'Legal', Icon: ScaleIcon },
   { name: 'Settings', Icon: SettingsIcon },
 ];
 
@@ -101,6 +103,8 @@ export function SideNav({ isOpen, onClose, onNavigate, onLogout, onShowDevPopup,
         return () => handleNavigate('todo-task');
       case 'Notice Board':
         return () => handleNavigate('notice-board');
+      case 'Legal':
+        return () => handleNavigate('legal');
       default:
         return () => {
             onShowDevPopup(name);

@@ -1,3 +1,4 @@
+
 import type { Batch, Student, Staff, Transaction, Enquiry, TransportRoute, StaffAttendance } from './types';
 import { Timestamp } from 'firebase/firestore';
 
@@ -206,81 +207,60 @@ export const demoStaffAttendance: StaffAttendance[] = [
     }
 ];
 
+
 export const demoTransactions: Transaction[] = [
     {
         id: 'demo-tx-1',
         type: 'Income',
-        category: 'Stationery Sales',
-        amount: 1500,
-        paymentMethod: 'Cash',
-        description: 'Sold 10 notebooks and 20 pens',
-        date: Timestamp.fromMillis(Date.now() - 86400 * 5 * 1000), // 5 days ago
-        createdAt: Timestamp.fromMillis(Date.now() - 86400 * 5 * 1000),
+        category: 'Tuition Fees',
+        amount: 5000,
+        paymentMethod: 'UPI',
+        description: 'Fees from Bob Williams',
+        date: Timestamp.fromMillis(Date.now() - 86400 * 5000),
+        createdAt: Timestamp.now(),
     },
     {
         id: 'demo-tx-2',
         type: 'Expense',
-        category: 'Rent',
-        amount: 10000,
-        paymentMethod: 'Bank Transfer',
-        description: 'Monthly rent for premises',
-        date: Timestamp.fromMillis(Date.now() - 86400 * 2 * 1000), // 2 days ago
-        createdAt: Timestamp.fromMillis(Date.now() - 86400 * 2 * 1000),
-    },
-    {
-        id: 'demo-tx-3',
-        type: 'Expense',
         category: 'Electricity Bill',
-        amount: 2500,
-        paymentMethod: 'UPI',
-        description: 'Bill for last month',
-        date: Timestamp.fromMillis(Date.now() - 86400 * 10 * 1000), // 10 days ago
-        createdAt: Timestamp.fromMillis(Date.now() - 86400 * 10 * 1000),
-    },
+        amount: 1200,
+        paymentMethod: 'Bank Transfer',
+        description: 'May 2023 Bill',
+        date: Timestamp.fromMillis(Date.now() - 86400 * 10000),
+        createdAt: Timestamp.now(),
+    }
 ];
 
 export const demoEnquiries: Enquiry[] = [
     {
-        id: 'demo-enquiry-1',
-        studentName: 'Laura Palmer',
-        mobile: '5550101',
+        id: 'demo-enq-1',
+        studentName: 'John Doe',
+        mobile: '9988776655',
         interestedBatch: 'Morning Physics - Grade 12',
-        referenceSource: 'Referral',
-        followUpDate: Timestamp.fromMillis(Date.now() + 86400 * 2 * 1000), // 2 days from now
+        referenceSource: 'Google',
         status: 'New',
-        createdAt: Timestamp.fromMillis(Date.now() - 86400 * 1 * 1000), // 1 day ago
+        createdAt: Timestamp.now(),
     },
     {
-        id: 'demo-enquiry-2',
-        studentName: 'Dale Cooper',
-        mobile: '5550102',
-        email: 'coop@fbi.gov',
+        id: 'demo-enq-2',
+        studentName: 'Jane Smith',
+        mobile: '8877665544',
         interestedBatch: 'Evening Maths - Grade 11',
-        referenceSource: 'Google',
+        referenceSource: 'Walk-in',
         status: 'Follow-up',
-        notes: 'Called once, needs a callback next week.',
-        createdAt: Timestamp.fromMillis(Date.now() - 86400 * 5 * 1000), // 5 days ago
+        followUpDate: Timestamp.fromMillis(Date.now() + 86400000), // tomorrow
+        createdAt: Timestamp.now(),
     }
 ];
 
 export const demoTransportRoutes: TransportRoute[] = [
     {
         id: 'demo-route-1',
-        routeName: 'City Center Route',
+        routeName: 'Route 1 - North City',
         vehicleNumber: 'KA-01-AB-1234',
-        driverName: 'John Doe',
+        driverName: 'Ramesh Kumar',
         driverContact: '9988776655',
         points: 'Main Square, Central Mall, Library Corner',
-        monthlyFee: 80
+        monthlyFee: 800
     }
 ];
-
-export default {
-    demoBatches,
-    demoStudents,
-    demoStaff,
-    demoTransactions,
-    demoStaffAttendance,
-    demoEnquiries,
-    demoTransportRoutes
-};

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -83,37 +84,31 @@
 <script type="importmap">
 {
   "imports": {
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.0",
-    "vite": "https://aistudiocdn.com/vite@^7.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
-    "@capacitor/cli": "https://aistudiocdn.com/@capacitor/cli@^7.4.4",
-    "jspdf": "https://aistudiocdn.com/jspdf@^3.0.3",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "path": "https://aistudiocdn.com/path@^0.12.7",
     "html2canvas": "https://aistudiocdn.com/html2canvas@^1.4.1",
-    "firebase/": "https://aistudiocdn.com/firebase@^12.5.0/",
-    "@capacitor/core": "https://aistudiocdn.com/@capacitor/core@^7.4.4",
+    "@capacitor/cli": "https://aistudiocdn.com/@capacitor/cli@^7.4.4",
+    "vite": "https://aistudiocdn.com/vite@^7.2.6",
     "@capacitor/splash-screen": "https://aistudiocdn.com/@capacitor/splash-screen@^7.0.3",
+    "url": "https://aistudiocdn.com/url@^0.11.4",
+    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
     "@capacitor/status-bar": "https://aistudiocdn.com/@capacitor/status-bar@^7.0.3",
-    "@capacitor/share": "https://aistudiocdn.com/@capacitor/share@^7.0.2",
-    "@capacitor/filesystem": "https://aistudiocdn.com/@capacitor/filesystem@^7.1.4",
-    "path": "https://aistudiocdn.com/path@^0.12.7"
+    "@capacitor/core": "https://aistudiocdn.com/@capacitor/core@^7.4.4",
+    "jspdf": "https://aistudiocdn.com/jspdf@^3.0.4",
+    "@capacitor/filesystem": "https://aistudiocdn.com/@capacitor/filesystem@^7.1.5",
+    "@capacitor/share": "https://aistudiocdn.com/@capacitor/share@^7.0.2"
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(registration => console.log('SW registered'))
-            .catch(err => console.log('SW registration failed', err));
-        });
-      }
-    </script>
-  </body>
+    <script type="module" src="/src/index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
+</body>
 </html>

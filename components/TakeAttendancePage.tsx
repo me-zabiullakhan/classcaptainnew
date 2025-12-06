@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { Batch, Student, AttendanceStatus, Academy } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -13,6 +14,7 @@ import { BatchesIcon } from './icons/BatchesIcon';
 import { XMarkIcon } from './icons/XMarkIcon';
 import { SendAttendanceSmsModal } from './SendAttendanceSmsModal';
 import { LoadingSpinner } from './LoadingSpinner';
+import { EyeIcon } from './icons/EyeIcon';
 
 interface TakeAttendancePageProps {
   onBack: () => void;
@@ -21,6 +23,7 @@ interface TakeAttendancePageProps {
   academy: Academy;
   isDemoMode: boolean;
   onShowImage: (src: string) => void;
+  readOnly?: boolean;
 }
 
 const StudentInfoModal: React.FC<{ student: Student, onClose: () => void, onShowImage: (src: string) => void }> = ({ student, onClose, onShowImage }) => {
@@ -75,31 +78,39 @@ const StudentInfoModal: React.FC<{ student: Student, onClose: () => void, onShow
 
 const attendanceStatuses: AttendanceStatus[] = ['Present', 'Absent', 'Leave', 'Holiday'];
 
-const StatusButton: React.FC<{ status: AttendanceStatus, isActive: boolean, onClick: () => void }> = ({ status, isActive, onClick }) => {
-    const getButtonColors = (status: AttendanceStatus, active: boolean) => {
-        const common = 'px-3 py-1 text-xs rounded-full font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 shadow-sm flex-grow text-center';
+const StatusButton: React.FC<{ status: AttendanceStatus, isActive: boolean, onClick: () => void, disabled?: boolean }> = ({ status, isActive, onClick, disabled }) => {
+    const getButtonColors = (status: AttendanceStatus, active: boolean, disabled: boolean) => {
+        let base = 'px-3 py-1 text-xs rounded-full font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 shadow-sm flex-grow text-center';
+        
+        if (disabled && !active) {
+            return `${base} bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200`;
+        }
+        if (disabled && active) {
+             base += ' cursor-not-allowed opacity-80';
+        }
+
         switch (status) {
             case 'Present':
-                return active ? `${common} bg-green-600 text-white focus:ring-green-500` : `${common} bg-green-100 text-green-800 hover:bg-green-200 focus:ring-green-500`;
+                return active ? `${base} bg-green-600 text-white focus:ring-green-500` : `${base} bg-green-100 text-green-800 hover:bg-green-200 focus:ring-green-500`;
             case 'Absent':
-                return active ? `${common} bg-red-600 text-white focus:ring-red-500` : `${common} bg-red-100 text-red-800 hover:bg-red-200 focus:ring-red-500`;
+                return active ? `${base} bg-red-600 text-white focus:ring-red-500` : `${base} bg-red-100 text-red-800 hover:bg-red-200 focus:ring-red-500`;
             case 'Leave':
-                return active ? `${common} bg-yellow-500 text-white focus:ring-yellow-400` : `${common} bg-yellow-100 text-yellow-800 hover:bg-yellow-200 focus:ring-yellow-400`;
+                return active ? `${base} bg-yellow-500 text-white focus:ring-yellow-400` : `${base} bg-yellow-100 text-yellow-800 hover:bg-yellow-200 focus:ring-yellow-400`;
             case 'Holiday':
-                return active ? `${common} bg-purple-600 text-white focus:ring-purple-500` : `${common} bg-purple-100 text-purple-800 hover:bg-purple-200 focus:ring-purple-500`;
+                return active ? `${base} bg-purple-600 text-white focus:ring-purple-500` : `${base} bg-purple-100 text-purple-800 hover:bg-purple-200 focus:ring-purple-500`;
             case 'Not Set':
             default:
-                return active ? `${common} bg-gray-600 text-white focus:ring-gray-500` : `${common} bg-gray-200 text-gray-700 hover:bg-gray-300 focus:ring-gray-500`;
+                return active ? `${base} bg-gray-600 text-white focus:ring-gray-500` : `${base} bg-gray-200 text-gray-700 hover:bg-gray-300 focus:ring-gray-500`;
         }
     };
     return (
-        <button onClick={onClick} className={getButtonColors(status, isActive)}>
+        <button onClick={onClick} disabled={disabled} className={getButtonColors(status, isActive, !!disabled)}>
             {status}
         </button>
     );
 };
 
-const StudentAttendanceCard: React.FC<{ student: Student, batch: Batch, status: AttendanceStatus, onStatusChange: (studentId: string, status: AttendanceStatus) => void, onShowInfo: (student: Student) => void}> = ({ student, batch, status, onStatusChange, onShowInfo }) => {
+const StudentAttendanceCard: React.FC<{ student: Student, batch: Batch, status: AttendanceStatus, onStatusChange: (studentId: string, status: AttendanceStatus) => void, onShowInfo: (student: Student) => void, readOnly?: boolean }> = ({ student, batch, status, onStatusChange, onShowInfo, readOnly }) => {
     return (
         <div className="bg-white p-3 rounded-lg shadow-sm border">
             <div className="flex justify-between items-center mb-3">
@@ -114,14 +125,14 @@ const StudentAttendanceCard: React.FC<{ student: Student, batch: Batch, status: 
             </div>
             <div className="flex space-x-1.5">
                 {attendanceStatuses.map(s => (
-                    <StatusButton key={s} status={s} isActive={status === s} onClick={() => onStatusChange(student.id, s)} />
+                    <StatusButton key={s} status={s} isActive={status === s} onClick={() => onStatusChange(student.id, s)} disabled={readOnly} />
                 ))}
             </div>
         </div>
     );
 };
 
-export function TakeAttendancePage({ onBack, batch, students, academy, isDemoMode, onShowImage }: TakeAttendancePageProps): React.ReactNode {
+export function TakeAttendancePage({ onBack, batch, students, academy, isDemoMode, onShowImage, readOnly = false }: TakeAttendancePageProps): React.ReactNode {
     const [currentDate, setCurrentDate] = React.useState(new Date());
     const [attendance, setAttendance] = React.useState<Record<string, AttendanceStatus>>({});
     const [isLoading, setIsLoading] = React.useState(true);
@@ -196,6 +207,8 @@ export function TakeAttendancePage({ onBack, batch, students, academy, isDemoMod
     };
 
     const handleStatusChange = async (studentId: string, status: AttendanceStatus) => {
+        if (readOnly) return;
+        
         setSavingError(null);
         const oldStatus = attendance[studentId];
         setAttendance(prev => ({ ...prev, [studentId]: status }));
@@ -215,6 +228,8 @@ export function TakeAttendancePage({ onBack, batch, students, academy, isDemoMod
     };
 
     const handleSetAll = async (status: AttendanceStatus) => {
+        if (readOnly) return;
+
         setSavingError(null);
         const oldAttendance = { ...attendance };
         const newAttendance: Record<string, AttendanceStatus> = {};
@@ -249,10 +264,12 @@ export function TakeAttendancePage({ onBack, batch, students, academy, isDemoMod
                         <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-indigo-800" aria-label="Go back">
                             <ArrowLeftIcon className="w-6 h-6" />
                         </button>
-                        <h1 className="text-xl font-bold ml-2">Take Attendance</h1>
+                        <h1 className="text-xl font-bold ml-2">
+                            {readOnly ? 'View Attendance' : 'Take Attendance'}
+                        </h1>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <button onClick={() => setIsSmsModalOpen(true)} className="text-sm font-medium p-2 rounded-md hover:bg-indigo-800">SMS</button>
+                        {!readOnly && <button onClick={() => setIsSmsModalOpen(true)} className="text-sm font-medium p-2 rounded-md hover:bg-indigo-800">SMS</button>}
                         <button className="p-1 rounded-full hover:bg-indigo-800">
                             <MoreVertIcon className="w-6 h-6" />
                         </button>
@@ -270,14 +287,25 @@ export function TakeAttendancePage({ onBack, batch, students, academy, isDemoMod
                 </div>
             </div>
             
-            <div className="p-2 text-center flex-shrink-0">
-                 <p className="text-xs text-gray-500 mb-1">Click to set all students</p>
-                 <div className="flex space-x-1.5 justify-center">
-                    {attendanceStatuses.map(s => (
-                        <StatusButton key={s} status={s} isActive={false} onClick={() => handleSetAll(s)} />
-                    ))}
-                 </div>
-            </div>
+            {readOnly && (
+                <div className="bg-yellow-100 p-2 text-center border-b border-yellow-200">
+                    <p className="text-yellow-800 text-sm flex items-center justify-center gap-2">
+                        <EyeIcon className="w-4 h-4" />
+                        View Only Mode
+                    </p>
+                </div>
+            )}
+
+            {!readOnly && (
+                <div className="p-2 text-center flex-shrink-0">
+                     <p className="text-xs text-gray-500 mb-1">Click to set all students</p>
+                     <div className="flex space-x-1.5 justify-center">
+                        {attendanceStatuses.map(s => (
+                            <StatusButton key={s} status={s} isActive={false} onClick={() => handleSetAll(s)} />
+                        ))}
+                     </div>
+                </div>
+            )}
             
             <main className="flex-grow p-2 sm:p-3 overflow-y-auto relative">
                  {savingError && (
@@ -310,6 +338,7 @@ export function TakeAttendancePage({ onBack, batch, students, academy, isDemoMod
                                 status={attendance[student.id] || 'Not Set'}
                                 onStatusChange={handleStatusChange}
                                 onShowInfo={setSelectedStudentForInfo}
+                                readOnly={readOnly}
                             />
                         ))}
                     </div>

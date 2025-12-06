@@ -37,9 +37,10 @@ interface StaffDashboardPageProps {
     staff: Staff;
     onShowDevPopup: (featureName: string) => void;
     systemLogoUrl?: string | null;
+    isDemoMode?: boolean;
 }
 
-export function StaffDashboardPage({ onNavigate, academy, staff, onShowDevPopup, systemLogoUrl }: StaffDashboardPageProps): React.ReactNode {
+export function StaffDashboardPage({ onNavigate, academy, staff, onShowDevPopup, systemLogoUrl, isDemoMode }: StaffDashboardPageProps): React.ReactNode {
   const { batchAccess } = staff;
 
   const photoUrl = staff.photo || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(staff.name)}`;
@@ -50,7 +51,7 @@ export function StaffDashboardPage({ onNavigate, academy, staff, onShowDevPopup,
 
   useEffect(() => {
     const fetchStaffSchedule = async () => {
-        if (sessionStorage.getItem('staffDashboardPopupsShown') === 'true') {
+        if (sessionStorage.getItem('staffDashboardPopupsShown') === 'true' || isDemoMode) {
             setIsScheduleLoading(false);
             return;
         }
@@ -86,7 +87,7 @@ export function StaffDashboardPage({ onNavigate, academy, staff, onShowDevPopup,
     };
 
     fetchStaffSchedule();
-  }, [staff.id, academy.id]);
+  }, [staff.id, academy.id, isDemoMode]);
 
 
   const hasPermission = (perm: keyof BatchAccessPermissions) => {
@@ -124,6 +125,7 @@ export function StaffDashboardPage({ onNavigate, academy, staff, onShowDevPopup,
       case 'Leave Manager': return () => onNavigate('leave-manager');
       case 'Notice Board': return () => onNavigate('staff-notice-board');
       case 'My Attendance': return () => onNavigate('staff-attendance');
+      case 'Salary Details': return () => onNavigate('staff-salary');
       default: return () => onShowDevPopup(name);
     }
   }

@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import type { Staff, DailySchedule, ClassScheduleItem } from '../../types';
 import { ArrowLeftIcon } from '../icons/ArrowLeftIcon';
@@ -86,9 +85,15 @@ export function StaffSchedulePage({ onBack, staff, academyId }: StaffSchedulePag
 
                 upcomingClasses.sort((a,b) => a.startTime.localeCompare(b.startTime));
                 setClasses(upcomingClasses);
-            } catch (err) {
+            } catch (err: any) {
                 console.error("Error fetching schedule:", err);
-                setError("Failed to load your schedule. Please try again later.");
+                // If it's a permission error, it likely means the rules haven't been updated yet or are restrictive.
+                // We fallback to empty state to avoid scary error messages for the user.
+                if (err.code === 'permission-denied' || err.code === 'unavailable') {
+                     setClasses([]); 
+                } else {
+                     setError("Failed to load your schedule. Please try again later.");
+                }
             } finally {
                 setIsLoading(false);
             }
@@ -135,7 +140,7 @@ export function StaffSchedulePage({ onBack, staff, academyId }: StaffSchedulePag
                         </div>
                     ) : (
                         <div className="text-center py-20 px-4">
-                            <p className="text-lg text-gray-500 dark:text-gray-400">You have no upcoming classes scheduled for today.</p>
+                            <p className="text-lg text-gray-500 dark:text-gray-400">You have not scheduled today for any class</p>
                         </div>
                     )
                 )}

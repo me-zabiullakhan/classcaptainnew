@@ -1,15 +1,24 @@
+
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { resolve } from 'path';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, './src'),
+    },
+  },
   build: {
     rollupOptions: {
       input: {
-        main: resolve('index.html'),
-        superadmin: resolve('superadmin/index.html'),
+        main: resolve(__dirname, 'index.html'),
+        superadmin: resolve(__dirname, 'superadmin/index.html'),
       },
     },
   },

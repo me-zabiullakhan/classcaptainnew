@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { Batch, BatchAccessPermissions, AttendanceStatus } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -70,7 +71,8 @@ export function SelectBatchForAttendancePage({ onBack, batches, onSelectBatch, s
   const activeBatches = batches.filter(batch => {
     if (!batch.isActive) return false;
     if (staffPermissions) {
-        return !!staffPermissions[batch.id]?.attendance;
+        // Allow if batch is present in permissions object (assigned), regardless of specific 'attendance' flag
+        return Object.prototype.hasOwnProperty.call(staffPermissions, batch.id);
     }
     return true;
   });
@@ -157,8 +159,8 @@ export function SelectBatchForAttendancePage({ onBack, batches, onSelectBatch, s
           </div>
         ) : (
           <div className="text-center py-20 px-4">
-            <p className="text-lg text-gray-500">No batches assigned for attendance.</p>
-            <p className="text-sm text-gray-400 mt-2">Admin needs to grant you attendance permission for one or more batches.</p>
+            <p className="text-lg text-gray-500">No batches assigned.</p>
+            <p className="text-sm text-gray-400 mt-2">Admin needs to assign you to a batch first.</p>
           </div>
         )}
       </main>

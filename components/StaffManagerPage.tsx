@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import type { Staff } from '../types';
@@ -10,7 +9,7 @@ import { KeyIcon } from './icons/KeyIcon';
 const ToggleSwitch: React.FC<{ checked: boolean; onChange: () => void }> = ({ checked, onChange }) => (
     <button
         type="button"
-        className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${checked ? 'bg-indigo-600' : 'bg-gray-300'}`}
+        className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${checked ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'}`}
         onClick={onChange}
         aria-pressed={checked}
     >
@@ -44,13 +43,13 @@ export function StaffManagerPage({ onBack, staff, onManageAccess, onShowDevPopup
       <main className="flex-grow p-4 overflow-y-auto">
         {activeStaff.length === 0 ? (
           <div className="text-center py-20 px-4">
-            <p className="text-lg text-gray-500 mb-4">No active staff members found.</p>
-            <p className="text-gray-400">Go to Staff Options to add a new staff member.</p>
+            <p className="text-lg text-gray-500 dark:text-gray-400 mb-4">No active staff members found.</p>
+            <p className="text-gray-400 dark:text-gray-500">Go to Staff Options to add a new staff member.</p>
           </div>
         ) : (
           <div className="space-y-4 pb-4">
             {activeStaff.map(member => (
-              <div key={member.id} className="bg-white p-4 rounded-lg shadow-md border-l-4 border-indigo-500 flex flex-col justify-between">
+              <div key={member.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border-l-4 border-indigo-500 flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-start">
                       <div className="flex items-center space-x-3">
@@ -60,21 +59,21 @@ export function StaffManagerPage({ onBack, staff, onManageAccess, onShowDevPopup
                             className="w-12 h-12 rounded-full object-cover bg-gray-200"
                         />
                         <div>
-                            <h3 className="font-bold text-lg text-gray-800">{member.name}</h3>
-                            <p className="text-sm text-gray-500 mb-1">{member.staffId}</p>
+                            <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100">{member.name}</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{member.staffId}</p>
                         </div>
                       </div>
                        <div className="flex flex-col items-end">
                           <ToggleSwitch checked={member.isActive} onChange={() => onToggleStatus(member.id)} />
-                          <span className="text-xs text-gray-400 mt-1">{member.isActive ? 'Active' : 'Inactive'}</span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">{member.isActive ? 'Active' : 'Inactive'}</span>
                       </div>
                   </div>
                 </div>
 
-                <div className="border-t mt-4 pt-3 flex justify-end space-x-2">
+                <div className="border-t dark:border-gray-700 mt-4 pt-3 flex justify-end space-x-2">
                     <button
                       onClick={() => onShowDevPopup('Edit Staff')}
-                      className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                      className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                       aria-label={`Edit staff ${member.name}`}
                     >
                       <PencilIcon className="w-4 h-4" />
@@ -90,7 +89,7 @@ export function StaffManagerPage({ onBack, staff, onManageAccess, onShowDevPopup
                     </button>
                     <button
                       onClick={() => onShowDevPopup('Delete Staff')}
-                      className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors"
+                      className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-100 dark:bg-red-900/40 rounded-md hover:bg-red-200 dark:hover:bg-red-900/60 transition-colors"
                       aria-label={`Delete staff ${member.name}`}
                     >
                       <TrashIcon className="w-4 h-4" />

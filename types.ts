@@ -1,3 +1,4 @@
+
 import type { FC } from 'react';
 import type { Timestamp } from 'firebase/firestore';
 
@@ -164,7 +165,7 @@ export interface Transaction {
   type: 'Income' | 'Expense';
   category: string;
   amount: number;
-  paymentMethod: 'Cash' | 'UPI' | 'Bank Transfer' | 'Card' | 'Other';
+  paymentMethod: 'Cash' | 'UPI' | 'Bank Transfer' | 'Card' | 'Cheque' | 'Other';
   description: string;
   date: Timestamp;
   attachmentUrl?: string;
@@ -350,4 +351,17 @@ export interface StaffAttendance {
   durationMinutes: number; // calculated on save
   notes?: string;
   scheduleItemId?: string | null; // Link to the original schedule item if it exists
+}
+
+export interface SalaryPayment {
+  id: string; // Firestore document ID
+  staffId: string;
+  staffName: string;
+  month: string; // YYYY-MM
+  paymentDate: Timestamp;
+  amount: number; // Net Salary
+  paymentMethod: 'Cash' | 'Bank Transfer' | 'Cheque' | 'UPI';
+  remarks?: string;
+  transactionId?: string; // Link to the expense transaction
+  createdAt: Timestamp;
 }

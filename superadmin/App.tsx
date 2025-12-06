@@ -1,10 +1,8 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { LoginPage } from './components/LoginPage';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
 import type { CurrentUser } from './types';
-import { firebaseConfig } from './firebaseConfig';
+import { firebaseConfig, auth } from './firebaseConfig';
 import { ConfigurationWarning } from './components/ConfigurationWarning';
 
 export default function App() {
@@ -13,17 +11,26 @@ export default function App() {
     const isPlaceholderConfig = firebaseConfig.apiKey.includes('placeholder');
 
     useEffect(() => {
-        // Check for existing session
-        const storedUser = localStorage.getItem('optilearn_superadmin');
-        if (storedUser) {
-            try {
-                setCurrentUser(JSON.parse(storedUser));
-            } catch (e) {
-                console.error("Failed to parse stored session", e);
-                localStorage.removeItem('optilearn_superadmin');
+        const initAuth = async () => {
+            const storedUser = localStorage.getItem('optilearn_superadmin');
+            if (storedUser) {
+                try {
+                    // Restore firebase session if missing (e.g. page refresh)
+                    // Firestore rules require authenticated user
+                    if (!auth.currentUser) {
+                        await auth.signInAnonymously();
+                    }
+                    setCurrentUser(JSON.parse(storedUser));
+                } catch (e) {
+                    console.error("Failed to restore firebase session", e);
+                    // If we can't sign in to firebase, the app won't work.
+                    // Clear local session to force manual re-login
+                    localStorage.removeItem('optilearn_superadmin');
+                }
             }
-        }
-        setIsLoading(false);
+            setIsLoading(false);
+        };
+        initAuth();
     }, []);
 
     const handleLogin = (user: CurrentUser) => {
@@ -31,7 +38,12 @@ export default function App() {
         localStorage.setItem('optilearn_superadmin', JSON.stringify(user));
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        try {
+            await auth.signOut();
+        } catch (e) {
+            console.error("Sign out error", e);
+        }
         setCurrentUser(null);
         localStorage.removeItem('optilearn_superadmin');
     };

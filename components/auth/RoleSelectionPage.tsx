@@ -1,6 +1,7 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { AuthLayout } from './AuthComponents';
+import { LegalModal } from '../LegalPage';
 
 // Using text emojis for better platform consistency and to avoid external dependencies
 const ADMIN_EMOJI = '👨‍🏫';
@@ -51,58 +52,64 @@ const RoleCard: React.FC<RoleCardProps> = ({ role, title, description, emoji, co
 );
 
 export const RoleSelectionPage: React.FC<{ onSelectRole: (role: any) => void; onBack: () => void; }> = ({ onSelectRole, onBack }) => {
+    const [showLegal, setShowLegal] = useState(false);
     
     const handleRoleClick = (role: Role) => {
         if (role === 'superadmin') {
-            window.location.href = '/superadmin/';
+            // Explicitly pointing to index.html ensures the browser treats this as a navigation to a separate page/entry point
+            // rather than a path handled by the current single-page app router.
+            window.location.assign('/superadmin/index.html');
         } else {
             onSelectRole(role);
         }
     };
 
     return (
-        <AuthLayout title="Welcome Back" subtitle="Who is logging in today?" onBack={onBack}>
-            <div className="space-y-4 mt-2 perspective-1000">
-                <RoleCard 
-                    role="academy"
-                    title="Academy Admin"
-                    description="Manage institute, students, staff & finances."
-                    emoji={ADMIN_EMOJI}
-                    color="bg-blue-500"
-                    onClick={handleRoleClick}
-                    delay="0ms"
-                />
-                <RoleCard 
-                    role="staff"
-                    title="Teacher / Staff"
-                    description="Mark attendance, manage classes & results."
-                    emoji={TEACHER_EMOJI}
-                    color="bg-purple-500"
-                    onClick={handleRoleClick}
-                    delay="100ms"
-                />
-                <RoleCard 
-                    role="student"
-                    title="Student"
-                    description="View timetable, results, attendance & pay fees."
-                    emoji={STUDENT_EMOJI}
-                    color="bg-emerald-500"
-                    onClick={handleRoleClick}
-                    delay="200ms"
-                />
-                <RoleCard 
-                    role="superadmin"
-                    title="Super Admin"
-                    description="Platform owner control panel."
-                    emoji={SUPERADMIN_EMOJI}
-                    color="bg-red-500"
-                    onClick={handleRoleClick}
-                    delay="300ms"
-                />
-            </div>
-             <div className="text-center mt-8 text-xs text-gray-400 dark:text-gray-500">
-                <p>By signing in you agree to our <a href="#" className="underline hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Privacy Policy</a></p>
-            </div>
-        </AuthLayout>
+        <>
+            <AuthLayout title="Welcome Back" subtitle="Who is logging in today?" onBack={onBack}>
+                <div className="space-y-4 mt-2 perspective-1000">
+                    <RoleCard 
+                        role="academy"
+                        title="Academy Admin"
+                        description="Manage institute, students, staff & finances."
+                        emoji={ADMIN_EMOJI}
+                        color="bg-blue-500"
+                        onClick={handleRoleClick}
+                        delay="0ms"
+                    />
+                    <RoleCard 
+                        role="staff"
+                        title="Teacher / Staff"
+                        description="Mark attendance, manage classes & results."
+                        emoji={TEACHER_EMOJI}
+                        color="bg-purple-500"
+                        onClick={handleRoleClick}
+                        delay="100ms"
+                    />
+                    <RoleCard 
+                        role="student"
+                        title="Student"
+                        description="View timetable, results, attendance & pay fees."
+                        emoji={STUDENT_EMOJI}
+                        color="bg-emerald-500"
+                        onClick={handleRoleClick}
+                        delay="200ms"
+                    />
+                    <RoleCard 
+                        role="superadmin"
+                        title="Super Admin"
+                        description="Platform owner control panel."
+                        emoji={SUPERADMIN_EMOJI}
+                        color="bg-red-500"
+                        onClick={handleRoleClick}
+                        delay="300ms"
+                    />
+                </div>
+                 <div className="text-center mt-8 text-xs text-gray-400 dark:text-gray-500">
+                    <p>By signing in you agree to our <button onClick={() => setShowLegal(true)} className="underline hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors bg-transparent border-0 p-0">Privacy Policy</button></p>
+                </div>
+            </AuthLayout>
+            {showLegal && <LegalModal onClose={() => setShowLegal(false)} />}
+        </>
     );
 };

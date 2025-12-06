@@ -1,7 +1,5 @@
 
 
-
-
 import React from 'react';
 import type { Student, Batch, Enquiry, Academy } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
@@ -218,9 +216,13 @@ export function NewStudentPage({ onBack, onSave, batches, academyId, enquiryData
 
     const handleSave = async () => {
         // --- Limit Check Implementation ---
-        if (academy && academy.plan) {
-            const currentPlan = PLATFORM_CONFIG.plans[academy.plan] || PLATFORM_CONFIG.plans.monthly; // Default to monthly if undefined
-            const currentCount = students.length;
+        if (academy) {
+            const planKey = academy.plan || 'monthly';
+            // Default to monthly plan if key is invalid or missing
+            const currentPlan = PLATFORM_CONFIG.plans[planKey as keyof typeof PLATFORM_CONFIG.plans] || PLATFORM_CONFIG.plans.monthly;
+            
+            // Check count of ACTIVE students
+            const currentCount = students.filter(s => s.isActive).length;
             
             // Check if subscription status is strictly 'active' or 'trialing'
             const isSubActive = academy.subscriptionStatus === 'active' || academy.subscriptionStatus === 'trialing';
@@ -231,7 +233,7 @@ export function NewStudentPage({ onBack, onSave, batches, academyId, enquiryData
             }
 
             if (currentCount >= currentPlan.limit) {
-                alert(`You have reached the student limit for your ${currentPlan.label} (${currentPlan.limit} students). Please upgrade your plan to add more students.`);
+                alert(`You have reached the active student limit for your ${currentPlan.label} (${currentPlan.limit} students). Please upgrade your plan or deactivate old students to add more.`);
                 return;
             }
         }

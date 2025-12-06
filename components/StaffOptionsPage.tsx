@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { NewStaffIcon } from './icons/NewStaffIcon';
@@ -5,6 +6,7 @@ import { StudentsListIcon } from './icons/StudentsListIcon';
 import { InactiveStudentsIcon } from './icons/InactiveStudentsIcon';
 import { AttendanceIcon } from './icons/AttendanceIcon';
 import { ReportsIcon } from './icons/ReportsIcon';
+import { IncomeIcon } from './icons/IncomeIcon';
 
 interface StaffOptionsPageProps {
   onBack: () => void;
@@ -15,6 +17,7 @@ const staffOptions = [
   { name: 'Add New Staff', Icon: NewStaffIcon, key: 'new-staff' },
   { name: 'Active Staff List', Icon: StudentsListIcon, key: 'staff-manager' },
   { name: 'Mark Staff Attendance', Icon: AttendanceIcon, key: 'mark-staff-attendance' },
+  { name: 'Manage Salaries', Icon: IncomeIcon, key: 'manage-salaries' },
   { name: 'Staff Attendance Report', Icon: ReportsIcon, key: 'staff-attendance-report' },
   { name: 'Inactive Staff List', Icon: InactiveStudentsIcon, key: 'inactive-staff' },
 ];

@@ -17,7 +17,7 @@ import { TransportIcon } from '../icons/TransportIcon';
 import { TodaySchedulePopup } from './TodaySchedulePopup';
 import { FeeReminderPopup } from './FeeReminderPopup';
 import { db } from '../../firebaseConfig';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { ChartPieIcon } from '../icons/ChartPieIcon';
 
 
@@ -32,6 +32,7 @@ interface StudentDashboardPageProps {
     onToggleTheme: () => void;
     onShowDevPopup: (featureName: string) => void;
     systemLogoUrl?: string | null;
+    isDemoMode?: boolean;
 }
 
 const studentFeatures = [
@@ -172,7 +173,7 @@ const StatCard = ({ title, count, total, colorClass, labelColor }: { title: stri
     </div>
 );
 
-const StudentInsights = ({ student, academyId, batches }: { student: Student, academyId: string, batches: Batch[] }) => {
+const StudentInsights = ({ student, academyId, batches, isDemoMode }: { student: Student, academyId: string, batches: Batch[], isDemoMode?: boolean }) => {
     const [stats, setStats] = useState({ present: 0, absent: 0, leave: 0, totalDays: 0 });
     const [loading, setLoading] = useState(true);
 
@@ -180,6 +181,14 @@ const StudentInsights = ({ student, academyId, batches }: { student: Student, ac
         let isMounted = true;
         
         const fetchAttendance = async () => {
+            if (isDemoMode) {
+                if (isMounted) {
+                    setStats({ present: 5, absent: 1, leave: 0, totalDays: 6 });
+                    setLoading(false);
+                }
+                return;
+            }
+
             if (!academyId || !student.batches || student.batches.length === 0) {
                 if (isMounted) setLoading(false);
                 return;
@@ -237,7 +246,7 @@ const StudentInsights = ({ student, academyId, batches }: { student: Student, ac
         return () => {
             isMounted = false;
         };
-    }, [student, academyId, batches]);
+    }, [student, academyId, batches, isDemoMode]);
 
     if (loading) return <div className="h-40 bg-white dark:bg-gray-800 rounded-2xl animate-pulse"></div>;
 
@@ -317,7 +326,7 @@ const StudentInsights = ({ student, academyId, batches }: { student: Student, ac
 };
 
 
-export function StudentDashboardPage({ student, academy, feeCollections, batches, onNavigate, onToggleNav, theme, onToggleTheme, onShowDevPopup, systemLogoUrl }: StudentDashboardPageProps): React.ReactNode {
+export function StudentDashboardPage({ student, academy, feeCollections, batches, onNavigate, onToggleNav, theme, onToggleTheme, onShowDevPopup, systemLogoUrl, isDemoMode }: StudentDashboardPageProps): React.ReactNode {
     
     const [showSchedulePopup, setShowSchedulePopup] = useState(false);
     const [showFeePopup, setShowFeePopup] = useState(false);
@@ -329,6 +338,11 @@ export function StudentDashboardPage({ student, academy, feeCollections, batches
 
     useEffect(() => {
         const fetchSchedule = async () => {
+            if (isDemoMode) {
+                setIsScheduleLoading(false);
+                return null;
+            }
+
             const studentBatchIds = batches
                 .filter(b => student.batches.includes(b.name))
                 .map(b => b.id);
@@ -389,7 +403,7 @@ export function StudentDashboardPage({ student, academy, feeCollections, batches
         };
 
         runChecks();
-    }, [student, academy.id, batches, feeCollections]);
+    }, [student, academy.id, batches, feeCollections, isDemoMode]);
 
     const handleScheduleClose = () => {
         setShowSchedulePopup(false);
@@ -450,7 +464,7 @@ export function StudentDashboardPage({ student, academy, feeCollections, batches
                 </div>
 
                 {/* Quick Insights (Attendance Stats) */}
-                <StudentInsights student={student} academyId={academy.id} batches={batches} />
+                <StudentInsights student={student} academyId={academy.id} batches={batches} isDemoMode={isDemoMode} />
 
                 {/* Features Grid */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">

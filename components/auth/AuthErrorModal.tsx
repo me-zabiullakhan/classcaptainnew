@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { WarningIcon } from '../icons/WarningIcon';
 import { ClipboardDocumentIcon } from '../icons/ClipboardDocumentIcon';
@@ -34,7 +35,8 @@ service cloud.firestore {
 
       // Admin-only write access for most sub-collections.
       // Specific sub-collections like 'leaveRequests' have their own rules below.
-      match /(students|staff|fees|transactions|enquiries|studyMaterial|homework|quizzes|tasks|notices|transportRoutes|staffAttendance)/{docId} {
+      // Added salaryPayments and schedules to allow read access
+      match /(students|staff|fees|transactions|enquiries|studyMaterial|homework|quizzes|tasks|notices|transportRoutes|staffAttendance|salaryPayments|schedules)/{docId} {
         allow read: if request.auth != null;
         allow write: if isOwner(academyId);
       }

@@ -69,10 +69,10 @@ const plans = [
     { 
         id: 'monthly', 
         title: 'Monthly', 
-        price: '₹399', 
+        price: '₹1', 
         period: 'mo', 
         months: 1, 
-        amount: 39900, 
+        amount: 100, 
         features: [`Up to ${formatLimit(PLATFORM_CONFIG.plans.monthly.limit)} students`, "All core features", "Email support"] 
     },
     { 

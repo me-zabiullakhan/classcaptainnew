@@ -3,6 +3,7 @@ import type { CurrentUser } from '../types';
 import { FullLogoIcon } from './icons/LogoIcon';
 import { EmailIcon } from './icons/EmailIcon';
 import { LockIcon } from './icons/LockIcon';
+import { auth } from '../firebaseConfig';
 
 const AuthLayout: React.FC<{ title: string, subtitle: string, children: React.ReactNode }> = ({ title, subtitle, children }) => (
     <div className="min-h-screen flex flex-col justify-center items-center px-4 py-4 bg-slate-50 text-gray-900">
@@ -52,19 +53,34 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setIsLoading(true);
 
-        // Using static credentials for super admin as before
+        // Using static credentials for super admin
         if (email === 'admin@optilearn.com' && password === 'superadmin123') {
-            onLogin({
-                role: 'superadmin',
-                data: { uid: 'super-admin-static-uid', email: 'admin@optilearn.com' }
-            });
+            try {
+                // Ensure we have a firebase session to satisfy Firestore security rules
+                // checking request.auth != null
+                if (!auth.currentUser) {
+                    await auth.signInAnonymously();
+                }
+
+                onLogin({
+                    role: 'superadmin',
+                    data: { uid: 'super-admin-static-uid', email: 'admin@optilearn.com' }
+                });
+            } catch (err: any) {
+                console.error("Auth error:", err);
+                setError('Failed to establish secure connection with database. ' + (err.message || ''));
+                setIsLoading(false);
+            }
         } else {
             setError('Invalid super admin credentials.');
+            setIsLoading(false);
         }
     };
 
@@ -72,11 +88,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         <AuthLayout title="Super Admin Portal" subtitle="Platform Management">
             <AuthCard>
                 <form onSubmit={handleSubmit}>
-                    <FormInput icon={<EmailIcon className="w-5 h-5" />} label="Email Address" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-                    <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+                    <FormInput icon={<EmailIcon className="w-5 h-5" />} label="Email Address" type="email" value={email} onChange={e => setEmail(e.target.value)} required disabled={isLoading} />
+                    <FormInput icon={<LockIcon className="w-5 h-5" />} label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required disabled={isLoading} />
                     {error && <p className="text-red-500 text-sm text-center mt-2 font-medium">{error}</p>}
-                    <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4">
-                        Login
+                    <button type="submit" disabled={isLoading} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md mt-4 disabled:bg-indigo-400">
+                        {isLoading ? 'Signing in...' : 'Login'}
                     </button>
                 </form>
             </AuthCard>
