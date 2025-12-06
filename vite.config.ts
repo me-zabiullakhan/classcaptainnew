@@ -18,8 +18,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        superadmin: resolve(__dirname, 'superadmin/index.html'),
       },
+      external: ['@google/genai'],
     },
   },
 });
