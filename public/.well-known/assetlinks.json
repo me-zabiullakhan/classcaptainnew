@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.app.optilearn",
+    "sha256_cert_fingerprints": [
+      "32:E0:7B:A3:5D:A2:BE:06:1C:F1:B3:AF:39:58:C5:67:A4:D1:82:C2:A5:B5:AC:76:E7:3E:B1:D2:15:5B:DE:87"
+    ]
+  }
+}]
