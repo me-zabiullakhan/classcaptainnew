@@ -188,7 +188,7 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { 
         if (rawEmail === 'demo@optilearn.com' && rawPassword === 'demo123') {
             const demoAcademy: Academy = {
                 id: 'demo-academy-id', academyId: 'DEMO', name: 'Demo Academy',
-                adminUid: 'demo-admin-uid', adminEmail: 'demo@optilearn.com', status: 'active',
+                adminUid: 'demo-admin-uid', adminEmail: 'demo@optilearn.in', status: 'active',
             };
             onLogin({ role: 'admin', data: demoAcademy });
             setIsLoading(false);
