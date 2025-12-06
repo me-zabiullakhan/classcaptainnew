@@ -58,7 +58,7 @@ const AcademyLoginFailedPopup = ({ onCancel, onRegister }: { onCancel: () => voi
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in">
         <div className="bg-white p-6 rounded-2xl shadow-lg max-w-sm mx-4 text-center">
             <h3 className="text-lg font-bold text-gray-800">Account Not Found</h3>
-            <p className="text-gray-600 mt-2 mb-6">We couldn't find an academy account for that email. Please check for typos or register a new academy.</p>
+            <p className="text-gray-600 mt-2 mb-6">We couldn\'t find an academy account for that email. Please check for typos or register a new academy.</p>
             <div className="flex flex-col gap-3">
                 <button onClick={onRegister} className="w-full bg-indigo-600 text-white font-bold py-2.5 rounded-lg hover:bg-indigo-700 transition-colors">
                     Register Academy
@@ -185,10 +185,10 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { 
         const rawEmail = email;
         const rawPassword = passwordInput.value;
 
-        if (rawEmail === 'demo@optilearn.com' && rawPassword === 'demo123') {
+        if (rawEmail === 'demo@classcaptain.in' && rawPassword === 'demo123') {
             const demoAcademy: Academy = {
                 id: 'demo-academy-id', academyId: 'DEMO', name: 'Demo Academy',
-                adminUid: 'demo-admin-uid', adminEmail: 'demo@optilearn.in', status: 'active',
+                adminUid: 'demo-admin-uid', adminEmail: 'demo@classcaptain.in', status: 'active',
             };
             onLogin({ role: 'admin', data: demoAcademy });
             setIsLoading(false);
@@ -243,7 +243,7 @@ const AcademyLoginForm = ({ setIsLoading, setError, onLoginFailed, onLogin }: { 
                 <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md">
                     Sign in
                 </button>
-                <DemoCredentials credentials={{ Email: 'demo@optilearn.com', Password: 'demo123' }} />
+                <DemoCredentials credentials={{ Email: 'demo@classcaptain.in', Password: 'demo123' }} />
             </form>
 
             <div className="relative my-4">
@@ -431,7 +431,7 @@ export function LoginPage({ onLogin, onNavigateToRegister, externalError, clearE
             <div className="text-center mt-6 space-y-2">
                 {role === 'academy' && (
                     <p className="text-sm text-gray-600 dark:text-gray-300">
-                        Don't have an account?{' '}
+                        Don\'t have an account?{' '}
                         <button onClick={onNavigateToRegister} className="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
                             Register here
                         </button>

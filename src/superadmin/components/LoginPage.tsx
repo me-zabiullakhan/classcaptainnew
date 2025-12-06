@@ -61,7 +61,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         setIsLoading(true);
 
         // Using static credentials for super admin
-        if (email === 'admin@optilearn.com' && password === 'superadmin123') {
+        if (email === 'demo@classcaptain.in' && password === 'superadmin123') {
             try {
                 // Ensure we have a firebase session to satisfy Firestore security rules
                 // checking request.auth != null
@@ -71,7 +71,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
                 onLogin({
                     role: 'superadmin',
-                    data: { uid: 'super-admin-static-uid', email: 'admin@optilearn.com' }
+                    data: { uid: 'super-admin-static-uid', email: 'demo@classcaptain.in' }
                 });
             } catch (err: any) {
                 console.error("Auth error:", err);
